@@ -1,0 +1,20 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  
+  <defs>
+    <linearGradient id="pyShaft" x1="60" y1="6" x2="60" y2="114" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F2CE7A"></stop>
+      <stop offset="1" stop-color="#D4A94E" stop-opacity="0"></stop>
+    </linearGradient>
+  </defs>
+  
+  <circle cx="60" cy="60" r="52" stroke="currentColor" stroke-width="1.5" opacity="0.45"></circle>
+  
+  <circle cx="60" cy="60" r="30" stroke="#D4A94E" stroke-width="2"></circle>
+  
+  <path d="M52 8 L60 60 L68 8 Z" fill="url(#pyShaft)" opacity="0.9"></path>
+  
+  <circle cx="60" cy="60" r="5" fill="#F2CE7A"></circle>
+  
+  <line x1="8" y1="60" x2="22" y2="60" stroke="currentColor" stroke-width="1.5" opacity="0.5"></line>
+  <line x1="98" y1="60" x2="112" y2="60" stroke="currentColor" stroke-width="1.5" opacity="0.5"></line>
+</svg>

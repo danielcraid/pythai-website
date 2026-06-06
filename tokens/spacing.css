@@ -1,0 +1,77 @@
+/* ============================================================
+   PYTHAI — SPACING, RADII, SHADOWS, MOTION, LAYOUT
+   ============================================================ */
+
+:root {
+  /* ---- SPACING (4px base grid) ---- */
+  --space-0:  0;
+  --space-1:  0.25rem;  /* 4 */
+  --space-2:  0.5rem;   /* 8 */
+  --space-3:  0.75rem;  /* 12 */
+  --space-4:  1rem;     /* 16 */
+  --space-5:  1.5rem;   /* 24 */
+  --space-6:  2rem;     /* 32 */
+  --space-7:  2.5rem;   /* 40 */
+  --space-8:  3rem;     /* 48 */
+  --space-9:  4rem;     /* 64 */
+  --space-10: 6rem;     /* 96 */
+  --space-11: 8rem;     /* 128 */
+
+  /* ---- RADII — restrained. The sanctum is brutalist; corners
+     are crisp. Small radii on controls, sharp on big surfaces. ---- */
+  --radius-none: 0;
+  --radius-xs:   2px;
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   10px;
+  --radius-xl:   16px;
+  --radius-pill: 999px;
+
+  /* ---- BORDERS ---- */
+  --border-hair: 1px solid var(--border-subtle);
+  --border-line: 1px solid var(--border-strong);
+  --border-gold: 1px solid var(--border-oracle);
+
+  /* ---- SHADOWS — deep void shadows + oracle glow.
+     No soft web drop-shadows; the light is directional & warm. ---- */
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.5);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.55);
+  --shadow-lg:  0 16px 48px rgba(0,0,0,0.65);
+  --shadow-xl:  0 32px 80px rgba(0,0,0,0.7);
+  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.04);
+
+  /* glow rings — the prophecy light */
+  --glow-sm: 0 0 0 1px var(--border-oracle), 0 0 16px -2px var(--glow-oracle-soft);
+  --glow-md: 0 0 24px -4px var(--glow-oracle), 0 0 0 1px var(--border-oracle);
+  --glow-lg: 0 0 64px -8px var(--glow-oracle), 0 8px 40px rgba(0,0,0,0.6);
+  --glow-focus: 0 0 0 3px rgba(242, 206, 122, 0.28);
+
+  /* ---- GRADIENTS — the light shaft & metal ---- */
+  --grad-shaft: radial-gradient(120% 80% at 50% 0%,
+                  var(--glow-oracle-soft) 0%, transparent 60%);
+  --grad-gold:  linear-gradient(180deg, var(--oracle-bright) 0%, var(--oracle) 55%, var(--oracle-deep) 100%);
+  --grad-chrome: linear-gradient(165deg, var(--chrome-light) 0%, var(--chrome) 45%, var(--chrome-dark) 100%);
+  --grad-vignette: radial-gradient(140% 120% at 50% 30%, transparent 40%, var(--void) 100%);
+  --grad-fade-top: linear-gradient(180deg, var(--bg-base) 0%, transparent 100%);
+
+  /* ---- MOTION — slow, deliberate, oracular. Nothing bouncy. ---- */
+  /* deep ease-out, exhale */
+  --ease-oracle: cubic-bezier(0.16, 1, 0.3, 1); /* @kind other */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* @kind other */
+  --ease-glint:  cubic-bezier(0.4, 0, 0.1, 1); /* @kind other */
+  --dur-fast:   140ms; /* @kind other */
+  --dur-base:   260ms; /* @kind other */
+  --dur-slow:   480ms; /* @kind other */
+  --dur-reveal: 900ms; /* @kind other */
+
+  /* ---- LAYOUT ---- */
+  --container:    1240px;
+  --container-wide: 1480px;
+  --gutter:       var(--space-6);
+  --nav-h:        72px;
+  --z-base: 0; /* @kind other */
+  --z-raised: 10; /* @kind other */
+  --z-nav: 100; /* @kind other */
+  --z-overlay: 1000; /* @kind other */
+  --z-toast: 2000; /* @kind other */
+}

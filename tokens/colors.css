@@ -1,0 +1,81 @@
+/* ============================================================
+   PYTHAI — COLOR TOKENS
+   "The Oracle's Sanctum": cold brutalist concrete pierced by
+   warm oracular gold. Old-money oxblood + cybernetic chrome.
+   Dark-first. Every screen lives in the sanctum.
+   ============================================================ */
+
+:root {
+  /* ---- VOID & CONCRETE (cool neutral spine) ---- */
+  --void:       #08090C;  /* deepest background — the dark of the dome */
+  --obsidian:   #0E1014;  /* primary app surface */
+  --graphite:   #15181E;  /* raised surface / card base */
+  --slate:      #1D212A;  /* elevated card / input field */
+  --concrete:   #2A2F39;  /* hairline borders, dividers */
+  --iron:       #3A404C;  /* strong borders, inactive metal */
+  --ash:        #5A616E;  /* disabled text, faint labels */
+  --steel:      #7C8492;  /* secondary metal, muted icons */
+  --smoke:      #9BA3B2;  /* secondary text */
+  --mist:       #C3C9D4;  /* primary body text on dark */
+  --bone:       #E4DECE;  /* warm near-white, deep parchment */
+  --parchment:  #F4F0E6;  /* primary light text / paper surface */
+
+  /* ---- ORACLE GOLD (the light shaft — signature accent) ---- */
+  --oracle-deep:   #8A6526;  /* pressed / shadowed gold */
+  --oracle:        #D4A94E;  /* PRIMARY accent — the prophecy glow */
+  --oracle-bright: #F2CE7A;  /* highlight, glints, focus */
+  --oracle-pale:   #F7E4B6;  /* faintest gold tint for text on dark */
+
+  /* ---- OXBLOOD (old-money leather, secondary accent) ---- */
+  --oxblood-deep:  #4E1822;
+  --oxblood:       #7C2A38;  /* deep wine — the tie, the chair */
+  --oxblood-bright:#A8414F;
+
+  /* ---- CHROME (cybernetic metal) ---- */
+  --chrome-dark:   #6B7079;
+  --chrome:        #AEB4BE;  /* brushed silver mid */
+  --chrome-light:  #DCE0E7;  /* polished highlight */
+
+  /* ---- MARKET SEMANTICS ---- */
+  --bull:        #4FA578;  /* gains — muted sage emerald */
+  --bull-bright: #6FCF9A;
+  --bear:        #C4524C;  /* losses — brick red, harmonizes w/ oxblood */
+  --bear-bright: #E0726B;
+
+  /* ---- STATUS ---- */
+  --signal:      #5B8FB8;  /* info — cool steel blue */
+  --success:     var(--bull);
+  --warning:     var(--oracle);
+  --danger:      var(--bear);
+
+  /* ---- GLOWS (radial light, used in gradients/shadows) ---- */
+  --glow-oracle:    rgba(212, 169, 78, 0.45);
+  --glow-oracle-soft: rgba(242, 206, 122, 0.16);
+  --glow-oxblood:   rgba(168, 65, 79, 0.30);
+
+  /* ============================================================
+     SEMANTIC ALIASES — reference THESE in components
+     ============================================================ */
+  --bg-base:        var(--void);
+  --bg-surface:     var(--obsidian);
+  --bg-raised:      var(--graphite);
+  --bg-elevated:    var(--slate);
+  --bg-input:       #0B0D11;
+  --bg-overlay:     rgba(8, 9, 12, 0.72);
+
+  --text-primary:   var(--parchment);
+  --text-secondary: var(--smoke);
+  --text-muted:     var(--ash);
+  --text-oracle:    var(--oracle-bright);
+  --text-on-gold:   #1A1206;   /* near-black warm, for text on gold fills */
+
+  --border-subtle:  var(--concrete);
+  --border-strong:  var(--iron);
+  --border-oracle:  rgba(212, 169, 78, 0.40);
+
+  --accent:         var(--oracle);
+  --accent-hover:   var(--oracle-bright);
+  --accent-press:   var(--oracle-deep);
+
+  --focus-ring:     var(--oracle-bright);
+}

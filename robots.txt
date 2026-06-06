@@ -1,0 +1,4 @@
+# pythai.ch — robots.txt
+User-agent: *
+Allow: /
+Sitemap: https://pythai.ch/sitemap.xml

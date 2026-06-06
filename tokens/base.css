@@ -1,0 +1,59 @@
+/* ============================================================
+   PYTHAI — BASE
+   Minimal reset + sanctum defaults. Imported last.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  font-weight: var(--weight-regular);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--glow-oracle);
+  color: var(--text-on-gold);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-oracle);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+p { margin: 0; text-wrap: pretty; }
+
+a { color: var(--text-oracle); text-decoration: none; }
+
+/* Oracle scrollbar — thin, gilded */
+* { scrollbar-width: thin; scrollbar-color: var(--iron) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--iron); border-radius: 999px;
+  border: 2px solid var(--bg-base);
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--steel); }
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--glow-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
