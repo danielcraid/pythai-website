@@ -8,3 +8,15 @@
 @import url('./tokens/typography.css');
 @import url('./tokens/spacing.css');
 @import url('./tokens/base.css');
+
+/* ============================================================
+   PYTHAI website — mobile: stack inline-grid blocks (DS
+   ReadingTeaser 1.4fr/1fr, Pricing 3-col) into one column.
+   The page-level pk-grid classes already stack; this catches
+   the grids the DS components set via inline style.
+   ============================================================ */
+@media (max-width: 860px) {
+  #root [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+  /* lift the highlighted pricing tier back into the flow on mobile */
+  #root [style*="translateY(-12px)"] { transform: none !important; }
+}
