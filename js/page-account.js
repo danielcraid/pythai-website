@@ -6,8 +6,8 @@
   const T = (de, en) => window.PYi18n.t(de, en);
   const API = "https://api.pythai.ch";
   const h = React.createElement;
-  const TIER = { observer: "Observer", "inner-circle": "Inner Circle", syndicate: "Syndicate" };
-  const PRICE = { observer: T("Kostenlos", "Free"), "inner-circle": "99 € / mo", syndicate: "298 € / mo" };
+  const TIER = { observer: "Observer", "inner-circle": "Inner Circle", syndicate: "Syndicate", admin: "Admin" };
+  const PRICE = { observer: T("Kostenlos", "Free"), "inner-circle": "99 € / mo", syndicate: "298 € / mo", admin: "—" };
 
   // ---- Feature lists (aligned to Build-Spec v3) ----
   const OBSERVER_F = [T("Morgen-Headline", "Dawn headline"), T("Markt-Vibe der Woche", "Weekly market vibe"), T("\xD6ffentliches Manifesto", "Public manifesto")];
@@ -151,8 +151,8 @@
       fetch(API + "/api/logout", { method: "POST", credentials: "include" }).finally(() => { window.location.href = "index.html"; });
     }
     let included = OBSERVER_F.slice();
-    if (tier === "inner-circle" || tier === "syndicate") included = included.concat(INNER_F);
-    if (tier === "syndicate") included = included.concat(SYND_F);
+    if (tier === "inner-circle" || tier === "syndicate" || tier === "admin") included = included.concat(INNER_F);
+    if (tier === "syndicate" || tier === "admin") included = included.concat(SYND_F);
     const waitBox = a.waitlist ? h("div", { style: { border: "1px solid var(--border-oracle)", borderRadius: 8, padding: "14px 16px", background: "rgba(212,169,78,0.10)", marginTop: 18 } }, h(Badge, { tone: "oracle", variant: "outline", dot: true }, T("Warteliste", "Waitlist")), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13, lineHeight: 1.55, color: "var(--text-secondary)", margin: "12px 0 0" } }, a.confirmed ? T("Du stehst auf der Warteliste. Warren ruft dich, sobald ein Platz frei ist.", "You’re on the waitlist. Warren will summon you when a seat opens.") : T("Fast — best\xE4tige noch die E-Mail, die wir dir geschickt haben.", "Almost — confirm the email we sent you."))) : h("div", { style: { marginTop: 18 } }, h(Button, { variant: "oracle", full: true, onClick: () => { window.location.href = "inner-circle.html#waitlist"; } }, T("Auf die Inner-Circle-Warteliste", "Join the Inner Circle waitlist")));
     return h("div", { style: { maxWidth: 680, margin: "0 auto" } },
       justJoined && h("div", { style: { border: "1px solid var(--border-oracle)", background: "rgba(212,169,78,0.07)", borderRadius: 10, padding: "16px 20px", marginBottom: 28, textAlign: "center" } }, h("span", { style: { fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 20, color: "var(--text-oracle)" } }, T("Du bist drin. Willkommen im Sanctum.", "You’re in. Welcome to the sanctum."))),
@@ -160,13 +160,14 @@
       h(TierBox, { premium: !isObserver, eyebrow: T("Deine Subscription", "Your subscription"), name: TIER[tier], price: PRICE[tier], memberSince: a.memberSince, features: included }),
       isObserver && h(TierBox, { premium: true, eyebrow: T("Aufsteigen", "Level up"), name: "Inner Circle", price: "99 € / mo", features: INNER_F }, waitBox),
       h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } }, h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 } }, h(PyEyebrow, null, T("Die heutige Reading", "Today’s reading")), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, "06:00 CET")), h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 28, lineHeight: 1.15, color: "var(--text-primary)", margin: "0 0 16px" } }, "Rotate into energy before the crowd notices the cycle."), h("div", { style: { display: "flex", gap: 30, flexWrap: "wrap", paddingTop: 16, borderTop: "1px solid var(--border-subtle)" } }, h(Stat, { label: "Conviction", value: "94", sub: "of 100", size: "sm" }), isObserver ? h("div", { style: { filter: "blur(5px)", opacity: 0.6, pointerEvents: "none" } }, h(Stat, { label: "Entry / Stop / Target", value: "•••••", size: "sm" })) : h(React.Fragment, null, h(Stat, { label: "Entry", value: "123.32", size: "sm" }), h(Stat, { label: "Stop", value: "119.50", size: "sm" }), h(Stat, { label: "Target", value: "127.00", size: "sm" }))), isObserver && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-muted)", margin: "16px 0 0" } }, T("Levels und das volle Reasoning sind dem Inner Circle vorbehalten.", "Levels and the full reasoning are reserved for the Inner Circle.")), h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", margin: "14px 0 0" } }, T("Beispiel-Reading. Live-Inhalte kommen von Warren, server-seitig pro Tier.", "Sample reading. Live content comes from Warren, served per tier."))),
-      tier !== "syndicate" && h(SyndicateTease, null),
+      tier !== "syndicate" && tier !== "admin" && h(SyndicateTease, null),
       h(AccountSettings, { a }),
       h("div", { style: { textAlign: "center" } }, h(Button, { variant: "ghost", onClick: logout }, T("Abmelden", "Log out"))));
   }
 
   // ============ Router ============
   function viewFor(a) {
+    if (a.tier === "admin") return "dashboard"; // Admin bypasst alle Gates
     const ap = a.approval;
     if (ap === "rejected") return "rejected";
     if (ap === "approved" || ap == null) return "dashboard"; // legacy / Feld noch nicht gebaut → kein Lockout
