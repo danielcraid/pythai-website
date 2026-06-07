@@ -20,3 +20,49 @@
   /* lift the highlighted pricing tier back into the flow on mobile */
   #root [style*="translateY(-12px)"] { transform: none !important; }
 }
+
+/* ============================================================
+   Living oculus — the mark hunts, breathes and flickers (analog).
+   Not a plain spin: an irregular, eased sweep like a searching
+   needle + a breathing gold glow + an old-TV opacity flicker.
+   ============================================================ */
+@keyframes py-hunt {
+  0%   { transform: rotate(0deg); }
+  14%  { transform: rotate(7deg); }
+  27%  { transform: rotate(3deg); }
+  44%  { transform: rotate(-6deg); }
+  58%  { transform: rotate(-1deg); }
+  73%  { transform: rotate(5deg); }
+  88%  { transform: rotate(1deg); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes py-breathe {
+  0%, 100% { filter: drop-shadow(0 0 4px var(--glow-oracle-soft)); }
+  50%      { filter: drop-shadow(0 0 14px var(--glow-oracle)); }
+}
+@keyframes py-flicker {
+  0%, 100% { opacity: 1; }
+  5%   { opacity: .80; } 5.5% { opacity: 1; }
+  23%  { opacity: .92; } 23.3% { opacity: 1; }
+  38%  { opacity: .55; } 38.4% { opacity: 1; } 39% { opacity: .88; } 39.4% { opacity: 1; }
+  61%  { opacity: .90; } 61.3% { opacity: 1; }
+  74%  { opacity: .62; } 74.4% { opacity: 1; }
+  90%  { opacity: .85; } 90.3% { opacity: 1; }
+}
+.py-mark-anim {
+  transform-origin: center;
+  animation: py-hunt 18s cubic-bezier(.45,.05,.55,.95) infinite,
+             py-breathe 5.5s ease-in-out infinite,
+             py-flicker 7.7s steps(1, end) infinite;
+  will-change: transform, opacity, filter;
+}
+.py-oculus-live {
+  transform-origin: center;
+  animation: py-hunt 22s cubic-bezier(.45,.05,.55,.95) infinite,
+             py-breathe 6.5s ease-in-out infinite,
+             py-flicker 9s steps(1, end) infinite;
+  will-change: transform, opacity, filter;
+}
+@media (prefers-reduced-motion: reduce) {
+  .py-mark-anim, .py-oculus-live { animation: none !important; }
+}
