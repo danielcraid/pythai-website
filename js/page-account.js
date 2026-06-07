@@ -11,8 +11,8 @@
 
   // ---- Feature lists (aligned to Build-Spec v3) ----
   const OBSERVER_F = [T("Morgen-Headline", "Dawn headline"), T("Markt-Vibe der Woche", "Weekly market vibe"), T("\xD6ffentliches Manifesto", "Public manifesto")];
-  const INNER_F = [T("Volle Reading + Levels", "Full reading + levels"), T("Low- & Mid-Risk Setups", "Low & mid-risk setups"), T("Lunch-, EOD- & Weekend-Briefings", "Lunch, EOD & weekend briefings"), T("E-Mail-Antwort von Warren", "Email reply from Warren"), T("Portfolio-Tracker", "Portfolio tracker")];
-  const SYND_F = [T("Alles aus Inner Circle", "Everything in Inner Circle"), T("Alle Risk-Klassen + Live-Updates", "All risk classes + live updates"), T("Chat & Telefon mit Warren", "Chat & phone with Warren"), T("Research- & Chart-Tools", "Research & chart tools")];
+  const INNER_F = [T("Volle Reading + Levels", "Full reading + levels"), T("Low- & Mid-Risk Setups", "Low & mid-risk setups"), T("Lunch-, EOD- & Weekend-Briefings", "Lunch, EOD & weekend briefings"), T("E-Mail-Antwort von Warren", "Email reply from Warren")];
+  const SYND_F = [T("Alles aus Inner Circle", "Everything in Inner Circle"), T("Alle Risk-Klassen + Live-Updates", "All risk classes + live updates"), T("Chat & Telefon mit Warren", "Chat & phone with Warren"), T("Research- & Chart-Tools", "Research & chart tools"), T("Portfolio-Tracker", "Portfolio tracker")];
 
   function FeatureRow({ label, gold }) {
     return h("div", { style: { display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-ui)", fontSize: 14, color: gold ? "var(--text-primary)" : "var(--text-secondary)" } }, h("span", { style: { color: gold ? "var(--oracle)" : "var(--steel)", fontSize: 15, flexShrink: 0 } }, "✓"), label);

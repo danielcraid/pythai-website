@@ -4,9 +4,9 @@
   const T = (de, en) => window.PYi18n.t(de, en);
   function App() {
     const PAST = [
-      { name: "Xetra-Gold ETC", klasse: T("Rohstoff", "Commodity"), conv: "50", res: "+3.0%", won: true, note: T("Macro-Hedge in den NFP. Bei +1,5% geskimmt, kein Carry \xFCbers Wochenende.", "Macro hedge into NFP. Skimmed at +1.5%, no weekend carry.") },
-      { name: "Rheinmetall AG", klasse: T("Aktie", "Equity"), conv: "70", res: "+8.5%", won: true, note: T("NATO-Auftragsflow. Gestaffelter Entry am VWAP-Pullback.", "NATO order flow. Staggered entry on the VWAP pullback.") },
-      { name: "Bitcoin \xB7 BTC/EUR", klasse: T("Krypto", "Crypto"), conv: "85", res: "+12.8%", won: true, note: T("Vol-Expansion-Setup vor FOMC. Kernposition, kein Hebel > 2x.", "Vol-expansion setup pre-FOMC. Core position, no leverage > 2x.") }
+      { name: "Xetra-Gold ETC", klasse: T("Rohstoff", "Commodity"), conv: "50", res: "+3.0%", won: true, note: T("Macro-Hedge in den NFP — früh realisiert, ohne Wochenend-Risiko.", "Macro hedge into NFP — realised early, no weekend risk.") },
+      { name: "Rheinmetall AG", klasse: T("Aktie", "Equity"), conv: "70", res: "+8.5%", won: true, note: T("Getrieben vom NATO-Auftragsflow — gestaffelt aufgebaut.", "Driven by NATO order flow — built up in stages.") },
+      { name: "Bitcoin \xB7 BTC/EUR", klasse: T("Krypto", "Crypto"), conv: "85", res: "+12.8%", won: true, note: T("Vol-Expansion vor FOMC — als risikoarme Kernposition gedacht.", "Vol-expansion pre-FOMC — framed as a low-risk core position.") }
     ];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SiteNav, { active: "signals.html" }), /* @__PURE__ */ React.createElement(
       PyPageHead,

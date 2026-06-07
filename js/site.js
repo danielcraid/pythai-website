@@ -8,10 +8,15 @@
   const NAV = [
     ["The Reading", "reading.html"],
     ["Signals", "signals.html"],
-    ["Playbook", "playbook.html"],
+    ["Manifesto", "manifesto.html"],
     ["Inner Circle", "inner-circle.html"],
-    ["Manifesto", "manifesto.html"]
+    ["Playbook", "playbook.html"]
   ];
+  const PRIV = ["inner-circle", "syndicate", "admin"]; // Playbook nur fuer diese Tiers
+  function navItems(me) {
+    const tier = me && me.tier;
+    return NAV.filter(function (n) { return n[1] !== "playbook.html" || PRIV.indexOf(tier) !== -1; });
+  }
   const NAV_CSS = `
 .pynav-desktop{display:flex;align-items:center;gap:28px;}
 .pynav-burger{display:none;align-items:center;justify-content:center;background:none;border:1px solid var(--border-strong);border-radius:6px;cursor:pointer;color:var(--text-primary);width:42px;height:38px;}
@@ -79,6 +84,7 @@
   function SiteNav({ active }) {
     const [open, setOpen] = useState(false);
     const { me, ready } = useSession();
+    const items = navItems(me);
     return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("style", null, NAV_CSS), /* @__PURE__ */ React.createElement("nav", { style: {
       position: "sticky",
       top: 0,
@@ -91,7 +97,7 @@
       background: "rgba(8,9,12,0.6)",
       backdropFilter: "blur(14px)",
       borderBottom: "1px solid var(--border-subtle)"
-    } }, /* @__PURE__ */ React.createElement("a", { href: "index.html", style: { textDecoration: "none" } }, /* @__PURE__ */ React.createElement(Wordmark, null)), /* @__PURE__ */ React.createElement("div", { className: "pynav-desktop" }, NAV.map(([l, href]) => /* @__PURE__ */ React.createElement("a", { key: l, href, style: {
+    } }, /* @__PURE__ */ React.createElement("a", { href: "index.html", style: { textDecoration: "none" } }, /* @__PURE__ */ React.createElement(Wordmark, null)), /* @__PURE__ */ React.createElement("div", { className: "pynav-desktop" }, items.map(([l, href]) => /* @__PURE__ */ React.createElement("a", { key: l, href, style: {
       fontFamily: "var(--font-mono)",
       fontSize: 11,
       letterSpacing: "0.12em",
@@ -99,7 +105,7 @@
       textDecoration: "none",
       whiteSpace: "nowrap",
       color: active === href ? "var(--text-oracle)" : "var(--text-secondary)"
-    } }, l)), /* @__PURE__ */ React.createElement(LangToggle, null), /* @__PURE__ */ React.createElement(AuthArea, { me, ready })), /* @__PURE__ */ React.createElement("button", { className: "pynav-burger", "aria-label": "Menu", "aria-expanded": open, onClick: () => setOpen(!open) }, /* @__PURE__ */ React.createElement(BurgerIcon, { open }))), open && /* @__PURE__ */ React.createElement("div", { className: "pynav-menu" }, NAV.map(([l, href]) => /* @__PURE__ */ React.createElement("a", { key: l, href, style: { color: active === href ? "var(--text-oracle)" : "var(--text-secondary)" } }, l)), /* @__PURE__ */ React.createElement("div", { className: "pynav-mfoot" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "center", padding: "4px 0" } }, /* @__PURE__ */ React.createElement(LangToggle, null)), /* @__PURE__ */ React.createElement(AuthArea, { me, ready, full: true }))));
+    } }, l)), /* @__PURE__ */ React.createElement(LangToggle, null), /* @__PURE__ */ React.createElement(AuthArea, { me, ready })), /* @__PURE__ */ React.createElement("button", { className: "pynav-burger", "aria-label": "Menu", "aria-expanded": open, onClick: () => setOpen(!open) }, /* @__PURE__ */ React.createElement(BurgerIcon, { open }))), open && /* @__PURE__ */ React.createElement("div", { className: "pynav-menu" }, items.map(([l, href]) => /* @__PURE__ */ React.createElement("a", { key: l, href, style: { color: active === href ? "var(--text-oracle)" : "var(--text-secondary)" } }, l)), /* @__PURE__ */ React.createElement("div", { className: "pynav-mfoot" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "center", padding: "4px 0" } }, /* @__PURE__ */ React.createElement(LangToggle, null)), /* @__PURE__ */ React.createElement(AuthArea, { me, ready, full: true }))));
   }
   function SiteFooter() {
     const FCOLS = [

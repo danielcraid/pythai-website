@@ -3,6 +3,9 @@
   const { SiteNav, SiteFooter, PyPageHead, PySection, PyH2, PyEyebrow, PyLead } = window;
   const { Button } = window.PYTHAIDesignSystem_df6467;
   const T = (de, en) => window.PYi18n.t(de, en);
+  const API = "https://api.pythai.ch";
+  const { useState, useEffect } = React;
+  const PRIV = ["inner-circle", "syndicate", "admin"];
   const RISK_C = [
     { c: "var(--bull-bright)", b: "rgba(79,165,120,0.45)", bg: "rgba(79,165,120,0.10)" },
     { c: "var(--oracle-bright)", b: "var(--border-oracle)", bg: "rgba(212,169,78,0.10)" },
@@ -14,6 +17,15 @@
     return /* @__PURE__ */ React.createElement("span", { style: { display: "inline-flex", alignItems: "center", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: k.c, border: "1px solid " + k.b, background: k.bg, borderRadius: 999, padding: "4px 10px", whiteSpace: "nowrap" } }, label);
   }
   function App() {
+    const [gate, setGate] = useState("loading");
+    useEffect(() => {
+      fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
+        const tier = d && d.ok && d.tier;
+        setGate(PRIV.indexOf(tier) !== -1 ? "ok" : "locked");
+      }).catch(() => setGate("locked"));
+    }, []);
+    if (gate === "loading") return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SiteNav, { active: "playbook.html" }), /* @__PURE__ */ React.createElement("div", { style: { minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 22, color: "var(--text-oracle)" } }, T("Das Orakel pr\xFCft deinen Zugang…", "The oracle checks your access…")), /* @__PURE__ */ React.createElement(SiteFooter, null));
+    if (gate === "locked") return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SiteNav, { active: "playbook.html" }), /* @__PURE__ */ React.createElement("section", { style: { minHeight: "calc(100vh - var(--nav-h))", display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 480 } }, /* @__PURE__ */ React.createElement("img", { src: "assets/logo/pythai-oculus.svg", alt: "", style: { width: 58, height: 58, margin: "0 auto 22px", opacity: 0.7 } }), /* @__PURE__ */ React.createElement(PyEyebrow, null, "Inner Circle"), /* @__PURE__ */ React.createElement("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 40, margin: "8px 0 0", color: "var(--text-primary)" } }, T("Das Playbook lebt im Sanctum.", "The playbook lives in the sanctum.")), /* @__PURE__ */ React.createElement("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", margin: "16px 0 28px" } }, T("Die Trading-Arten — mit Risiko-Profil, Horizont und Bedingungen — sind dem Inner Circle vorbehalten.", "The trade types — with risk profile, horizon and conditions — are reserved for the Inner Circle.")), /* @__PURE__ */ React.createElement(Button, { variant: "oracle", onClick: () => { window.location.href = "account.html"; } }, T("Zum Inner Circle", "Go to Inner Circle")))), /* @__PURE__ */ React.createElement(SiteFooter, null));
     const RISK = [T("Niedrig", "Low"), T("Mittel", "Medium"), T("Hoch", "High"), T("Sehr hoch", "Very high")];
     const CH = [
       [T("Catalyst-Trades", "Catalyst trades"), T("Event-getrieben, kurzfristig \u2014 die Welle reiten", "Event-driven, short-term \u2014 ride the wave"), [
