@@ -128,8 +128,8 @@
       var ICON_OFF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>';
       var TARGET = 0.32, on = false, fadeT;
       var audio = document.createElement("audio");
-      audio.loop = true; audio.preload = "auto"; audio.volume = 0;
-      [["assets/audio/sanctum.mp3", "audio/mpeg"], ["assets/audio/sanctum.m4a", "audio/mp4"]].forEach(function (s) {
+      audio.loop = true; audio.preload = "auto"; audio.volume = 0; audio.muted = true;
+      [["assets/audio/sanctum.m4a", "audio/mp4"], ["assets/audio/sanctum.mp3", "audio/mpeg"]].forEach(function (s) {
         var el = document.createElement("source"); el.src = s[0]; el.type = s[1]; audio.appendChild(el);
       });
       document.body.appendChild(audio);
@@ -147,7 +147,7 @@
       btn.setAttribute("aria-label", "Sound");
       btn.style.cssText = "position:fixed;left:20px;bottom:20px;z-index:300;width:42px;height:42px;border-radius:50%;border:1px solid var(--border-strong);background:rgba(8,9,12,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .2s,border-color .2s,box-shadow .2s;";
       function render() { btn.innerHTML = on ? ICON_ON : ICON_OFF; btn.style.color = on ? "var(--text-oracle)" : "var(--text-muted)"; btn.style.borderColor = on ? "var(--border-oracle)" : "var(--border-strong)"; btn.style.boxShadow = on ? "0 0 16px var(--glow-oracle-soft)" : "none"; }
-      function enable() { on = true; setPref("on"); render(); (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () { }); }
+      function enable() { on = true; setPref("on"); render(); audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () { }); }
       function disable() { on = false; setPref("off"); render(); fade(0, function () { audio.pause(); }); }
       btn.addEventListener("click", function () { on ? disable() : enable(); });
       document.body.appendChild(btn);
@@ -155,11 +155,10 @@
       var want = pref() === null ? true : pref() === "on";
       on = want; render();
       if (want) {
-        (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () {
-          var resume = function () { (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () { }); clear(); };
-          var clear = function () { ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.removeEventListener(ev, resume); }); };
-          ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.addEventListener(ev, resume); });
-        });
+        audio.play().catch(function () { }); // muted autoplay is allowed by browsers
+        var unmute = function () { if (on) { audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () { }); } clr(); };
+        var clr = function () { ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.removeEventListener(ev, unmute); }); };
+        ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.addEventListener(ev, unmute); });
       }
     }
     if (document.body) boot(); else document.addEventListener("DOMContentLoaded", boot);
