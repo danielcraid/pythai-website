@@ -19,6 +19,7 @@
   }
   function Waitlist() {
     const [v, setV] = useState("");
+    const [consent, setConsent] = useState(false);
     const [msg, setMsg] = useState("");
     const { Button } = window.PYTHAIDesignSystem_df6467;
     function submit(e) {
@@ -27,17 +28,26 @@
         setMsg(T("Das Orakel braucht eine g\xFCltige Adresse.", "The oracle needs a valid address."));
         return;
       }
+      if (!consent) {
+        setMsg(T("Bitte stimme der Kontaktaufnahme zu.", "Please tick the consent box."));
+        return;
+      }
       setMsg(T("Das Orakel wird befragt\u2026", "Consulting the oracle\u2026"));
       const done = () => {
-        setMsg(T("Das Orakel hat deinen Namen vermerkt. Erwarte das Fl\xFCstern.", "The oracle has noted your name. Await the whisper."));
+        setMsg(T("Fast geschafft \u2014 best\xE4tige die Anmeldung \xFCber die Mail, die wir dir gerade geschickt haben.", "Almost there \u2014 confirm your sign-up via the email we just sent you."));
         setV("");
+        setConsent(false);
       };
-      fetch("https://api.pythai.ch/api/waitlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: v, source: "pythai.ch/inner-circle" }) }).then((r) => {
+      fetch("https://api.pythai.ch/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: v.trim(), consent: true, lang: window.PYi18n.lang, source: "pythai.ch/inner-circle" })
+      }).then((r) => {
         if (!r.ok) throw 0;
         done();
       }).catch(done);
     }
-    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 560, margin: "0 auto", textAlign: "center" } }, /* @__PURE__ */ React.createElement(Eyebrow, null, "Seek counsel"), /* @__PURE__ */ React.createElement(H2, null, "Enter the sanctum."), /* @__PURE__ */ React.createElement(Lead, { center: true }, T("Der Inner Circle \xF6ffnet in Kohorten. Hinterlasse deinen Namen, und Warren ruft dich, sobald der n\xE4chste Platz frei ist.", "The Inner Circle opens in cohorts. Leave your name and Warren will summon you when the next seat is ready.")), /* @__PURE__ */ React.createElement("form", { onSubmit: submit, style: { display: "flex", gap: 10, marginTop: 28, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 560, margin: "0 auto", textAlign: "center" } }, /* @__PURE__ */ React.createElement(Eyebrow, null, "Seek counsel"), /* @__PURE__ */ React.createElement(H2, null, "Enter the sanctum."), /* @__PURE__ */ React.createElement(Lead, { center: true }, T("Der Inner Circle \xF6ffnet in Kohorten. Hinterlasse deinen Namen, und Warren ruft dich, sobald der n\xE4chste Platz frei ist.", "The Inner Circle opens in cohorts. Leave your name and Warren will summon you when the next seat is ready.")), /* @__PURE__ */ React.createElement("form", { onSubmit: submit, style: { marginTop: 28 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
       "input",
       {
         type: "email",
@@ -47,7 +57,7 @@
         "aria-label": "Email",
         style: { flex: "1 1 240px", background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "13px 16px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 15, outline: "none" }
       }
-    ), /* @__PURE__ */ React.createElement(Button, { variant: "oracle", type: "submit" }, "Seek counsel")), /* @__PURE__ */ React.createElement("div", { style: { minHeight: 26, marginTop: 20, fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 20, color: "var(--text-oracle)" } }, msg), /* @__PURE__ */ React.createElement("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", marginTop: 8, letterSpacing: "0.04em" } }, T("Kein Spam. Ein Fl\xFCstern, wenn dein Platz bereit ist. Jederzeit abbestellbar.", "No spam. One whisper when your seat is ready. Unsubscribe anytime.")));
+    ), /* @__PURE__ */ React.createElement(Button, { variant: "oracle", type: "submit" }, "Seek counsel")), /* @__PURE__ */ React.createElement("label", { style: { display: "flex", gap: 10, alignItems: "flex-start", textAlign: "left", marginTop: 16, cursor: "pointer" } }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: consent, onChange: (e) => setConsent(e.target.checked), style: { marginTop: 3, accentColor: "var(--oracle)", width: 16, height: 16, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, lineHeight: 1.55, color: "var(--text-muted)" } }, T("Ich willige ein, dass die CRAID GmbH mich zu PYTHAI per E-Mail kontaktiert. Widerruf jederzeit per Abmeldelink. ", "I consent to being contacted by email about PYTHAI by CRAID GmbH. Withdrawable anytime via the unsubscribe link. "), /* @__PURE__ */ React.createElement("a", { href: "legal.html#privacy", style: { color: "var(--text-secondary)" } }, T("Datenschutz", "Privacy notice"))))), /* @__PURE__ */ React.createElement("div", { style: { minHeight: 26, marginTop: 20, fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 20, color: "var(--text-oracle)" } }, msg), /* @__PURE__ */ React.createElement("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", marginTop: 8, letterSpacing: "0.04em" } }, T("Kein Spam. Ein Fl\xFCstern, wenn dein Platz bereit ist. Jederzeit abbestellbar.", "No spam. One whisper when your seat is ready. Unsubscribe anytime.")));
   }
   Object.assign(window, { PyEyebrow: Eyebrow, PyPageHead: PageHead, PySection: Section, PyH2: H2, PyLead: Lead, PyWaitlist: Waitlist, PY_WRAP: WRAP });
 })();
