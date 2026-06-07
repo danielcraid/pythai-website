@@ -133,6 +133,13 @@
         var el = document.createElement("source"); el.src = s[0]; el.type = s[1]; audio.appendChild(el);
       });
       document.body.appendChild(audio);
+      // Continuity across page navigations: remember playback position + resume there.
+      var SAVE_KEY = "py_sound_t";
+      function savedTime() { try { return parseFloat(sessionStorage.getItem(SAVE_KEY)) || 0; } catch (e) { return 0; } }
+      function saveTime() { try { sessionStorage.setItem(SAVE_KEY, String(audio.currentTime || 0)); } catch (e) { } }
+      audio.addEventListener("loadedmetadata", function () { var t = savedTime(); if (t > 0 && isFinite(t) && t < (audio.duration || 1e9)) { try { audio.currentTime = t; } catch (e) { } } }, { once: true });
+      window.addEventListener("pagehide", function () { if (on) saveTime(); });
+      window.addEventListener("beforeunload", function () { if (on) saveTime(); });
       function fade(to, cb) { clearInterval(fadeT); var step = (to - audio.volume) / 18; fadeT = setInterval(function () { audio.volume = Math.min(1, Math.max(0, audio.volume + step)); if (Math.abs(audio.volume - to) < 0.02) { audio.volume = to; clearInterval(fadeT); if (cb) cb(); } }, 40); }
       function pref() { try { return localStorage.getItem("py_sound"); } catch (e) { return null; } }
       function setPref(v) { try { localStorage.setItem("py_sound", v); } catch (e) { } }
