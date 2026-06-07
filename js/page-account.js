@@ -1,6 +1,6 @@
 (() => {
   const DS = window.PYTHAIDesignSystem_df6467;
-  const { Button, Badge, Card, Stat } = DS;
+  const { Button, Badge, Card, Stat, Switch, Input } = DS;
   const { SiteNav, SiteFooter, PyEyebrow } = window;
   const { useState, useEffect } = React;
   const T = (de, en) => window.PYi18n.t(de, en);
@@ -12,7 +12,7 @@
   // ---- Feature lists (aligned to Build-Spec v3) ----
   const OBSERVER_F = [T("Morgen-Headline", "Dawn headline"), T("Markt-Vibe der Woche", "Weekly market vibe"), T("\xD6ffentliches Manifesto", "Public manifesto")];
   const INNER_F = [T("Volle Reading + Levels", "Full reading + levels"), T("Low- & Mid-Risk Setups", "Low & mid-risk setups"), T("Lunch-, EOD- & Weekend-Briefings", "Lunch, EOD & weekend briefings"), T("E-Mail-Antwort von Warren", "Email reply from Warren"), T("Portfolio-Tracker", "Portfolio tracker")];
-  const SYND_F = [T("Alle Risk-Klassen + Live-Updates", "All risk classes + live updates"), T("Chat & Telefon mit Warren", "Chat & phone with Warren"), T("Research- & Chart-Tools", "Research & chart tools")];
+  const SYND_F = [T("Alles aus Inner Circle", "Everything in Inner Circle"), T("Alle Risk-Klassen + Live-Updates", "All risk classes + live updates"), T("Chat & Telefon mit Warren", "Chat & phone with Warren"), T("Research- & Chart-Tools", "Research & chart tools")];
 
   function FeatureRow({ label, gold }) {
     return h("div", { style: { display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-ui)", fontSize: 14, color: gold ? "var(--text-primary)" : "var(--text-secondary)" } }, h("span", { style: { color: gold ? "var(--oracle)" : "var(--steel)", fontSize: 15, flexShrink: 0 } }, "✓"), label);
@@ -50,7 +50,7 @@
       } catch (e) { console.warn("[onboarding] network", e.message); onDone(); }
       finally { setBusy(false); }
     }
-    const legalLink = (label) => h("a", { href: "legal.html", style: { color: "var(--text-oracle)", textDecoration: "underline" } }, label);
+    const legalLink = (label, hash) => h("a", { href: "legal.html#" + hash, target: "_blank", rel: "noopener", style: { color: "var(--text-oracle)", textDecoration: "underline" } }, label);
     return h("div", { style: { maxWidth: 620, margin: "0 auto" } },
       h("div", { style: { marginBottom: 26 } },
         h(PyEyebrow, null, T("Antrag auf Zugang", "Access request")),
@@ -58,8 +58,8 @@
         h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", margin: "14px 0 0" } }, T("Bevor Warren dich ins Sanctum l\xE4sst, best\xE4tige bitte die folgenden Punkte. PYTHAI ist ein Publisher — kein Anlageberater.", "Before Warren admits you to the sanctum, please confirm the points below. PYTHAI is a publisher — not an investment adviser."))),
       h(Card, { variant: "raised", padding: "28px" },
         h("div", { style: { display: "flex", flexDirection: "column" } },
-          h(CheckRow, { checked: c.agb, onToggle: () => tog("agb") }, T("Ich akzeptiere die ", "I accept the "), legalLink(T("AGB", "Terms")), "."),
-          h(CheckRow, { checked: c.risiko, onToggle: () => tog("risiko") }, T("Ich habe den ", "I have read the "), legalLink(T("Risikohinweis", "risk notice")), T(" gelesen — Totalverlust ist m\xF6glich, ich handle auf eigenes Risiko.", " — total loss is possible, I trade at my own risk.")),
+          h(CheckRow, { checked: c.agb, onToggle: () => tog("agb") }, T("Ich akzeptiere die ", "I accept the "), legalLink(T("AGB", "Terms"), "terms"), "."),
+          h(CheckRow, { checked: c.risiko, onToggle: () => tog("risiko") }, T("Ich habe den ", "I have read the "), legalLink(T("Risikohinweis", "risk notice"), "risk"), T(" gelesen — Totalverlust ist m\xF6glich, ich handle auf eigenes Risiko.", " — total loss is possible, I trade at my own risk.")),
           h(CheckRow, { checked: c.ki, onToggle: () => tog("ki") }, T("Mir ist klar: Warren ist eine KI und kann irren. Die Inhalte sind keine Anlageberatung, sondern reine Inspiration.", "I understand: Warren is an AI and can err. The content is not investment advice — it is pure inspiration.")),
           h(CheckRow, { checked: c.eigen, onToggle: () => tog("eigen") }, T("Ich treffe alle Anlageentscheidungen eigenverantwortlich.", "I make all investment decisions on my own responsibility.")),
           h("div", { style: { height: 1, background: "var(--border-subtle)", margin: "14px 0 4px" } }),
@@ -96,6 +96,53 @@
       h(Button, { variant: "ghost", onClick: () => { window.location.href = "mailto:support@pythai.ch"; } }, T("Support kontaktieren", "Contact support")));
   }
 
+  // ============ Syndicate tease + account settings ============
+  function SyndicateTease() {
+    return h(Card, { variant: "raised", padding: "28px", style: { marginBottom: 20 } },
+      h(PyEyebrow, null, T("Die nächste Stufe", "The next tier")),
+      h("div", { style: { display: "flex", alignItems: "baseline", gap: 10, margin: "8px 0 4px", flexWrap: "wrap" } }, h("span", { style: { fontFamily: "var(--font-oracle)", fontSize: 30, lineHeight: 1.05, color: "var(--text-primary)" } }, "Syndicate"), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 14, color: "var(--text-muted)" } }, "298 € / mo")),
+      h("div", { style: { display: "flex", flexDirection: "column", gap: 12, margin: "18px 0 20px", paddingTop: 18, borderTop: "1px solid var(--border-subtle)" } }, SYND_F.map((f) => h(FeatureRow, { key: f, label: f }))),
+      h(Button, { variant: "oxblood", full: true, disabled: true }, T("Bald verfügbar", "Coming soon")));
+  }
+
+  function SetRow({ title, sub, control }) {
+    return h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "14px 0" } }, h("div", { style: { flex: 1 } }, h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 15, color: "var(--text-primary)" } }, title), sub && h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--text-muted)", marginTop: 3, lineHeight: 1.45 } }, sub)), control);
+  }
+  const Divider = () => h("div", { style: { height: 1, background: "var(--border-subtle)" } });
+
+  function AccountSettings({ a }) {
+    const tier = a.tier || "observer";
+    const paying = tier === "inner-circle" || tier === "syndicate";
+    const [mails, setMails] = useState(a.mailsActive !== false);
+    const [mobileOn, setMobileOn] = useState(!!a.phone);
+    const [phone, setPhone] = useState(a.phone || "");
+    const [sent, setSent] = useState(false);
+    const [code, setCode] = useState("");
+    const [verified, setVerified] = useState(!!a.smsVerified);
+    const [confirming, setConfirming] = useState(null);
+    const [note, setNote] = useState(null);
+    const post = (path, body) => fetch(API + path, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).catch(() => ({ ok: false }));
+    function toggleMails(v) { setMails(v); post("/api/mail-prefs", { mailsActive: v }); }
+    function toggleMobile(v) { setMobileOn(v); if (!v) { setSent(false); setVerified(false); post("/api/mobile/disable", {}); } }
+    function sendCode() { if (!phone) return; post("/api/mobile/start", { phone }); setSent(true); }
+    function verify() { post("/api/mobile/verify", { code }); setVerified(true); setSent(false); }
+    function doDowngrade() { post("/api/account/downgrade", {}); setConfirming(null); setNote(T("Wir haben dir eine Best\xE4tigungs-Mail geschickt — best\xE4tige den Downgrade \xFCber den Link.", "We’ve emailed you a confirmation link to complete the downgrade.")); }
+    function doDelete() { post("/api/account/delete", {}); setConfirming(null); setNote(T("Wir haben dir eine Best\xE4tigungs-Mail geschickt — best\xE4tige die L\xF6schung \xFCber den Link.", "We’ve emailed you a confirmation link to complete the deletion.")); }
+    return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
+      h(PyEyebrow, null, T("Einstellungen", "Settings")),
+      h("div", { style: { marginTop: 8 } },
+        h(SetRow, { title: T("Mails erhalten", "Receive emails"), sub: T("Daily Oracle & Briefings. System-Mails (Login) kommen immer.", "Daily Oracle & briefings. System mails (login) always arrive."), control: h(Switch, { checked: mails, onChange: toggleMails }) }),
+        h(Divider),
+        h(SetRow, { title: T("Mobilnummer nutzen", "Use mobile number"), sub: T("F\xFCr Verify-Codes & Service-Alerts. Kein Marketing.", "For verify codes & service alerts. No marketing."), control: verified ? h(Badge, { tone: "oracle", variant: "outline" }, T("verifiziert ✓", "verified ✓")) : h(Switch, { checked: mobileOn, onChange: toggleMobile }) }),
+        mobileOn && !verified && h("div", { style: { display: "flex", flexDirection: "column", gap: 10, padding: "4px 0 14px" } },
+          !sent ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, h(Input, { type: "tel", placeholder: "+41 7…", value: phone, onChange: (e) => setPhone(e.target.value), style: { flex: 1, minWidth: 180 } }), h(Button, { variant: "chrome", onClick: sendCode, disabled: !phone }, T("Code senden", "Send code")))
+            : h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, h(Input, { placeholder: T("SMS-Code", "SMS code"), value: code, onChange: (e) => setCode(e.target.value), style: { flex: 1, minWidth: 140 } }), h(Button, { variant: "oracle", onClick: verify, disabled: !code }, T("Best\xE4tigen", "Verify")))),
+        paying && h(React.Fragment, null, h(Divider), h(SetRow, { title: T("Subscription downgraden", "Downgrade subscription"), sub: T("L\xE4uft bis zum Periodenende weiter.", "Stays active until the end of the period."), control: confirming === "downgrade" ? h("div", { style: { display: "flex", gap: 8 } }, h(Button, { variant: "oxblood", size: "sm", onClick: doDowngrade }, T("Sicher?", "Sure?")), h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming(null) }, T("Abbrechen", "Cancel"))) : h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming("downgrade") }, T("Downgrade", "Downgrade")) })),
+        h(Divider),
+        h(SetRow, { title: T("Account l\xF6schen", "Delete account"), sub: T("Unwiderruflich. Per Magic-Link-Best\xE4tigung.", "Irreversible. Confirmed via magic link."), control: confirming === "delete" ? h("div", { style: { display: "flex", gap: 8 } }, h(Button, { variant: "oxblood", size: "sm", onClick: doDelete }, T("Sicher?", "Sure?")), h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming(null) }, T("Abbrechen", "Cancel"))) : h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming("delete") }, T("L\xF6schen", "Delete")) })),
+      note && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-oracle)", margin: "16px 0 0", lineHeight: 1.5 } }, note));
+  }
+
   // ============ Approved dashboard ============
   function Dashboard({ a, justJoined }) {
     const tier = a.tier || "observer";
@@ -113,6 +160,8 @@
       h(TierBox, { premium: !isObserver, eyebrow: T("Deine Subscription", "Your subscription"), name: TIER[tier], price: PRICE[tier], memberSince: a.memberSince, features: included }),
       isObserver && h(TierBox, { premium: true, eyebrow: T("Aufsteigen", "Level up"), name: "Inner Circle", price: "99 € / mo", features: INNER_F }, waitBox),
       h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } }, h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 } }, h(PyEyebrow, null, T("Die heutige Reading", "Today’s reading")), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, "06:00 CET")), h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 28, lineHeight: 1.15, color: "var(--text-primary)", margin: "0 0 16px" } }, "Rotate into energy before the crowd notices the cycle."), h("div", { style: { display: "flex", gap: 30, flexWrap: "wrap", paddingTop: 16, borderTop: "1px solid var(--border-subtle)" } }, h(Stat, { label: "Conviction", value: "94", sub: "of 100", size: "sm" }), isObserver ? h("div", { style: { filter: "blur(5px)", opacity: 0.6, pointerEvents: "none" } }, h(Stat, { label: "Entry / Stop / Target", value: "•••••", size: "sm" })) : h(React.Fragment, null, h(Stat, { label: "Entry", value: "123.32", size: "sm" }), h(Stat, { label: "Stop", value: "119.50", size: "sm" }), h(Stat, { label: "Target", value: "127.00", size: "sm" }))), isObserver && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-muted)", margin: "16px 0 0" } }, T("Levels und das volle Reasoning sind dem Inner Circle vorbehalten.", "Levels and the full reasoning are reserved for the Inner Circle.")), h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", margin: "14px 0 0" } }, T("Beispiel-Reading. Live-Inhalte kommen von Warren, server-seitig pro Tier.", "Sample reading. Live content comes from Warren, served per tier."))),
+      tier !== "syndicate" && h(SyndicateTease, null),
+      h(AccountSettings, { a }),
       h("div", { style: { textAlign: "center" } }, h(Button, { variant: "ghost", onClick: logout }, T("Abmelden", "Log out"))));
   }
 
