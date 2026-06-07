@@ -57,30 +57,54 @@
       function init() {
         parts = [];
         for (let i = 0; i < N; i++) parts.push({
+          big: false,
           x: Math.random() * w, y: Math.random() * h,
-          r: 0.4 + Math.random() * 1.3,
+          r: 0.5 + Math.random() * 1.7,
           vx: (Math.random() - 0.5) * 0.1,
           vy: -(0.04 + Math.random() * 0.16),
-          a: 0.1 + Math.random() * 0.45,
+          a: 0.18 + Math.random() * 0.5,
           ph: Math.random() * Math.PI * 2,
           sp: 0.5 + Math.random() * 1.1
         });
+        const BIG = Math.max(7, Math.round(w / 200));
+        for (let i = 0; i < BIG; i++) parts.push({
+          big: true,
+          x: Math.random() * w, y: Math.random() * h,
+          r: 5 + Math.random() * 9,
+          vx: (Math.random() - 0.5) * 0.05,
+          vy: -(0.015 + Math.random() * 0.05),
+          a: 0.08 + Math.random() * 0.14,
+          ph: Math.random() * Math.PI * 2,
+          sp: 0.3 + Math.random() * 0.6
+        });
       }
       function dot(p, tw) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(242,206,122," + tw + ")";
-        ctx.shadowColor = "rgba(242,206,122,0.85)";
-        ctx.shadowBlur = p.r * 4;
-        ctx.fill();
+        if (p.big) {
+          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+          g.addColorStop(0, "rgba(242,206,122," + tw + ")");
+          g.addColorStop(1, "rgba(242,206,122,0)");
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.shadowColor = "rgba(242,206,122,0.85)";
+          ctx.shadowBlur = p.r * 4;
+          ctx.fillStyle = "rgba(242,206,122," + tw + ")";
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
       function frame() {
         t += 0.016;
         ctx.clearRect(0, 0, w, h);
         for (const p of parts) {
           p.x += p.vx; p.y += p.vy;
-          if (p.y < -4) { p.y = h + 4; p.x = Math.random() * w; }
-          if (p.x < -4) p.x = w + 4; else if (p.x > w + 4) p.x = -4;
+          const m = p.r + 4;
+          if (p.y < -m) { p.y = h + m; p.x = Math.random() * w; }
+          if (p.x < -m) p.x = w + m; else if (p.x > w + m) p.x = -m;
           dot(p, (p.a * (0.55 + 0.45 * Math.sin(t * p.sp + p.ph))).toFixed(3));
         }
         raf = requestAnimationFrame(frame);
