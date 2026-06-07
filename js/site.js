@@ -7,15 +7,15 @@
   const API = "https://api.pythai.ch";
   const NAV = [
     ["The Reading", "reading.html"],
-    ["Signals", "signals.html"],
     ["Manifesto", "manifesto.html"],
+    ["Signals", "signals.html"],
+    ["Chartomat", "chartomat.html"],
     ["Inner Circle", "inner-circle.html"],
     ["Playbook", "playbook.html"],
-    ["Rituals", "rituals.html"],
-    ["Chartomat", "chartomat.html"]
+    ["Rituals", "rituals.html"]
   ];
-  const PRIV = ["inner-circle", "syndicate", "admin"]; // Playbook + Rituals + Chartomat nur fuer diese Tiers
-  const MEMBER_ONLY = ["playbook.html", "rituals.html", "chartomat.html"];
+  const PRIV = ["inner-circle", "syndicate", "admin"]; // Playbook + Rituals nur fuer diese Tiers
+  const MEMBER_ONLY = ["playbook.html", "rituals.html"];
   function navItems(me) {
     const tier = me && me.tier;
     return NAV.filter(function (n) { return MEMBER_ONLY.indexOf(n[1]) === -1 || PRIV.indexOf(tier) !== -1; });
