@@ -19,7 +19,7 @@
       ]],
       ["terms", T("AGB", "Terms"), [
         T("Platzhalter. Allgemeine Gesch\xE4ftsbedingungen f\xFCr die PYTHAI-Subscriptions (Observer / Inner Circle / Syndicate).", "Placeholder. Terms of service for the PYTHAI subscriptions (Observer / Inner Circle / Syndicate)."),
-        T("Vertragsschluss, Laufzeit, K\xFCndigung, Preise (CHF), Zahlungsabwicklung (Stripe) und Widerrufsrecht im Fernabsatz sind anwaltlich auszuformulieren.", "Contract formation, term, cancellation, prices (CHF), payment handling (Stripe) and the right of withdrawal in distance selling are to be drafted by counsel.")
+        T("Vertragsschluss, Laufzeit, K\xFCndigung, Preise (EUR), Zahlungsabwicklung (Stripe) und Widerrufsrecht im Fernabsatz sind anwaltlich auszuformulieren.", "Contract formation, term, cancellation, prices (EUR), payment handling (Stripe) and the right of withdrawal in distance selling are to be drafted by counsel.")
       ]],
       ["risk", T("Risikohinweis", "Risk notice"), [
         T("PYTHAI / Warren stellt keine Anlageberatung, keine Anlagevermittlung, keine Finanzanalyse und keine Kauf-, Verkaufs- oder Halteempfehlung dar. Eine individuelle Eignung wird nicht gepr\xFCft.", "PYTHAI / Warren does not constitute investment advice, investment broking, financial analysis or any buy, sell or hold recommendation. Individual suitability is not assessed."),
