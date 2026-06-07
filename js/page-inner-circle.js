@@ -10,7 +10,7 @@
       {
         eyebrow: "Claim your seat at the table",
         title: "Three ways to hear the oracle.",
-        sub: T("Observer ist kostenlos und bleibt es. Im Inner Circle lebt die vollst\xE4ndige Reading. Syndicate gibt es nur auf Einladung.", "Observer is free and always will be. Inner Circle is where the full reading lives. Syndicate is by counsel only.")
+        sub: T("Observer ist kostenlos und bleibt es. Im Inner Circle lebt die vollst\xE4ndige Reading. Syndicate kommt bald.", "Observer is free and always will be. Inner Circle is where the full reading lives. Syndicate is coming soon.")
       }
     ), /* @__PURE__ */ React.createElement(PySection, null, /* @__PURE__ */ React.createElement(PyPricing, { onEnter: go })), /* @__PURE__ */ React.createElement(PySection, { alt: true }, /* @__PURE__ */ React.createElement("div", { id: "waitlist" }, /* @__PURE__ */ React.createElement(PyWaitlist, null))), /* @__PURE__ */ React.createElement(SiteFooter, null));
   }
