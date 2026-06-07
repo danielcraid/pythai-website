@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Welcome — PYTHAI</title>
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#08090C" />
+<link rel="icon" type="image/svg+xml" href="assets/logo/pythai-oculus.svg" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--text-primary); }
+  #root:empty::before { content: ""; display: block; min-height: 100vh; background: var(--bg-base); }
+  .pk-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  @media (max-width: 860px) { .pk-grid3 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="js/react.production.min.js"></script>
+<script src="js/react-dom.production.min.js"></script>
+<script src="js/lucide.min.js"></script>
+<script src="js/ds-bundle.js"></script>
+<script src="js/brand-buttons.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/ds-landing.js"></script>
+<script src="js/site.js"></script>
+<script src="js/pagekit.js"></script>
+<script src="js/page-welcome.js"></script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>
