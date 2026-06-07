@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Coming soon — PYTHAI</title>
+<meta name="robots" content="noindex" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo/pythai-oculus.svg" />
+<link rel="stylesheet" href="/styles.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg-base); color: var(--text-primary); font-family: var(--font-ui);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    text-align: center; overflow: hidden; position: relative;
+  }
+  .bg { position: absolute; inset: 0; z-index: 0; }
+  .bg img { width: 100%; height: 100%; object-fit: cover; opacity: 0.42; }
+  .veil1 { position: absolute; inset: 0; background: radial-gradient(70% 60% at 50% 40%, rgba(8,9,12,0.25) 0%, rgba(8,9,12,0.82) 64%, var(--void) 100%); }
+  .veil2 { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,9,12,0.6) 0%, transparent 28%, transparent 66%, var(--void) 100%); }
+  .wrap { position: relative; z-index: 1; padding: 0 24px; max-width: 640px; }
+  .mark { width: 78px; height: 78px; margin: 0 auto 26px; filter: drop-shadow(0 0 24px var(--glow-oracle)); }
+  .eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.34em; text-transform: uppercase;
+    color: var(--text-oracle); margin: 0 0 24px; padding-left: 0.34em; }
+  h1 { font-family: var(--font-oracle); font-weight: 400; letter-spacing: -0.02em;
+    font-size: clamp(30px, 5vw, 54px); line-height: 1.08; margin: 0; color: var(--text-primary); }
+  p.sub { font-family: var(--font-ui); font-size: 18px; line-height: 1.6; color: var(--text-secondary);
+    max-width: 460px; margin: 22px auto 0; }
+  .cta { display: inline-flex; align-items: center; gap: 8px; margin-top: 36px;
+    font-family: var(--font-oracle); font-weight: 600; font-size: 16px; letter-spacing: 0.03em;
+    text-decoration: none; color: var(--text-on-gold); background: var(--oracle);
+    padding: 13px 26px; border-radius: 6px; box-shadow: 0 0 28px var(--glow-oracle-soft);
+    transition: background .25s, box-shadow .25s; }
+  .cta:hover { background: var(--oracle-bright); box-shadow: 0 0 40px var(--glow-oracle); }
+  .code { font-family: var(--font-mono); font-size: 13px; color: var(--text-muted); letter-spacing: 0.2em; margin-top: 30px; }
+</style>
+</head>
+<body>
+  <div class="bg">
+    <img src="/assets/imagery/sanctum-boardroom.png" alt="" />
+    <div class="veil1"></div>
+    <div class="veil2"></div>
+  </div>
+  <div class="wrap">
+    <img class="mark" src="/assets/logo/pythai-oculus.svg" alt="PYTHAI" />
+    <p class="eyebrow" data-de="Bald verfügbar">Coming soon</p>
+    <h1 data-de="Google-Login ist auf dem Weg.">Google sign-in is on its way.</h1>
+    <p class="sub" data-de="Nutze solange einfach deine E-Mail — Warren schickt dir einen einmaligen Link, kein Passwort nötig.">For now, use your email — Warren sends you a one-time link, no password needed.</p>
+    <a class="cta" href="/register.html" data-de="Mit E-Mail anmelden &nearr;">Continue with email &nearr;</a>
+    <div class="code">PYTHAI · pythai.ch</div>
+  </div>
+  <script>
+    (function () {
+      var stored = null; try { stored = localStorage.getItem('py_lang'); } catch (e) {}
+      var nav = ((navigator.language || 'en')).toLowerCase();
+      var de = stored === 'de' || (stored !== 'en' && nav.indexOf('de') === 0);
+      if (de) {
+        document.documentElement.lang = 'de';
+        document.querySelectorAll('[data-de]').forEach(function (el) { el.innerHTML = el.getAttribute('data-de'); });
+      }
+    })();
+  </script>
+</body>
+</html>

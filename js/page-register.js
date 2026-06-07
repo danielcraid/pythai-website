@@ -14,7 +14,7 @@
     const [sent, setSent] = useState(false);
     const fld = { width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "13px 16px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 15, outline: "none", marginBottom: 12, boxSizing: "border-box" };
     function google() {
-      window.location.href = API + "/api/auth/google";
+      window.location.href = "soon.html"; // Google-Login noch nicht live → Coming-soon-Seite
     }
     function submit(e) {
       e.preventDefault();

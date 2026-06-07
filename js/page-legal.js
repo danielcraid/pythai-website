@@ -1,7 +1,18 @@
 (() => {
   const { SiteNav, SiteFooter, PyPageHead, PySection, PyEyebrow } = window;
+  const { useEffect } = React;
   const T = (de, en) => window.PYi18n.t(de, en);
   function App() {
+    useEffect(() => {
+      var id = (window.location.hash || "").slice(1);
+      if (!id) return;
+      setTimeout(function () {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top + window.scrollY - 90;
+        window.scrollTo({ top: top, behavior: "smooth" });
+      }, 60);
+    }, []);
     const SECTIONS = [
       ["imprint", T("Impressum", "Imprint"), [
         T("CRAID GmbH \u2014 PYTHAI ist eine AI-Unit der CRAID GmbH.", "CRAID GmbH \u2014 PYTHAI is an AI unit of CRAID GmbH."),
