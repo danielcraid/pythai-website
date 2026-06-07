@@ -119,4 +119,42 @@
     return /* @__PURE__ */ React.createElement("footer", { style: { borderTop: "1px solid var(--border-subtle)", padding: "56px 40px 40px" } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1240, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 32 } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 320 } }, /* @__PURE__ */ React.createElement("a", { href: "index.html", style: { textDecoration: "none" } }, /* @__PURE__ */ React.createElement(Wordmark, { size: 18 })), /* @__PURE__ */ React.createElement("p", { style: { fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 18, color: "var(--text-muted)", margin: "20px 0 0" } }, "Wisdom, foretold.")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 64, flexWrap: "wrap" } }, FCOLS.map(([h, items]) => /* @__PURE__ */ React.createElement("div", { key: h }, /* @__PURE__ */ React.createElement("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-oracle)", margin: "0 0 16px" } }, h), items.map(([label, href]) => /* @__PURE__ */ React.createElement("a", { key: label, href, style: { display: "block", fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-secondary)", marginBottom: 10, textDecoration: "none" } }, label)))))), /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1240, margin: "44px auto 0", paddingTop: 22, borderTop: "1px solid var(--border-subtle)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", gap: 20, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, "\xA9 2026 PYTHAI \xB7 Warren von PYTHAI \xB7 AI Unit of CRAID GmbH"), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, T("M\xE4rkte bergen Risiken. Das Orakel ist keine Beratung.", "Markets carry risk. The oracle is not advice.")))));
   }
   Object.assign(window, { SiteNav, SiteFooter });
+
+  // ---- Sanctum ambient — site-wide soundscape with a gentle toggle ----
+  (function initSound() {
+    if (window.__pySound) return; window.__pySound = true;
+    function boot() {
+      var ICON_ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>';
+      var ICON_OFF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>';
+      var TARGET = 0.32, on = false, fadeT;
+      var audio = document.createElement("audio");
+      audio.loop = true; audio.preload = "auto"; audio.volume = 0;
+      [["assets/audio/sanctum.mp3", "audio/mpeg"], ["assets/audio/sanctum.m4a", "audio/mp4"]].forEach(function (s) {
+        var el = document.createElement("source"); el.src = s[0]; el.type = s[1]; audio.appendChild(el);
+      });
+      document.body.appendChild(audio);
+      function fade(to, cb) { clearInterval(fadeT); var step = (to - audio.volume) / 18; fadeT = setInterval(function () { audio.volume = Math.min(1, Math.max(0, audio.volume + step)); if (Math.abs(audio.volume - to) < 0.02) { audio.volume = to; clearInterval(fadeT); if (cb) cb(); } }, 40); }
+      function pref() { try { return localStorage.getItem("py_sound"); } catch (e) { return null; } }
+      function setPref(v) { try { localStorage.setItem("py_sound", v); } catch (e) { } }
+      var btn = document.createElement("button");
+      btn.setAttribute("aria-label", "Sound");
+      btn.style.cssText = "position:fixed;left:20px;bottom:20px;z-index:300;width:42px;height:42px;border-radius:50%;border:1px solid var(--border-strong);background:rgba(8,9,12,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .2s,border-color .2s,box-shadow .2s;";
+      function render() { btn.innerHTML = on ? ICON_ON : ICON_OFF; btn.style.color = on ? "var(--text-oracle)" : "var(--text-muted)"; btn.style.borderColor = on ? "var(--border-oracle)" : "var(--border-strong)"; btn.style.boxShadow = on ? "0 0 16px var(--glow-oracle-soft)" : "none"; }
+      function enable() { on = true; setPref("on"); render(); (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () { }); }
+      function disable() { on = false; setPref("off"); render(); fade(0, function () { audio.pause(); }); }
+      btn.addEventListener("click", function () { on ? disable() : enable(); });
+      document.body.appendChild(btn);
+      // default: sound on-intent (starts gently on first deliberate gesture); muted only if user opted out
+      var want = pref() === null ? true : pref() === "on";
+      on = want; render();
+      if (want) {
+        (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () {
+          var resume = function () { (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () { }); clear(); };
+          var clear = function () { ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.removeEventListener(ev, resume); }); };
+          ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.addEventListener(ev, resume); });
+        });
+      }
+    }
+    if (document.body) boot(); else document.addEventListener("DOMContentLoaded", boot);
+  })();
 })();
