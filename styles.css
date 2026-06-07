@@ -72,23 +72,20 @@
    analog flicker, and a feTurbulence "krissel" shimmer (filter url). */
 @keyframes py-hero-move {
   0%   { transform: rotate(0deg) scale(1); }
-  14%  { transform: rotate(8deg) scale(1.02); }
-  30%  { transform: rotate(3deg) scale(1.0); }
-  46%  { transform: rotate(-7deg) scale(1.03); }
-  62%  { transform: rotate(-1deg) scale(1.0); }
-  78%  { transform: rotate(6deg) scale(1.02); }
+  25%  { transform: rotate(4deg) scale(1.015); }
+  50%  { transform: rotate(0deg) scale(1); }
+  75%  { transform: rotate(-4deg) scale(1.015); }
   100% { transform: rotate(0deg) scale(1); }
 }
 @keyframes py-hero-aura {
-  0%, 100% { filter: drop-shadow(0 0 16px var(--glow-oracle-soft)) url(#py-krissel) hue-rotate(-7deg); }
-  50%      { filter: drop-shadow(0 0 42px var(--glow-oracle)) url(#py-krissel) hue-rotate(9deg); }
+  0%, 100% { filter: drop-shadow(0 0 18px var(--glow-oracle-soft)) url(#py-krissel) hue-rotate(-4deg); }
+  50%      { filter: drop-shadow(0 0 34px var(--glow-oracle)) url(#py-krissel) hue-rotate(5deg); }
 }
 .py-oculus-hero {
   transform-origin: center;
-  animation: py-hero-move 16s cubic-bezier(.45,.05,.55,.95) infinite,
-             py-hero-aura 6.5s ease-in-out infinite,
-             py-flicker 8s steps(1, end) infinite;
-  will-change: transform, opacity, filter;
+  animation: py-hero-move 20s ease-in-out infinite,
+             py-hero-aura 7s ease-in-out infinite;
+  will-change: transform, filter;
 }
 @media (prefers-reduced-motion: reduce) {
   .py-oculus-hero { animation: none !important; }
