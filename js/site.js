@@ -10,12 +10,14 @@
     ["Signals", "signals.html"],
     ["Manifesto", "manifesto.html"],
     ["Inner Circle", "inner-circle.html"],
-    ["Playbook", "playbook.html"]
+    ["Playbook", "playbook.html"],
+    ["Rituals", "rituals.html"]
   ];
-  const PRIV = ["inner-circle", "syndicate", "admin"]; // Playbook nur fuer diese Tiers
+  const PRIV = ["inner-circle", "syndicate", "admin"]; // Playbook + Rituals nur fuer diese Tiers
+  const MEMBER_ONLY = ["playbook.html", "rituals.html"];
   function navItems(me) {
     const tier = me && me.tier;
-    return NAV.filter(function (n) { return n[1] !== "playbook.html" || PRIV.indexOf(tier) !== -1; });
+    return NAV.filter(function (n) { return MEMBER_ONLY.indexOf(n[1]) === -1 || PRIV.indexOf(tier) !== -1; });
   }
   const NAV_CSS = `
 .pynav-desktop{display:flex;align-items:center;gap:28px;}
