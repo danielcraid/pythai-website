@@ -32,8 +32,8 @@
     const [gate, setGate] = useState("loading");
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
-        const tier = d && d.ok && d.tier;
-        setGate(PRIV.indexOf(tier) !== -1 ? "ok" : "locked");
+        const member = d && d.ok && PRIV.indexOf(d.tier) !== -1 && d.approval === "approved";
+        setGate(member ? "ok" : "locked");
       }).catch(() => setGate("locked"));
     }, []);
     if (gate === "loading") return h("div", null, h(SiteNav, { active: "chartomat.html" }), h("div", { style: { minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 22, color: "var(--text-oracle)" } }, T("Das Orakel prüft deinen Zugang…", "The oracle checks your access…")), h(SiteFooter, null));

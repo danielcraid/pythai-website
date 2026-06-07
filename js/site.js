@@ -17,8 +17,8 @@
   const PRIV = ["inner-circle", "syndicate", "admin"]; // Playbook + Rituals nur fuer diese Tiers
   const MEMBER_ONLY = ["playbook.html", "rituals.html"];
   function navItems(me) {
-    const tier = me && me.tier;
-    return NAV.filter(function (n) { return MEMBER_ONLY.indexOf(n[1]) === -1 || PRIV.indexOf(tier) !== -1; });
+    const member = !!(me && PRIV.indexOf(me.tier) !== -1 && me.approval === "approved");
+    return NAV.filter(function (n) { return MEMBER_ONLY.indexOf(n[1]) === -1 || member; });
   }
   const NAV_CSS = `
 .pynav-desktop{display:flex;align-items:center;gap:28px;}
