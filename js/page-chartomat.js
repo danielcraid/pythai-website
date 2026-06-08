@@ -48,21 +48,39 @@
     const [q, setQ] = useState("");
     const [open, setOpen] = useState(false);
     const [busy, setBusy] = useState(false);
-    const [done, setDone] = useState(false);
+    const [status, setStatus] = useState("form"); // form | sent | mailoff | limit | auth | error
     const fld = { width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "12px 14px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 15, outline: "none", boxSizing: "border-box" };
     const lbl = { display: "block", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 6px" };
     function send() {
       if (busy) return; setBusy(true);
-      fetch(API + "/api/chartomat/request", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ symbol: symbol.trim(), question: q.trim() }) }).catch(() => { }).then(() => { setBusy(false); setOpen(false); setDone(true); });
+      fetch(API + "/api/chartomat/request", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ symbol: symbol.trim(), question: q.trim() }) })
+        .then((res) => {
+          setBusy(false); setOpen(false);
+          if (res.ok || res.status === 202) return setStatus("sent");
+          if (res.status === 400) return setStatus("mailoff");
+          if (res.status === 429) return setStatus("limit");
+          if (res.status === 401) return setStatus("auth");
+          setStatus("error");
+        })
+        .catch(() => { setBusy(false); setOpen(false); setStatus("error"); });
     }
+    const RESULT = {
+      sent: { color: "var(--text-oracle)", head: T("Unterwegs. Warren liest die Daten.", "On its way. Warren is reading the data."), body: T("Die Chart-Analyse kommt per E-Mail" + (email ? " an " + email : "") + " — das kann ein paar Minuten dauern.", "Your chart analysis will arrive by email" + (email ? " at " + email : "") + " — it can take a few minutes.") },
+      mailoff: { color: "var(--text-warn, #d8a34a)", head: T("Dein Mail-Versand ist aus.", "Your email delivery is off."), body: T("Warren antwortet per E-Mail — aktiviere den Versand in deinen Konto-Einstellungen, dann klappt die Analyse.", "Warren replies by email — switch delivery on in your account settings, then the analysis will work."), cta: { label: T("Zu den Einstellungen", "To settings"), href: "account.html" } },
+      limit: { color: "var(--text-warn, #d8a34a)", head: T("Tageslimit erreicht.", "Daily limit reached."), body: T("Du hast heute alle Chart-Anfragen aufgebraucht (10 pro Tag). Morgen geht es weiter.", "You’ve used all of today’s chart requests (10 per day). It resets tomorrow.") },
+      auth: { color: "var(--text-warn, #d8a34a)", head: T("Sitzung abgelaufen.", "Session expired."), body: T("Bitte melde dich neu an, dann kannst du Warren wieder fragen.", "Please sign in again to ask Warren."), cta: { label: T("Anmelden", "Sign in"), href: "register.html" } },
+      error: { color: "var(--text-warn, #d8a34a)", head: T("Da ging etwas schief.", "Something went wrong."), body: T("Die Anfrage kam nicht durch. Versuch es gleich noch einmal.", "The request didn’t go through. Please try again in a moment.") }
+    };
     return h(PySection, null, h("div", { style: { maxWidth: 680, background: "var(--bg-raised)", border: "1px solid var(--border-oracle)", borderRadius: 12, padding: "30px", boxShadow: "var(--glow-md)" } },
       h(PyEyebrow, null, T("Frag das Orakel", "Ask the oracle")),
       h("h2", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 30, letterSpacing: "-0.01em", margin: "6px 0 0", color: "var(--text-primary)" } }, T("Chart-Analyse anfragen", "Request a chart analysis")),
-      done
+      status !== "form"
         ? h("div", { style: { marginTop: 18 } },
-            h("p", { style: { fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 20, color: "var(--text-oracle)", margin: 0 } }, T("Unterwegs. Warren liest die Daten.", "On its way. Warren is reading the data.")),
-            h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "10px 0 18px" } }, T("Die Chart-Analyse kommt per E-Mail" + (email ? " an " + email : "") + " — das kann ein paar Minuten dauern.", "Your chart analysis will arrive by email" + (email ? " at " + email : "") + " — it can take a few minutes.")),
-            h(Button, { variant: "chrome", onClick: () => { setDone(false); setSymbol(""); setQ(""); } }, T("Noch eine anfragen", "Ask another")))
+            h("p", { style: { fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 20, color: RESULT[status].color, margin: 0 } }, RESULT[status].head),
+            h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "10px 0 18px" } }, RESULT[status].body),
+            h("div", { style: { display: "flex", gap: 12, flexWrap: "wrap" } },
+              RESULT[status].cta ? h(Button, { variant: "oracle", onClick: () => { window.location.href = RESULT[status].cta.href; } }, RESULT[status].cta.label) : null,
+              h(Button, { variant: "chrome", onClick: () => { setStatus("form"); if (status === "sent") { setSymbol(""); setQ(""); } } }, status === "sent" ? T("Noch eine anfragen", "Ask another") : T("Erneut versuchen", "Try again"))))
         : h("div", { style: { marginTop: 18 } },
             h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 15, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 20px" } }, T("Nenne einen Wert (Aktie oder Index) und was du wissen möchtest. Warren erstellt den Chart und schickt dir seine Lesart per E-Mail.", "Name a stock or index and what you’d like to know. Warren builds the chart and emails you his read.")),
             h("label", { style: lbl }, T("Wert", "Symbol")),
