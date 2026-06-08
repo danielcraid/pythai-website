@@ -144,30 +144,83 @@
   }
 
   // ============ Upgrade dialog (in-page, kein Wegspringen) ============
+  const REQUIRE_CODE = true; // Testphase: Checkout nur mit gültigem Zugangscode. Nach dem Test auf false setzen.
   function UpgradeDialog({ onClose }) {
     const [busy, setBusy] = useState(false);
-    const [done, setDone] = useState(false);
-    async function request() {
-      setBusy(true);
-      try { await fetch(API + "/api/account/upgrade", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tier: "inner-circle" }) }); } catch (e) {}
-      setBusy(false); setDone(true);
+    const [code, setCode] = useState("");
+    const [err, setErr] = useState(null);
+    const blocked = REQUIRE_CODE && !code.trim();
+    async function go() {
+      if (busy || blocked) return;
+      setBusy(true); setErr(null);
+      try {
+        const res = await fetch(API + "/api/checkout/start", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tier: "inner-circle", code: code.trim() }) });
+        if (res.ok) {
+          const d = await res.json().catch(() => null);
+          if (d && d.url) { window.location.href = d.url; return; }
+          setErr(T("Etwas ging schief. Versuch es gleich noch einmal.", "Something went wrong. Please try again."));
+        } else if (res.status === 400) {
+          setErr(T("Code ung\xFCltig oder abgelaufen.", "Code invalid or expired."));
+        } else if (res.status === 401) {
+          setErr(T("Sitzung abgelaufen. Bitte neu anmelden.", "Session expired. Please sign in again."));
+        } else {
+          setErr(T("Etwas ging schief. Versuch es gleich noch einmal.", "Something went wrong. Please try again."));
+        }
+      } catch (e) { setErr(T("Keine Verbindung. Versuch es gleich noch einmal.", "No connection. Please try again.")); }
+      setBusy(false);
     }
+    const fld = { width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "11px 13px", color: "var(--text-primary)", fontFamily: "var(--font-mono)", fontSize: 15, letterSpacing: "0.08em", textTransform: "uppercase", outline: "none", boxSizing: "border-box" };
     return h("div", { onClick: onClose, style: { position: "fixed", inset: 0, zIndex: 200, background: "rgba(4,5,8,0.78)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } },
       h("div", { onClick: (e) => e.stopPropagation(), style: { position: "relative", maxWidth: 440, width: "100%", background: "var(--bg-raised)", border: "1px solid var(--border-oracle)", borderRadius: 12, boxShadow: "var(--glow-md)", padding: "30px" } },
         h("button", { onClick: onClose, "aria-label": "Close", style: { position: "absolute", top: 12, right: 16, background: "none", border: "none", color: "var(--text-muted)", fontSize: 24, cursor: "pointer", lineHeight: 1 } }, "×"),
-        done
-          ? h(React.Fragment, null,
-              h(PyEyebrow, null, T("Anfrage gesendet", "Request sent")),
-              h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 26, margin: "8px 0 12px", color: "var(--text-primary)" } }, T("Warren pr\xFCft deine Anfrage.", "Warren is reviewing your request.")),
-              h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: 0 } }, T("Du bekommst eine E-Mail, sobald du freigeschaltet bist. In der Testphase erfolgt die Freigabe manuell — die Zahlung \xFCber Stripe folgt.", "You’ll get an email once you’re approved. During the test phase approval is manual — Stripe payment to follow.")),
-              h("div", { style: { marginTop: 22 } }, h(Button, { variant: "oracle", full: true, onClick: onClose }, T("Schlie\xDFen", "Close"))))
-          : h(React.Fragment, null,
-              h(PyEyebrow, null, T("Aufsteigen", "Level up")),
-              h("div", { style: { display: "flex", alignItems: "baseline", gap: 8, margin: "8px 0 16px" } }, h("span", { style: { fontFamily: "var(--font-oracle)", fontSize: 30, backgroundImage: "var(--grad-gold)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "var(--oracle-bright)" } }, "Inner Circle"), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 14, color: "var(--text-oracle)" } }, "99 € / mo")),
-              h("div", { style: { display: "flex", flexDirection: "column", gap: 10, paddingBottom: 18, marginBottom: 18, borderBottom: "1px solid var(--border-subtle)" } }, INNER_F.map((f) => h(FeatureRow, { key: f, label: f, gold: true }))),
-              h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 18px" } }, T("Testphase: Die Zahlung l\xE4uft bald \xFCber Stripe. Bis dahin pr\xFCft Warren jede Anfrage pers\xF6nlich und schaltet dich frei.", "Test phase: payment via Stripe is coming. Until then Warren reviews each request personally and approves you.")),
-              h(Button, { variant: "oracle", full: true, loading: busy, onClick: request }, T("Upgrade anfragen", "Request upgrade")),
-              h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", textAlign: "center", margin: "12px 0 0" } }, T("Keine Zahlung in der Testphase.", "No payment during the test phase.")))));
+        h(PyEyebrow, null, T("Aufsteigen", "Level up")),
+        h("div", { style: { display: "flex", alignItems: "baseline", gap: 8, margin: "8px 0 16px" } }, h("span", { style: { fontFamily: "var(--font-oracle)", fontSize: 30, backgroundImage: "var(--grad-gold)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "var(--oracle-bright)" } }, "Inner Circle"), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 14, color: "var(--text-oracle)" } }, "99 € / mo")),
+        h("div", { style: { display: "flex", flexDirection: "column", gap: 10, paddingBottom: 18, marginBottom: 18, borderBottom: "1px solid var(--border-subtle)" } }, INNER_F.map((f) => h(FeatureRow, { key: f, label: f, gold: true }))),
+        REQUIRE_CODE ? h("div", { style: { marginBottom: 16 } },
+          h("label", { style: { display: "block", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 } }, T("Zugangscode (Testphase)", "Access code (test phase)")),
+          h("input", { style: fld, value: code, onChange: (e) => { setCode(e.target.value); setErr(null); }, placeholder: "CIRCLEOFTRUST", autoComplete: "off", spellCheck: false }),
+          h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, lineHeight: 1.5, color: "var(--text-muted)", margin: "8px 0 0" } }, T("Mit g\xFCltigem Code gilt dein Testpreis an der Kasse.", "With a valid code your test price applies at checkout."))) : null,
+        err ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, color: "var(--text-warn, #d8a34a)", margin: "0 0 14px" } }, err) : null,
+        h(Button, { variant: "oracle", full: true, loading: busy, disabled: blocked, onClick: go }, T("Weiter zur Zahlung", "Continue to payment")),
+        h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", textAlign: "center", margin: "12px 0 0" } }, T("Sichere Zahlung \xFCber Stripe.", "Secure payment via Stripe."))));
+  }
+
+  // ============ Subscription ============
+  function SubscriptionBox() {
+    const [st, setSt] = useState("loading"); // loading | ready | hidden
+    const [sub, setSub] = useState(null);
+    const [busy, setBusy] = useState(false);
+    useEffect(() => {
+      let alive = true;
+      fetch(API + "/api/subscription", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
+        if (!alive) return;
+        if (d && d.status && d.status !== "none") { setSub(d); setSt("ready"); } else setSt("hidden");
+      }).catch(() => { if (alive) setSt("hidden"); });
+      return () => { alive = false; };
+    }, []);
+    function portal() {
+      if (busy) return; setBusy(true);
+      fetch(API + "/api/portal", { method: "POST", credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
+        if (d && d.url) { window.location.href = d.url; return; } setBusy(false);
+      }).catch(() => setBusy(false));
+    }
+    if (st !== "ready") return null;
+    const ST = {
+      active: T("Aktiv", "Active"), trialing: T("Testzeitraum", "Trial"),
+      past_due: T("Zahlung offen", "Payment due"), paused: T("Pausiert", "Paused"),
+      canceled: T("Gek\xFCndigt", "Canceled")
+    };
+    const warn = sub.status === "paused" || sub.status === "past_due";
+    function fmt(iso) { try { const d = new Date(iso); if (isNaN(d.getTime())) return ""; const lang = (localStorage.getItem("py_lang") || "de"); return d.toLocaleDateString(lang === "en" ? "en-GB" : "de-DE", { day: "2-digit", month: "long", year: "numeric" }); } catch (e) { return ""; } }
+    return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30, ...(warn ? { borderColor: "var(--text-warn, #d8a34a)" } : {}) } },
+      h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 16 } },
+        h(PyEyebrow, null, T("Dein Abo", "Your subscription")),
+        h(Badge, { tone: "neutral", variant: "outline" }, ST[sub.status] || sub.status)),
+      h("div", { style: { display: "flex", gap: 30, flexWrap: "wrap" } },
+        sub.price ? h(Stat, { label: T("Preis", "Price"), value: sub.price, size: "sm" }) : null,
+        sub.renewsAt ? h(Stat, { label: sub.cancelAtPeriodEnd ? T("Endet am", "Ends") : T("Verl\xE4ngert am", "Renews"), value: fmt(sub.renewsAt), size: "sm" }) : null),
+      warn ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "16px 0 0" } }, T("Deine letzte Zahlung ist fehlgeschlagen. Aktualisiere deine Zahlungsmethode, um den Zugang zu behalten.", "Your last payment failed. Update your payment method to keep access.")) : null,
+      h("div", { style: { marginTop: 18 } }, h(Button, { variant: warn ? "oracle" : "chrome", loading: busy, onClick: portal }, T("Abo verwalten", "Manage subscription"))));
   }
 
   // ============ Activity log ============
@@ -262,6 +315,7 @@
       upgradeOpen && h(UpgradeDialog, { onClose: () => setUpgradeOpen(false) }),
       h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } }, h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 } }, h(PyEyebrow, null, T("Die heutige Reading", "Today’s reading")), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, "06:00 CET")), h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 28, lineHeight: 1.15, color: "var(--text-primary)", margin: "0 0 16px" } }, "Rotate into energy before the crowd notices the cycle."), h("div", { style: { display: "flex", gap: 30, flexWrap: "wrap", paddingTop: 16, borderTop: "1px solid var(--border-subtle)" } }, h(Stat, { label: "Conviction", value: "94", sub: "of 100", size: "sm" }), isObserver ? h("div", { style: { filter: "blur(5px)", opacity: 0.6, pointerEvents: "none" } }, h(Stat, { label: "Entry / Stop / Target", value: "•••••", size: "sm" })) : h(React.Fragment, null, h(Stat, { label: "Entry", value: "123.32", size: "sm" }), h(Stat, { label: "Stop", value: "119.50", size: "sm" }), h(Stat, { label: "Target", value: "127.00", size: "sm" }))), isObserver && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-muted)", margin: "16px 0 0" } }, T("Levels und das volle Reasoning sind dem Inner Circle vorbehalten.", "Levels and the full reasoning are reserved for the Inner Circle.")), h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", margin: "14px 0 0" } }, T("Beispiel-Reading. Live-Inhalte kommen von Warren, server-seitig pro Tier.", "Sample reading. Live content comes from Warren, served per tier."))),
       tier !== "syndicate" && tier !== "admin" && h(SyndicateTease, null),
+      h(SubscriptionBox, null),
       h(AccountSettings, { a }),
       h(ActivityLog, null),
       h("div", { style: { textAlign: "center" } }, h(Button, { variant: "ghost", onClick: logout }, T("Abmelden", "Log out"))));
