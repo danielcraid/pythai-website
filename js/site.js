@@ -9,11 +9,12 @@
     ["The Reading", "reading.html"],
     ["Manifesto", "manifesto.html"],
     ["Signals", "signals.html"],
-    ["Chartomat", "chartomat.html"],
     ["Inner Circle", "inner-circle.html"],
+    ["Chartomat", "chartomat.html"],
     ["Playbook", "playbook.html"],
     ["Rituals", "rituals.html"]
   ];
+  const MEMBER_AREA = ["chartomat.html", "playbook.html", "rituals.html"]; // hell-gold getoent wenn eingeloggt
   const PRIV = ["inner-circle", "syndicate", "admin"]; // Playbook + Rituals nur fuer diese Tiers
   const MEMBER_ONLY = ["playbook.html", "rituals.html"];
   function navItems(me) {
@@ -88,6 +89,12 @@
     const [open, setOpen] = useState(false);
     const { me, ready } = useSession();
     const items = navItems(me);
+    const loggedIn = !!me;
+    const linkColor = function (href) {
+      if (active === href) return "var(--text-oracle)";
+      if (loggedIn && MEMBER_AREA.indexOf(href) !== -1) return "var(--oracle-pale)";
+      return "var(--text-secondary)";
+    };
     return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("style", null, NAV_CSS), /* @__PURE__ */ React.createElement("nav", { style: {
       position: "sticky",
       top: 0,
@@ -107,8 +114,8 @@
       textTransform: "uppercase",
       textDecoration: "none",
       whiteSpace: "nowrap",
-      color: active === href ? "var(--text-oracle)" : "var(--text-secondary)"
-    } }, l)), /* @__PURE__ */ React.createElement(LangToggle, null), /* @__PURE__ */ React.createElement(AuthArea, { me, ready })), /* @__PURE__ */ React.createElement("button", { className: "pynav-burger", "aria-label": "Menu", "aria-expanded": open, onClick: () => setOpen(!open) }, /* @__PURE__ */ React.createElement(BurgerIcon, { open }))), open && /* @__PURE__ */ React.createElement("div", { className: "pynav-menu" }, items.map(([l, href]) => /* @__PURE__ */ React.createElement("a", { key: l, href, style: { color: active === href ? "var(--text-oracle)" : "var(--text-secondary)" } }, l)), /* @__PURE__ */ React.createElement("div", { className: "pynav-mfoot" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "center", padding: "4px 0" } }, /* @__PURE__ */ React.createElement(LangToggle, null)), /* @__PURE__ */ React.createElement(AuthArea, { me, ready, full: true }))));
+      color: linkColor(href)
+    } }, l)), /* @__PURE__ */ React.createElement(LangToggle, null), /* @__PURE__ */ React.createElement(AuthArea, { me, ready })), /* @__PURE__ */ React.createElement("button", { className: "pynav-burger", "aria-label": "Menu", "aria-expanded": open, onClick: () => setOpen(!open) }, /* @__PURE__ */ React.createElement(BurgerIcon, { open }))), open && /* @__PURE__ */ React.createElement("div", { className: "pynav-menu" }, items.map(([l, href]) => /* @__PURE__ */ React.createElement("a", { key: l, href, style: { color: linkColor(href) } }, l)), /* @__PURE__ */ React.createElement("div", { className: "pynav-mfoot" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "center", padding: "4px 0" } }, /* @__PURE__ */ React.createElement(LangToggle, null)), /* @__PURE__ */ React.createElement(AuthArea, { me, ready, full: true }))));
   }
   function SiteFooter() {
     const FCOLS = [
@@ -116,7 +123,7 @@
       ["Circle", [["Membership", "inner-circle.html"], ["Syndicate", "inner-circle.html"], ["Seek counsel", "inner-circle.html#waitlist"], ["Counsel", "mailto:warren@pythai.ch"]]],
       ["Legal", [[T("Risikohinweis", "Risk notice"), "legal.html#risk"], [T("AGB", "Terms"), "legal.html#terms"], [T("Datenschutz", "Privacy"), "legal.html#privacy"], [T("Impressum", "Imprint"), "legal.html#imprint"]]]
     ];
-    return /* @__PURE__ */ React.createElement("footer", { style: { borderTop: "1px solid var(--border-subtle)", padding: "56px 40px 40px" } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1240, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 32 } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 320 } }, /* @__PURE__ */ React.createElement("a", { href: "index.html", style: { textDecoration: "none" } }, /* @__PURE__ */ React.createElement(Wordmark, { size: 18 })), /* @__PURE__ */ React.createElement("p", { style: { fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 18, color: "var(--text-muted)", margin: "20px 0 0" } }, "Wisdom, foretold.")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 64, flexWrap: "wrap" } }, FCOLS.map(([h, items]) => /* @__PURE__ */ React.createElement("div", { key: h }, /* @__PURE__ */ React.createElement("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-oracle)", margin: "0 0 16px" } }, h), items.map(([label, href]) => /* @__PURE__ */ React.createElement("a", { key: label, href, style: { display: "block", fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-secondary)", marginBottom: 10, textDecoration: "none" } }, label)))))), /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1240, margin: "44px auto 0", paddingTop: 22, borderTop: "1px solid var(--border-subtle)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", gap: 20, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, "\xA9 2026 PYTHAI \xB7 Warren von PYTHAI \xB7 AI Unit of CRAID GmbH"), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, T("M\xE4rkte bergen Risiken. Das Orakel ist keine Beratung.", "Markets carry risk. The oracle is not advice.")))));
+    return /* @__PURE__ */ React.createElement("footer", { style: { borderTop: "1px solid var(--border-subtle)", padding: "56px 40px 40px" } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1240, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 32 } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 320 } }, /* @__PURE__ */ React.createElement("a", { href: "index.html", style: { textDecoration: "none" } }, /* @__PURE__ */ React.createElement(Wordmark, { size: 18 })), /* @__PURE__ */ React.createElement("p", { style: { fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 18, color: "var(--text-muted)", margin: "20px 0 0" } }, "Wisdom, foretold.")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 64, flexWrap: "wrap" } }, FCOLS.map(([h, items]) => /* @__PURE__ */ React.createElement("div", { key: h }, /* @__PURE__ */ React.createElement("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-oracle)", margin: "0 0 16px" } }, h), items.map(([label, href]) => /* @__PURE__ */ React.createElement("a", { key: label, href, style: { display: "block", fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-secondary)", marginBottom: 10, textDecoration: "none" } }, label)))))), /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1240, margin: "44px auto 0", paddingTop: 22, borderTop: "1px solid var(--border-subtle)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", gap: 20, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, "\xA9 2026 PYTHAI UG (i.G.) \xB7 Warren von PYTHAI"), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, T("M\xE4rkte bergen Risiken. Das Orakel ist keine Beratung.", "Markets carry risk. The oracle is not advice.")))));
   }
   Object.assign(window, { SiteNav, SiteFooter });
 

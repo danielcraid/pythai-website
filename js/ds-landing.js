@@ -45,7 +45,7 @@
       if (!ctx) return;
       const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const N = 46;
+      const N = 69;
       let w = 0, h = 0, parts = [], raf = 0, t = 0;
       function resize() {
         const r = canvas.getBoundingClientRect();
@@ -66,7 +66,7 @@
           ph: Math.random() * Math.PI * 2,
           sp: 0.5 + Math.random() * 1.1
         });
-        const BIG = Math.max(7, Math.round(w / 200));
+        const BIG = Math.max(10, Math.round(w / 133));
         for (let i = 0; i < BIG; i++) parts.push({
           big: true,
           x: Math.random() * w, y: Math.random() * h,
@@ -127,8 +127,8 @@
   function Pricing({ onEnter }) {
     const tiers = [
       { name: "Observer", price: "Free", tone: "neutral", cta: "chrome", feat: ["The dawn headline", "Delayed signals", "Public manifesto"], highlight: false },
-      { name: "Inner Circle", price: "99 \u20AC", per: "/ mo", tone: "oracle", cta: "oracle", feat: ["Full daily reading + levels", "Low & mid-risk setups", "Lunch, EOD & weekend briefings", "Email reply from Warren"], highlight: true },
-      { name: "Syndicate", price: "298 \u20AC", per: "/ mo", tone: "oxblood", cta: "oxblood", comingSoon: true, feat: ["Everything in Inner Circle", "All risk classes + live updates", "Chat & phone with Warren", "Research & chart tools", "Portfolio tracker"], highlight: false }
+      { name: "Inner Circle", price: "99 \u20AC", per: "/ mo", tone: "oracle", cta: "oracle", feat: ["Full daily reading + levels", "Low & mid-risk setups", "Lunch, EOD & weekend briefings", "Email reply from Warren", "Research & chart tools"], highlight: true },
+      { name: "Syndicate", price: "298 \u20AC", per: "/ mo", tone: "oxblood", cta: "oxblood", comingSoon: true, feat: ["Everything in Inner Circle", "All risk classes + live updates", "Chat & phone with Warren", "Portfolio tracker"], highlight: false }
     ];
     return /* @__PURE__ */ React.createElement("section", { style: { position: "relative", padding: "120px 40px", borderTop: "1px solid var(--border-subtle)", background: "var(--bg-surface)" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, background: "var(--grad-shaft)", pointerEvents: "none" } }), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", maxWidth: 1240, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", marginBottom: 56 } }, /* @__PURE__ */ React.createElement("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--text-oracle)", margin: "0 0 14px" } }, "Claim your seat at the table"), /* @__PURE__ */ React.createElement("h2", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 48, letterSpacing: "-0.02em", color: "var(--text-primary)", margin: 0 } }, "Three ways to hear the oracle.")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24, alignItems: "stretch" } }, tiers.map((t) => /* @__PURE__ */ React.createElement(
       Card,

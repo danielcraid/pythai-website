@@ -11,8 +11,8 @@
 
   // ---- Feature lists (aligned to Build-Spec v3) ----
   const OBSERVER_F = [T("Morgen-Headline", "Dawn headline"), T("Markt-Vibe der Woche", "Weekly market vibe"), T("\xD6ffentliches Manifesto", "Public manifesto")];
-  const INNER_F = [T("Volle Reading + Levels", "Full reading + levels"), T("Low- & Mid-Risk Setups", "Low & mid-risk setups"), T("Lunch-, EOD- & Weekend-Briefings", "Lunch, EOD & weekend briefings"), T("E-Mail-Antwort von Warren", "Email reply from Warren")];
-  const SYND_F = [T("Alles aus Inner Circle", "Everything in Inner Circle"), T("Alle Risk-Klassen + Live-Updates", "All risk classes + live updates"), T("Chat & Telefon mit Warren", "Chat & phone with Warren"), T("Research- & Chart-Tools", "Research & chart tools"), T("Portfolio-Tracker", "Portfolio tracker")];
+  const INNER_F = [T("Volle Reading + Levels", "Full reading + levels"), T("Low- & Mid-Risk Setups", "Low & mid-risk setups"), T("Lunch-, EOD- & Weekend-Briefings", "Lunch, EOD & weekend briefings"), T("E-Mail-Antwort von Warren", "Email reply from Warren"), T("Research- & Chart-Tools", "Research & chart tools")];
+  const SYND_F = [T("Alles aus Inner Circle", "Everything in Inner Circle"), T("Alle Risk-Klassen + Live-Updates", "All risk classes + live updates"), T("Chat & Telefon mit Warren", "Chat & phone with Warren"), T("Portfolio-Tracker", "Portfolio tracker")];
 
   function FeatureRow({ label, gold }) {
     return h("div", { style: { display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-ui)", fontSize: 14, color: gold ? "var(--text-primary)" : "var(--text-secondary)" } }, h("span", { style: { color: gold ? "var(--oracle)" : "var(--steel)", fontSize: 15, flexShrink: 0 } }, "✓"), label);
@@ -210,6 +210,8 @@
   function ActivityLog() {
     const [st, setSt] = useState("loading"); // loading | ready | hidden
     const [events, setEvents] = useState([]);
+    const [page, setPage] = useState(0);
+    const PAGE = 20;
     useEffect(() => {
       let alive = true;
       fetch(API + "/api/activity", { credentials: "include" })
@@ -224,12 +226,20 @@
       return () => { alive = false; };
     }, []);
     if (st === "loading" || st === "hidden") return null;
+    const pages = Math.max(1, Math.ceil(events.length / PAGE));
+    const p = Math.min(page, pages - 1);
+    const slice = events.slice(p * PAGE, p * PAGE + PAGE);
     return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
       h("div", { style: { marginBottom: 6 } }, h(PyEyebrow, null, T("Aktivität", "Activity"))),
       h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.55, color: "var(--text-secondary)", margin: "0 0 8px" } }, T("Was in deinem Sanctum passiert ist — nur für dich sichtbar.", "What’s happened in your sanctum — visible only to you.")),
       events.length === 0
         ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--text-muted)", margin: "12px 0 0", fontStyle: "italic" } }, T("Noch keine Aktivität. Sobald du Warren etwas fragst, erscheint es hier.", "No activity yet. Once you ask Warren something, it shows up here."))
-        : h("div", { style: { marginTop: 6 } }, events.map((e, i) => h(ActRow, { key: i, e: e }))));
+        : h(React.Fragment, null,
+            h("div", { style: { marginTop: 6 } }, slice.map((e, i) => h(ActRow, { key: p * PAGE + i, e: e }))),
+            events.length > PAGE && h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" } },
+              h(Button, { variant: "ghost", size: "sm", disabled: p === 0, onClick: () => setPage(p - 1) }, T("← Zurück", "← Back")),
+              h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, T("Seite ", "Page ") + (p + 1) + " / " + pages),
+              h(Button, { variant: "ghost", size: "sm", disabled: p >= pages - 1, onClick: () => setPage(p + 1) }, T("Weiter →", "Next →")))));
   }
 
   // ============ Approved dashboard ============
