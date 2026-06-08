@@ -28,10 +28,57 @@
         h("p", { style: { fontFamily: "var(--font-ui)", fontStyle: "italic", fontSize: 15, lineHeight: 1.6, color: "var(--text-primary)", margin: "16px 0 0", borderLeft: "2px solid var(--border-oracle)", paddingLeft: 14 } }, p.read)));
   }
 
+  // ---- Direct request form: ask Warren about a symbol → analysis by email ----
+  function ConfirmDialog({ symbol, q, email, busy, onSend, onClose }) {
+    return h("div", { onClick: onClose, style: { position: "fixed", inset: 0, zIndex: 200, background: "rgba(4,5,8,0.78)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } },
+      h("div", { onClick: (e) => e.stopPropagation(), style: { position: "relative", maxWidth: 460, width: "100%", background: "var(--bg-raised)", border: "1px solid var(--border-oracle)", borderRadius: 12, boxShadow: "var(--glow-md)", padding: "30px" } },
+        h("button", { onClick: onClose, "aria-label": "Close", style: { position: "absolute", top: 12, right: 16, background: "none", border: "none", color: "var(--text-muted)", fontSize: 24, cursor: "pointer", lineHeight: 1 } }, "×"),
+        h(PyEyebrow, null, T("Bereit?", "Ready?")),
+        h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 26, margin: "8px 0 16px", color: "var(--text-primary)" } }, T("Deine Anfrage an Warren", "Your request to Warren")),
+        h("div", { style: { border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "14px 16px", marginBottom: 18 } },
+          h("div", { style: { display: "flex", gap: 10 } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", minWidth: 52 } }, T("Wert", "Symbol")), h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 15, color: "var(--text-primary)" } }, symbol)),
+          q ? h("div", { style: { display: "flex", gap: 10, marginTop: 8 } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", minWidth: 52 } }, T("Frage", "Question")), h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 15, color: "var(--text-secondary)", lineHeight: 1.5 } }, q)) : null),
+        h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13, lineHeight: 1.6, color: "var(--text-muted)", margin: "0 0 14px" } }, T("Warren ist eine KI und kann irren. Dies ist keine Anlageberatung, sondern reine Information — du entscheidest eigenverantwortlich.", "Warren is an AI and can err. This is not investment advice, just information — you decide on your own responsibility.")),
+        h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-oracle)", margin: "0 0 18px" } }, T("Antwort per E-Mail" + (email ? " an " + email : "") + ".", "Reply by email" + (email ? " to " + email : "") + ".")),
+        h(Button, { variant: "oracle", full: true, loading: busy, onClick: onSend }, T("Senden", "Send")),
+        h("div", { style: { textAlign: "center", marginTop: 10 } }, h(Button, { variant: "ghost", onClick: onClose }, T("Abbrechen", "Cancel")))));
+  }
+  function ChartRequest({ email }) {
+    const [symbol, setSymbol] = useState("");
+    const [q, setQ] = useState("");
+    const [open, setOpen] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [done, setDone] = useState(false);
+    const fld = { width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "12px 14px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 15, outline: "none", boxSizing: "border-box" };
+    const lbl = { display: "block", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 6px" };
+    function send() {
+      if (busy) return; setBusy(true);
+      fetch(API + "/api/chartomat/request", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ symbol: symbol.trim(), question: q.trim() }) }).catch(() => { }).then(() => { setBusy(false); setOpen(false); setDone(true); });
+    }
+    return h(PySection, null, h("div", { style: { maxWidth: 680, background: "var(--bg-raised)", border: "1px solid var(--border-oracle)", borderRadius: 12, padding: "30px", boxShadow: "var(--glow-md)" } },
+      h(PyEyebrow, null, T("Frag das Orakel", "Ask the oracle")),
+      h("h2", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 30, letterSpacing: "-0.01em", margin: "6px 0 0", color: "var(--text-primary)" } }, T("Chart-Analyse anfragen", "Request a chart analysis")),
+      done
+        ? h("div", { style: { marginTop: 18 } },
+            h("p", { style: { fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 20, color: "var(--text-oracle)", margin: 0 } }, T("Unterwegs. Warren liest die Daten.", "On its way. Warren is reading the data.")),
+            h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "10px 0 18px" } }, T("Die Chart-Analyse kommt per E-Mail" + (email ? " an " + email : "") + " — das kann ein paar Minuten dauern.", "Your chart analysis will arrive by email" + (email ? " at " + email : "") + " — it can take a few minutes.")),
+            h(Button, { variant: "chrome", onClick: () => { setDone(false); setSymbol(""); setQ(""); } }, T("Noch eine anfragen", "Ask another")))
+        : h("div", { style: { marginTop: 18 } },
+            h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 15, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 20px" } }, T("Nenne einen Wert (Aktie oder Index) und was du wissen möchtest. Warren erstellt den Chart und schickt dir seine Lesart per E-Mail.", "Name a stock or index and what you’d like to know. Warren builds the chart and emails you his read.")),
+            h("label", { style: lbl }, T("Wert", "Symbol")),
+            h("input", { style: fld, value: symbol, onChange: (e) => setSymbol(e.target.value), placeholder: "z. B. Adidas, ADS.DE, NVDA, DAX" }),
+            h("label", { style: { ...lbl, margin: "16px 0 6px" } }, T("Deine Frage (optional)", "Your question (optional)")),
+            h("textarea", { style: { ...fld, minHeight: 88, resize: "vertical" }, value: q, onChange: (e) => setQ(e.target.value), placeholder: T("Was möchtest du wissen? z. B. Wie steht der Trend? Bildet sich ein Signal?", "What would you like to know? e.g. How’s the trend? Is a signal forming?") }),
+            h("div", { style: { marginTop: 20 } }, h(Button, { variant: "oracle", disabled: !symbol.trim(), onClick: () => setOpen(true) }, T("Analyse anfragen", "Request analysis")))),
+      open && h(ConfirmDialog, { symbol: symbol.trim(), q: q.trim(), email: email, busy: busy, onSend: send, onClose: () => setOpen(false) })));
+  }
+
   function App() {
     const [gate, setGate] = useState("loading");
+    const [me, setMe] = useState(null);
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
+        if (d && d.ok) setMe(d);
         const member = d && d.ok && PRIV.indexOf(d.tier) !== -1 && d.approval === "approved";
         setGate(member ? "ok" : "locked");
       }).catch(() => setGate("locked"));
@@ -64,6 +111,7 @@
 
     return h("div", null, h(SiteNav, { active: "chartomat.html" }),
       h(PyPageHead, { eyebrow: "Chart analyzer", title: "CHARTOMAT", sub: T("Chart-Analyse mit Erläuterung — frag das Orakel zu einem Wert, und du bekommst den Chart samt Lesart zurück. Verfügbar im Inner Circle.", "Chart analysis with explanation — ask the oracle about a stock and get the chart plus the read back. Available in the Inner Circle.") }),
+      h(ChartRequest, { email: me && me.email }),
       PHASES.map((p, i) => h(Phase, { key: p.key, p, i })),
       h(PySection, null, h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6, maxWidth: "90ch" } }, T("Charts und Indikatoren dienen ausschließlich der Information und Erläuterung und stellen keine Anlageberatung, keine Finanzanalyse und keine Kauf-, Verkaufs- oder Halteempfehlung dar. Angaben ohne Gewähr.", "Charts and indicators are for information and explanation only and do not constitute investment advice, financial analysis or any buy, sell or hold recommendation. No warranty given."))),
       h(SiteFooter, null));
