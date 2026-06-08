@@ -81,9 +81,9 @@
       const goAccount = () => {
         window.location.href = "account.html";
       };
-      return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, me.email), /* @__PURE__ */ React.createElement(Button, { variant: "oracle", size: "sm", full, onClick: goAccount }, T("Account", "Account")), /* @__PURE__ */ React.createElement(Button, { variant: "chrome", size: "sm", full, onClick: logout }, T("Abmelden", "Log out")));
+      return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, me.email), /* @__PURE__ */ React.createElement(Button, { variant: "oracle", size: "sm", full, onClick: goAccount, style: { fontSize: "1rem" } }, T("Account", "Account")), /* @__PURE__ */ React.createElement(Button, { variant: "chrome", size: "sm", full, onClick: logout, style: { fontSize: "1rem" } }, T("Abmelden", "Log out")));
     }
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { variant: "chrome", size: "sm", full, onClick: signin }, "Sign in"), /* @__PURE__ */ React.createElement(Button, { variant: "oracle", size: "sm", full, onClick: enter }, "Enter the Sanctum"));
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { variant: "chrome", size: "sm", full, onClick: signin, style: { fontSize: "1rem" } }, "Sign in"), /* @__PURE__ */ React.createElement(Button, { variant: "oracle", size: "sm", full, onClick: enter, style: { fontSize: "1rem" } }, "Enter the Sanctum"));
   }
   function SiteNav({ active }) {
     const [open, setOpen] = useState(false);
