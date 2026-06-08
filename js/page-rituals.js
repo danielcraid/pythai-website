@@ -5,7 +5,7 @@
   const API = "https://api.pythai.ch";
   const { useState, useEffect } = React;
   const h = React.createElement;
-  const PRIV = ["inner-circle", "syndicate", "admin"];
+  const PRIV = ["inner-circle", "circle-of-trust", "syndicate", "admin"];
 
   const TIERMAP = {
     observer: { label: "Observer", c: "var(--text-secondary)", b: "var(--border-strong)", bg: "transparent" },
@@ -23,6 +23,27 @@
     const [err, setErr] = useState(false);
     if (err) return h("div", { style: { width: "100%", minHeight: 150, borderRadius: 8, border: "1px dashed var(--border-strong)", background: "var(--bg-input)", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 16 } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em", color: "var(--text-muted)" } }, T("Screenshot folgt", "Screenshot coming")));
     return h("img", { src, alt: label, onError: () => setErr(true), style: { width: "100%", borderRadius: 8, border: "1px solid var(--border-subtle)", display: "block" } });
+  }
+
+  function TierSummary() {
+    const ROWS = [
+      ["observer", "7 / Woche", T("5× Morgen-Headline (Mo–Fr) · Mi Markt-Vibe · Sa Weekend", "5× morning headline (Mon–Fri) · Wed market-vibe · Sat weekend")],
+      ["inner", "22+ / Woche", T("Morgen-Headline · Daily Oracle · Lunch · Earnings · EOD · Markt-Vibe · Weekend · Sunday", "Morning headline · Daily Oracle · Lunch · Earnings · EOD · market-vibe · weekend · Sunday")],
+      ["syndicate", T("wie Inner Circle + Telefon", "like Inner Circle + phone"), T("Alles aus Inner Circle, plus Live-Updates, Trade-Alerts und die direkte Linie zu Warren.", "Everything in Inner Circle, plus live updates, trade alerts and the direct line to Warren.")]
+    ];
+    const th = (txt) => h("th", { style: { textAlign: "left", padding: "0 14px 10px 0", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 400, borderBottom: "1px solid var(--border-subtle)" } }, txt);
+    const tdS = { padding: "16px 14px 16px 0", borderBottom: "1px solid var(--border-subtle)", verticalAlign: "top" };
+    return h(PySection, null,
+      h("div", { style: { marginBottom: 22 } }, h(PyEyebrow, null, T("Aus Tier-Sicht", "By tier")), h(PyH2, null, T("Was jede Stufe pro Woche bekommt.", "What each tier gets per week."))),
+      h("div", { style: { overflowX: "auto" } },
+        h("table", { style: { width: "100%", borderCollapse: "collapse" } },
+          h("thead", null, h("tr", null, th(T("Tier", "Tier")), th(T("Mails / Woche", "Mails / week")), th(T("Werktäglich", "Every weekday")))),
+          h("tbody", null, ROWS.map((row) => h("tr", { key: row[0] },
+            h("td", { style: tdS }, h(Pill, { tk: row[0] })),
+            h("td", { style: tdS },
+              h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 21, lineHeight: 1.1, color: "var(--text-primary)" } }, row[1]),
+              h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-secondary)", marginTop: 5, lineHeight: 1.5, maxWidth: "52ch" } }, row[2])),
+            h("td", { style: tdS }, h("span", { style: { color: "var(--oracle-bright)", fontSize: 18 } }, "✓"))))))));
   }
 
   function Overview({ groups }) {
@@ -85,6 +106,7 @@
 
     return h("div", null, h(SiteNav, { active: "rituals.html" }),
       h(PyPageHead, { eyebrow: "Member rituals", title: "What arrives, and when.", sub: T("Der Wochen-Rhythmus aller Reports von Warren — was wann kommt, für wen, und wie du es liest.", "The weekly rhythm of all of Warren's reports — what arrives when, for whom, and how to read it.") }),
+      h(TierSummary, null),
       h(Overview, { groups: GROUPS }),
       GROUPS.map(([gtitle, gtag, reports], gi) => h(PySection, { key: gi, alt: gi % 2 === 1 },
         h("div", { style: { marginBottom: 28 } }, h(PyEyebrow, null, T("Rhythmus", "Rhythm")), h(PyH2, null, gtitle), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-secondary)", margin: "6px 0 0" } }, gtag)),

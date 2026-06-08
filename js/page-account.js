@@ -6,8 +6,8 @@
   const T = (de, en) => window.PYi18n.t(de, en);
   const API = "https://api.pythai.ch";
   const h = React.createElement;
-  const TIER = { observer: "Observer", "inner-circle": "Inner Circle", syndicate: "Syndicate", admin: "Admin" };
-  const PRICE = { observer: T("Kostenlos", "Free"), "inner-circle": "99 € / mo", syndicate: "298 € / mo", admin: "—" };
+  const TIER = { observer: "Observer", "inner-circle": "Inner Circle", "circle-of-trust": "Circle of Trust", syndicate: "Syndicate", admin: "Admin" };
+  const PRICE = { observer: T("Kostenlos", "Free"), "inner-circle": "99 € / mo", "circle-of-trust": "", syndicate: "298 € / mo", admin: "—" };
 
   // ---- Feature lists (aligned to Build-Spec v3) ----
   const OBSERVER_F = [T("Morgen-Headline", "Dawn headline"), T("Markt-Vibe der Woche", "Weekly market vibe"), T("\xD6ffentliches Manifesto", "Public manifesto")];
@@ -105,6 +105,34 @@
       h(Button, { variant: "oxblood", full: true, disabled: true }, T("Bald verfügbar", "Coming soon")));
   }
 
+  function CircleOfTrust() {
+    const [code, setCode] = useState("");
+    const [busy, setBusy] = useState(false);
+    const [err, setErr] = useState(null);
+    const BLUE = "#5B8DEF";
+    async function redeem() {
+      if (busy || !code.trim()) return;
+      setBusy(true); setErr(null);
+      try {
+        const res = await fetch(API + "/api/redeem", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code.trim() }) });
+        if (res.ok) { window.location.reload(); return; }
+        else if (res.status === 400) setErr(T("Code ung\xFCltig oder bereits eingel\xF6st.", "Code invalid or already used."));
+        else if (res.status === 401) setErr(T("Sitzung abgelaufen. Bitte neu anmelden.", "Session expired. Please sign in again."));
+        else setErr(T("Etwas ging schief. Versuch es gleich noch einmal.", "Something went wrong. Please try again."));
+      } catch (e) { setErr(T("Keine Verbindung. Versuch es gleich noch einmal.", "No connection. Please try again.")); }
+      setBusy(false);
+    }
+    const blocked = busy || !code.trim();
+    const fld = { width: "100%", background: "var(--bg-input)", border: "1px solid rgba(91,141,239,0.5)", borderRadius: 6, padding: "12px 14px", color: "var(--text-primary)", fontFamily: "var(--font-mono)", fontSize: 15, letterSpacing: "0.08em", textTransform: "uppercase", outline: "none", boxSizing: "border-box" };
+    return h(Card, { variant: "raised", padding: "28px", style: { marginBottom: 20, borderColor: "rgba(91,141,239,0.45)" } },
+      h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: BLUE } }, T("Auf Einladung", "By invite")),
+      h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 30, lineHeight: 1.05, color: BLUE, margin: "8px 0 0" } }, "Circle of Trust"),
+      h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "12px 0 18px" } }, T("Ein stiller Kreis aus Vertrauten — voller Zugang auf Einladung. Code eingeben, dann pr\xFCfen wir deine Freigabe.", "A quiet circle of trusted few — full access by invitation. Enter your code and we’ll review your approval.")),
+      h("input", { style: fld, value: code, onChange: (e) => { setCode(e.target.value); setErr(null); }, placeholder: "Insert Membership Code", autoComplete: "off", spellCheck: false }),
+      err ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, color: "var(--text-warn, #d8a34a)", margin: "12px 0 0" } }, err) : null,
+      h("button", { onClick: redeem, disabled: blocked, style: { width: "100%", height: 46, marginTop: 16, borderRadius: "var(--radius-sm)", border: "1px solid " + BLUE, background: blocked ? "transparent" : BLUE, color: blocked ? BLUE : "#0A0C10", fontFamily: "var(--font-oracle)", fontWeight: 600, fontSize: 16, letterSpacing: "0.02em", cursor: blocked && !busy ? "not-allowed" : (busy ? "wait" : "pointer"), opacity: busy ? 0.7 : 1, transition: "all .15s" } }, busy ? T("Einen Moment…", "One moment…") : T("Einl\xF6sen", "Redeem")));
+  }
+
   function SetRow({ title, sub, control }) {
     return h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "14px 0" } }, h("div", { style: { flex: 1 } }, h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 15, color: "var(--text-primary)" } }, title), sub && h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--text-muted)", marginTop: 3, lineHeight: 1.45 } }, sub)), control);
   }
@@ -144,7 +172,7 @@
   }
 
   // ============ Upgrade dialog (in-page, kein Wegspringen) ============
-  const REQUIRE_CODE = true; // Testphase: Checkout nur mit gültigem Zugangscode. Nach dem Test auf false setzen.
+  const REQUIRE_CODE = false; // Inner-Circle-Rabatt läuft über Stripes eigenes Promo-Code-Feld im Checkout.
   function UpgradeDialog({ onClose }) {
     const [busy, setBusy] = useState(false);
     const [code, setCode] = useState("");
@@ -304,7 +332,7 @@
       fetch(API + "/api/logout", { method: "POST", credentials: "include" }).finally(() => { window.location.href = "index.html"; });
     }
     let included = OBSERVER_F.slice();
-    if (tier === "inner-circle" || tier === "syndicate" || tier === "admin") included = included.concat(INNER_F);
+    if (tier === "inner-circle" || tier === "circle-of-trust" || tier === "syndicate" || tier === "admin") included = included.concat(INNER_F);
     if (tier === "syndicate" || tier === "admin") included = included.concat(SYND_F);
     // Upgrade läuft jetzt in-page über den UpgradeDialog (kein Wegspringen mehr).
     return h("div", { style: { maxWidth: 680, margin: "0 auto" } },
@@ -315,6 +343,7 @@
       upgradeOpen && h(UpgradeDialog, { onClose: () => setUpgradeOpen(false) }),
       h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } }, h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 } }, h(PyEyebrow, null, T("Die heutige Reading", "Today’s reading")), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, "06:00 CET")), h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 28, lineHeight: 1.15, color: "var(--text-primary)", margin: "0 0 16px" } }, "Rotate into energy before the crowd notices the cycle."), h("div", { style: { display: "flex", gap: 30, flexWrap: "wrap", paddingTop: 16, borderTop: "1px solid var(--border-subtle)" } }, h(Stat, { label: "Conviction", value: "94", sub: "of 100", size: "sm" }), isObserver ? h("div", { style: { filter: "blur(5px)", opacity: 0.6, pointerEvents: "none" } }, h(Stat, { label: "Entry / Stop / Target", value: "•••••", size: "sm" })) : h(React.Fragment, null, h(Stat, { label: "Entry", value: "123.32", size: "sm" }), h(Stat, { label: "Stop", value: "119.50", size: "sm" }), h(Stat, { label: "Target", value: "127.00", size: "sm" }))), isObserver && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-muted)", margin: "16px 0 0" } }, T("Levels und das volle Reasoning sind dem Inner Circle vorbehalten.", "Levels and the full reasoning are reserved for the Inner Circle.")), h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", margin: "14px 0 0" } }, T("Beispiel-Reading. Live-Inhalte kommen von Warren, server-seitig pro Tier.", "Sample reading. Live content comes from Warren, served per tier."))),
       tier !== "syndicate" && tier !== "admin" && h(SyndicateTease, null),
+      isObserver && h(CircleOfTrust, null),
       h(SubscriptionBox, null),
       h(AccountSettings, { a }),
       h(ActivityLog, null),

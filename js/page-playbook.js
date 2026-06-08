@@ -5,7 +5,7 @@
   const T = (de, en) => window.PYi18n.t(de, en);
   const API = "https://api.pythai.ch";
   const { useState, useEffect } = React;
-  const PRIV = ["inner-circle", "syndicate", "admin"];
+  const PRIV = ["inner-circle", "circle-of-trust", "syndicate", "admin"];
   const RISK_C = [
     { c: "var(--bull-bright)", b: "rgba(79,165,120,0.45)", bg: "rgba(79,165,120,0.10)" },
     { c: "var(--oracle-bright)", b: "var(--border-oracle)", bg: "rgba(212,169,78,0.10)" },

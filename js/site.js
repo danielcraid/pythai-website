@@ -15,7 +15,7 @@
     ["Rituals", "rituals.html"]
   ];
   const MEMBER_AREA = ["chartomat.html", "playbook.html", "rituals.html"]; // hell-gold getoent wenn eingeloggt
-  const PRIV = ["inner-circle", "syndicate", "admin"]; // Playbook + Rituals nur fuer diese Tiers
+  const PRIV = ["inner-circle", "circle-of-trust", "syndicate", "admin"]; // Playbook + Rituals nur fuer diese Tiers
   const MEMBER_ONLY = ["playbook.html", "rituals.html"];
   function navItems(me) {
     const member = !!(me && PRIV.indexOf(me.tier) !== -1 && me.approval === "approved");

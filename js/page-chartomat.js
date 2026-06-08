@@ -5,7 +5,7 @@
   const API = "https://api.pythai.ch";
   const { useState, useEffect } = React;
   const h = React.createElement;
-  const PRIV = ["inner-circle", "syndicate", "admin"];
+  const PRIV = ["inner-circle", "circle-of-trust", "syndicate", "admin"];
 
   function Shot({ src, label }) {
     const [err, setErr] = useState(false);
