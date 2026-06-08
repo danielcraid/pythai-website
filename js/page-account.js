@@ -170,6 +170,68 @@
               h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", textAlign: "center", margin: "12px 0 0" } }, T("Keine Zahlung in der Testphase.", "No payment during the test phase.")))));
   }
 
+  // ============ Activity log ============
+  const ACT_META = {
+    chartomat: ["Chart-Analyse", "Chart analysis", "var(--text-oracle)"],
+    login: ["Anmeldung", "Sign-in", "var(--text-secondary)"],
+    consent: ["Einwilligung", "Consent", "var(--text-secondary)"],
+    mail: ["Mail-Einstellung", "Mail setting", "var(--text-secondary)"],
+    mobile: ["Mobil-Nummer", "Mobile number", "var(--text-secondary)"],
+    tier: ["Mitgliedschaft", "Membership", "var(--text-oracle)"],
+    report: ["Reading", "Reading", "var(--text-secondary)"],
+    account: ["Konto", "Account", "var(--text-secondary)"]
+  };
+  const ACT_STATUS = {
+    sent: ["gesendet", "sent"], delivered: ["zugestellt", "delivered"],
+    pending: ["in Prüfung", "in review"], queued: ["in Prüfung", "in review"],
+    rejected: ["abgelehnt", "declined"], done: ["erledigt", "done"]
+  };
+  function actWhen(at) {
+    try {
+      const d = new Date(at);
+      if (isNaN(d.getTime())) return "";
+      const lang = (localStorage.getItem("py_lang") || "de");
+      return d.toLocaleString(lang === "en" ? "en-GB" : "de-DE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    } catch (e) { return ""; }
+  }
+  function ActRow({ e }) {
+    const meta = ACT_META[e.type] || ["Ereignis", "Event", "var(--text-secondary)"];
+    const title = e.label || T(meta[0], meta[1]);
+    const st = e.status && ACT_STATUS[e.status];
+    return h("div", { style: { display: "flex", gap: 14, padding: "14px 0", borderTop: "1px solid var(--border-subtle)" } },
+      h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", minWidth: 104, paddingTop: 2 } }, actWhen(e.at)),
+      h("span", { style: { width: 7, height: 7, borderRadius: "50%", background: meta[2], marginTop: 6, flexShrink: 0 } }),
+      h("div", { style: { flex: 1, minWidth: 0 } },
+        h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } },
+          h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--text-primary)", fontWeight: 500 } }, title),
+          st ? h(Badge, { tone: "neutral", variant: "outline" }, T(st[0], st[1])) : null),
+        e.detail ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, lineHeight: 1.5, color: "var(--text-secondary)", margin: "4px 0 0", wordBreak: "break-word" } }, e.detail) : null));
+  }
+  function ActivityLog() {
+    const [st, setSt] = useState("loading"); // loading | ready | hidden
+    const [events, setEvents] = useState([]);
+    useEffect(() => {
+      let alive = true;
+      fetch(API + "/api/activity", { credentials: "include" })
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => {
+          if (!alive) return;
+          const ev = d && (d.events || (Array.isArray(d) ? d : null));
+          if (!ev) { setSt("hidden"); return; }
+          setEvents(ev); setSt("ready");
+        })
+        .catch(() => { if (alive) setSt("hidden"); });
+      return () => { alive = false; };
+    }, []);
+    if (st === "loading" || st === "hidden") return null;
+    return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
+      h("div", { style: { marginBottom: 6 } }, h(PyEyebrow, null, T("Aktivität", "Activity"))),
+      h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.55, color: "var(--text-secondary)", margin: "0 0 8px" } }, T("Was in deinem Sanctum passiert ist — nur für dich sichtbar.", "What’s happened in your sanctum — visible only to you.")),
+      events.length === 0
+        ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--text-muted)", margin: "12px 0 0", fontStyle: "italic" } }, T("Noch keine Aktivität. Sobald du Warren etwas fragst, erscheint es hier.", "No activity yet. Once you ask Warren something, it shows up here."))
+        : h("div", { style: { marginTop: 6 } }, events.map((e, i) => h(ActRow, { key: i, e: e }))));
+  }
+
   // ============ Approved dashboard ============
   function Dashboard({ a, justJoined }) {
     const tier = a.tier || "observer";
@@ -191,6 +253,7 @@
       h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } }, h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 } }, h(PyEyebrow, null, T("Die heutige Reading", "Today’s reading")), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, "06:00 CET")), h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 28, lineHeight: 1.15, color: "var(--text-primary)", margin: "0 0 16px" } }, "Rotate into energy before the crowd notices the cycle."), h("div", { style: { display: "flex", gap: 30, flexWrap: "wrap", paddingTop: 16, borderTop: "1px solid var(--border-subtle)" } }, h(Stat, { label: "Conviction", value: "94", sub: "of 100", size: "sm" }), isObserver ? h("div", { style: { filter: "blur(5px)", opacity: 0.6, pointerEvents: "none" } }, h(Stat, { label: "Entry / Stop / Target", value: "•••••", size: "sm" })) : h(React.Fragment, null, h(Stat, { label: "Entry", value: "123.32", size: "sm" }), h(Stat, { label: "Stop", value: "119.50", size: "sm" }), h(Stat, { label: "Target", value: "127.00", size: "sm" }))), isObserver && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-muted)", margin: "16px 0 0" } }, T("Levels und das volle Reasoning sind dem Inner Circle vorbehalten.", "Levels and the full reasoning are reserved for the Inner Circle.")), h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", margin: "14px 0 0" } }, T("Beispiel-Reading. Live-Inhalte kommen von Warren, server-seitig pro Tier.", "Sample reading. Live content comes from Warren, served per tier."))),
       tier !== "syndicate" && tier !== "admin" && h(SyndicateTease, null),
       h(AccountSettings, { a }),
+      h(ActivityLog, null),
       h("div", { style: { textAlign: "center" } }, h(Button, { variant: "ghost", onClick: logout }, T("Abmelden", "Log out"))));
   }
 
