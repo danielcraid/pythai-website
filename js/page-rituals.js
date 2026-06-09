@@ -46,7 +46,7 @@
             h("td", { style: tdS }, h("span", { style: { color: "var(--oracle-bright)", fontSize: 18 } }, "✓"))))))));
   }
 
-  function Overview({ groups }) {
+  function Overview({ groups, uk, isEnabled, onToggle }) {
     const all = [];
     groups.forEach((g) => g[2].forEach((r) => all.push(r)));
     const th = (txt) => h("th", { style: { textAlign: "left", padding: "0 14px 10px 0", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 400, borderBottom: "1px solid var(--border-subtle)" } }, txt);
@@ -55,15 +55,16 @@
       h("div", { style: { marginBottom: 22 } }, h(PyEyebrow, null, T("Überblick", "Overview")), h(PyH2, null, T("Alle Reports auf einen Blick.", "Every report at a glance."))),
       h("div", { style: { overflowX: "auto" } },
         h("table", { style: { width: "100%", borderCollapse: "collapse" } },
-          h("thead", null, h("tr", null, th(T("Report", "Report")), th(T("Rhythmus", "Rhythm")), th(T("Für wen", "For whom")), th(""))),
+          h("thead", null, h("tr", null, th(T("Report", "Report")), th(T("Rhythmus", "Rhythm")), th(T("Für wen", "For whom")), th(T("E-Mail", "Email")), th(""))),
           h("tbody", null, all.map((r) => h("tr", { key: r.key },
             td(h("a", { href: "#r-" + r.key, style: { fontFamily: "var(--font-oracle)", fontSize: 17, color: "var(--text-primary)", textDecoration: "none" } }, r.name)),
             td(h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" } }, r.when)),
             td(h("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, r.tiers.map((tk) => h(Pill, { key: tk, tk })))),
+            td(r.tiers.indexOf(uk) !== -1 ? h(Switch, { checked: isEnabled(r.key), onChange: (v) => onToggle(r.key, v) }) : h("span", { style: { fontSize: 14, opacity: 0.55 }, title: r.tiers.indexOf("inner") !== -1 ? "Inner Circle" : "Syndicate" }, "🔒")),
             td(h("a", { href: "#r-" + r.key, style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-oracle)", textDecoration: "none", whiteSpace: "nowrap" } }, T("Details ↓", "Details ↓")))))))));
   }
 
-  function Report({ r, allowed, checked, onToggle }) {
+  function Report({ r }) {
     return h("div", { id: "r-" + r.key, style: { background: "var(--bg-raised)", border: "1px solid var(--border-subtle)", borderRadius: 10, overflow: "hidden", marginBottom: 22, scrollMarginTop: "90px" } },
       h("div", { className: "pk-grid2", style: { gap: 0 } },
         h("div", { style: { padding: "28px 30px" } },
@@ -72,10 +73,7 @@
             h("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, r.tiers.map((tk) => h(Pill, { key: tk, tk })))),
           h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 26, color: "var(--text-primary)", margin: "0 0 16px", lineHeight: 1.1 } }, r.name),
           h(Field, { label: T("Was es ist", "What it is"), text: r.was }),
-          h(Field, { label: T("Wie du es liest", "How to read it"), text: r.wie }),
-          allowed
-            ? h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 14, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" } }, h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, color: "var(--text-secondary)" } }, T("Diese E-Mail erhalten", "Receive this email")), h(Switch, { checked: !!checked, onChange: (v) => onToggle(r.key, v) }))
-            : h("div", { style: { display: "flex", alignItems: "center", gap: 8, marginTop: 14, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" } }, h("span", { style: { fontSize: 13, opacity: 0.7 } }, "🔒"), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" } }, r.tiers.indexOf("inner") !== -1 ? T("Nur Inner Circle", "Inner Circle only") : T("Nur Syndicate", "Syndicate only")))),
+          h(Field, { label: T("Wie du es liest", "How to read it"), text: r.wie })),
         h("div", { style: { padding: "28px 30px", display: "flex", alignItems: "center", background: "var(--bg-surface)" } }, h(Shot, { src: "assets/rituals/" + r.key + ".png", label: r.name }))));
   }
 
@@ -118,10 +116,10 @@
     return h("div", null, h(SiteNav, { active: "rituals.html" }),
       h(PyPageHead, { eyebrow: "Member rituals", title: "What arrives, and when.", sub: T("Der Wochen-Rhythmus aller Reports von Warren — was wann kommt, für wen, und wie du es liest.", "The weekly rhythm of all of Warren's reports — what arrives when, for whom, and how to read it.") }),
       h(TierSummary, null),
-      h(Overview, { groups: GROUPS }),
+      h(Overview, { groups: GROUPS, uk: uk, isEnabled: isEnabled, onToggle: onToggle }),
       GROUPS.map(([gtitle, gtag, reports], gi) => h(PySection, { key: gi, alt: gi % 2 === 1 },
         h("div", { style: { marginBottom: 28 } }, h(PyEyebrow, null, T("Rhythmus", "Rhythm")), h(PyH2, null, gtitle), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-secondary)", margin: "6px 0 0" } }, gtag)),
-        reports.map((r) => h(Report, { key: r.key, r: r, allowed: r.tiers.indexOf(uk) !== -1, checked: isEnabled(r.key), onToggle: onToggle })))),
+        reports.map((r) => h(Report, { key: r.key, r: r })))),
       h(SiteFooter, null));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(h(App, null));
