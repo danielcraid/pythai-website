@@ -55,12 +55,12 @@
       h("div", { style: { marginBottom: 22 } }, h(PyEyebrow, null, T("Überblick", "Overview")), h(PyH2, null, T("Alle Reports auf einen Blick.", "Every report at a glance."))),
       h("div", { style: { overflowX: "auto" } },
         h("table", { style: { width: "100%", borderCollapse: "collapse" } },
-          h("thead", null, h("tr", null, th(T("Report", "Report")), th(T("Rhythmus", "Rhythm")), th(T("Für wen", "For whom")), th(T("E-Mail", "Email")), th(""))),
+          h("thead", null, h("tr", null, th(T("E-Mail", "Email")), th(T("Report", "Report")), th(T("Rhythmus", "Rhythm")), th(T("Für wen", "For whom")), th(""))),
           h("tbody", null, all.map((r) => h("tr", { key: r.key },
+            td(r.tiers.indexOf(uk) !== -1 ? h(Switch, { checked: isEnabled(r.key), onChange: (v) => onToggle(r.key, v) }) : h("span", { style: { fontSize: 14, opacity: 0.55 }, title: r.tiers.indexOf("inner") !== -1 ? "Inner Circle" : "Syndicate" }, "🔒")),
             td(h("a", { href: "#r-" + r.key, style: { fontFamily: "var(--font-oracle)", fontSize: 17, color: "var(--text-primary)", textDecoration: "none" } }, r.name)),
             td(h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" } }, r.when)),
             td(h("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, r.tiers.map((tk) => h(Pill, { key: tk, tk })))),
-            td(r.tiers.indexOf(uk) !== -1 ? h(Switch, { checked: isEnabled(r.key), onChange: (v) => onToggle(r.key, v) }) : h("span", { style: { fontSize: 14, opacity: 0.55 }, title: r.tiers.indexOf("inner") !== -1 ? "Inner Circle" : "Syndicate" }, "🔒")),
             td(h("a", { href: "#r-" + r.key, style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-oracle)", textDecoration: "none", whiteSpace: "nowrap" } }, T("Details ↓", "Details ↓")))))))));
   }
 
