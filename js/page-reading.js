@@ -5,7 +5,7 @@
   function App() {
     const FIELDS = [
       ["Conviction", T('0\u2013100. Das Orakel sagt nie \u201Ehoch". Eine einzige Zahl, gewichtet aus Catalyst, Peer, Analog, Flow und Monitor.', '0\u2013100. The oracle never says "high." A single number, scored from catalyst, peer, analog, flow and monitor.')],
-      ["Horizon", T("Wie lange die Saison l\xE4uft \u2014 Tage bis Quartale. Die Reading sagt dir, wann die Wende kommt.", "How long the season runs \u2014 days to quarters. The reading tells you when to expect the turn.")],
+      ["Horizon", T("Wie lange die Saison l\xE4uft \u2014 Tage bis Quartale. Das Reading sagt dir, wann die Wende kommt.", "How long the season runs \u2014 days to quarters. The reading tells you when to expect the turn.")],
       ["Asymmetry", T("Chance gegen Risiko, als Verh\xE4ltnis. 4.2 : 1 hei\xDFt vier Einheiten oben f\xFCr eine im Einsatz.", "Reward against risk, as a ratio. 4.2 : 1 means four units up for every one at stake.")],
       ["Levels", T("Die ausf\xFChrlichen Marken des Setups \u2014 im Sanctum, f\xFCr den Inner Circle.", "The setup\u2019s detailed markers \u2014 in the sanctum, for Inner Circle.")],
       ["Catalyst", T("Das Ereignis, das den Tape bewegt: ein NFP-Print, ein Earnings-Release, ein Flow-Shift.", "The event that moves the tape: an NFP print, an earnings release, a flow shift.")],

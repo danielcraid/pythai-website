@@ -11,7 +11,7 @@
       h("div", { style: { position: "relative", maxWidth: 1240, width: "100%", margin: "0 auto", padding: "120px 40px 90px", textAlign: "center" } },
         h(PyEyebrow, null, "Track record"),
         h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, letterSpacing: "-0.02em", fontSize: "clamp(40px,6vw,72px)", lineHeight: 1.05, margin: 0, color: "var(--parchment)" } }, "The tape remembers."),
-        h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 19, lineHeight: 1.6, color: "var(--text-secondary)", maxWidth: 620, margin: "24px auto 0" } }, T("Jede Reading wird mit ihrer Conviction und ihrem Ergebnis protokolliert. Illustrative Zahlen — siehe Disclaimer unten.", "Every reading is logged with its conviction and its outcome. Illustrative figures shown — see the disclaimer below."))));
+        h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 19, lineHeight: 1.6, color: "var(--text-secondary)", maxWidth: 620, margin: "24px auto 0" } }, T("Jedes Reading wird mit ihrer Conviction und ihrem Ergebnis protokolliert. Illustrative Zahlen — siehe Disclaimer unten.", "Every reading is logged with its conviction and its outcome. Illustrative figures shown — see the disclaimer below."))));
   }
   function App() {
     const PAST = [
