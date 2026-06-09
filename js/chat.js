@@ -85,27 +85,38 @@
     useEffect(() => { if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight; }, [msgs, busy, auth]);
     useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
-    async function boot() {
-      if (startedRef.current) return; startedRef.current = true;
+    const LS = "pythai_chat_sid";
+    const leadGreet = () => ({ role: "warren", text: T("Schön, dass du da bist. Ich bin Warren, das KI-Hirn hinter PYTHAI. Frag mich, was du wissen willst — oder ob das hier was für dich ist.", "Good to have you here. I’m Warren, the AI mind behind PYTHAI. Ask me anything — or whether this is for you.") });
+    const memberGreet = (nm) => ({ role: "warren", text: T((nm ? nm + ", schön dich zu sehen. " : "") + "Ich bin im Member-Modus — frag mich nach einem Wert, einem Chart oder dem Markt heute.", (nm ? nm + ", good to see you. " : "") + "I’m in member mode — ask me about a stock, a chart, or the market today.") });
+    async function startFresh() {
       try {
         const r = await api("/api/chat/session", { method: "POST" });
         const d = await r.json();
         if (!d || !d.ok) throw 0;
-        setSid(d.sid);
-        if (d.authed && d.tier) {
-          setMode("member"); setTier(d.tier); setName(d.name || null);
-          push({ role: "system", text: T("Du bist im Sanctum angemeldet.", "You’re signed in to the sanctum.") });
-          push({ role: "warren", text: T((d.name ? d.name + ", schön dich zu sehen. " : "") + "Ich bin im Member-Modus — frag mich nach einem Wert, einem Chart oder dem Markt heute.", (d.name ? d.name + ", good to see you. " : "") + "I’m in member mode — ask me about a stock, a chart, or the market today.") });
-        } else {
-          if (d.observerHint) setObserverHint(true);
-          push({ role: "warren", text: T("Schön, dass du da bist. Ich bin Warren, das KI-Hirn hinter PYTHAI. Frag mich, was du wissen willst — oder ob das hier was für dich ist.", "Good to have you here. I’m Warren, the AI mind behind PYTHAI. Ask me anything — or whether this is for you.") });
-        }
+        setSid(d.sid); try { localStorage.setItem(LS, d.sid); } catch (e) { }
+        if (d.authed && d.tier) { setMode("member"); setTier(d.tier); setName(d.name || null); setObserverHint(false); setMsgs([{ role: "system", text: T("Du bist im Sanctum angemeldet.", "You’re signed in to the sanctum.") }, memberGreet(d.name)]); }
+        else { setMode("lead"); setTier("lead"); setObserverHint(!!d.observerHint); setMsgs([leadGreet()]); }
       } catch (e) {
         push({ role: "warren", text: T("Verbindung weg. Mach den Chat gleich nochmal auf.", "Connection lost. Reopen the chat in a moment.") });
         startedRef.current = false;
       }
     }
-    function onOpen() { setOpen(true); if (!sid) boot(); }
+    async function boot() {
+      if (startedRef.current) return; startedRef.current = true;
+      let sid0 = null; try { sid0 = localStorage.getItem(LS); } catch (e) { }
+      if (!sid0) return startFresh();
+      try {
+        const r = await api("/api/chat/history?sid=" + encodeURIComponent(sid0));
+        const d = await r.json();
+        if (!d || !d.ok || d.status === "no_session") { try { localStorage.removeItem(LS); } catch (e) { } return startFresh(); }
+        setSid(d.sid || sid0);
+        const member = d.authed && d.tier;
+        if (member) { setMode("member"); setTier(d.tier); setName(d.name || null); } else { setMode("lead"); setTier("lead"); }
+        const conv = (d.conversation || []).map((m) => ({ role: m.role === "user" ? "user" : "warren", text: m.content }));
+        setMsgs(conv.length ? conv : [member ? memberGreet(d.name) : leadGreet()]);
+      } catch (e) { try { localStorage.removeItem(LS); } catch (e2) { } return startFresh(); }
+    }
+    function onOpen() { setOpen(true); boot(); }
 
     const onCooldown = () => Date.now() < cooldownTs;
 
@@ -177,7 +188,7 @@
     }
     async function logout() {
       try { await api("/api/chat/logout", { method: "POST", body: JSON.stringify({ sid }) }); } catch (e) {}
-      stopPolling(); setSid(null); setMode("lead"); setTier("lead"); setName(null); setMsgs([]); setObserverHint(false); setAuth(null); startedRef.current = false; boot();
+      stopPolling(); try { localStorage.removeItem(LS); } catch (e) { } setSid(null); setMode("lead"); setTier("lead"); setName(null); setMsgs([]); setObserverHint(false); setAuth(null); startedRef.current = true; startFresh();
     }
 
     // ---- Render ----
