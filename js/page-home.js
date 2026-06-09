@@ -52,7 +52,7 @@
     );
   }
   function App() {
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SiteNav, { active: "index.html" }), /* @__PURE__ */ React.createElement(OracleHero, null), /* @__PURE__ */ React.createElement(PyReadingTeaser, null), /* @__PURE__ */ React.createElement(How, null), /* @__PURE__ */ React.createElement(PyPricing, { onEnter: go }), /* @__PURE__ */ React.createElement(ClosingCTA, null), /* @__PURE__ */ React.createElement(SiteFooter, null), /* @__PURE__ */ React.createElement(WarrenLauncher, null));
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SiteNav, { active: "index.html" }), /* @__PURE__ */ React.createElement(OracleHero, null), /* @__PURE__ */ React.createElement(PyReadingTeaser, null), /* @__PURE__ */ React.createElement(How, null), /* @__PURE__ */ React.createElement(PyPricing, { onEnter: go }), /* @__PURE__ */ React.createElement(ClosingCTA, null), /* @__PURE__ */ React.createElement(SiteFooter, null));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(/* @__PURE__ */ React.createElement(App, null));
 })();
