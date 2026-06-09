@@ -1,5 +1,5 @@
 (() => {
-  const { Button } = window.PYTHAIDesignSystem_df6467;
+  const { Button, Switch } = window.PYTHAIDesignSystem_df6467;
   const { SiteNav, SiteFooter, PyPageHead, PySection, PyH2, PyEyebrow } = window;
   const T = (de, en) => window.PYi18n.t(de, en);
   const API = "https://api.pythai.ch";
@@ -63,7 +63,7 @@
             td(h("a", { href: "#r-" + r.key, style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-oracle)", textDecoration: "none", whiteSpace: "nowrap" } }, T("Details ↓", "Details ↓")))))))));
   }
 
-  function Report({ r }) {
+  function Report({ r, allowed, checked, onToggle }) {
     return h("div", { id: "r-" + r.key, style: { background: "var(--bg-raised)", border: "1px solid var(--border-subtle)", borderRadius: 10, overflow: "hidden", marginBottom: 22, scrollMarginTop: "90px" } },
       h("div", { className: "pk-grid2", style: { gap: 0 } },
         h("div", { style: { padding: "28px 30px" } },
@@ -72,14 +72,20 @@
             h("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, r.tiers.map((tk) => h(Pill, { key: tk, tk })))),
           h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 26, color: "var(--text-primary)", margin: "0 0 16px", lineHeight: 1.1 } }, r.name),
           h(Field, { label: T("Was es ist", "What it is"), text: r.was }),
-          h(Field, { label: T("Wie du es liest", "How to read it"), text: r.wie })),
+          h(Field, { label: T("Wie du es liest", "How to read it"), text: r.wie }),
+          allowed
+            ? h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 14, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" } }, h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, color: "var(--text-secondary)" } }, T("Diese E-Mail erhalten", "Receive this email")), h(Switch, { checked: !!checked, onChange: (v) => onToggle(r.key, v) }))
+            : h("div", { style: { display: "flex", alignItems: "center", gap: 8, marginTop: 14, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" } }, h("span", { style: { fontSize: 13, opacity: 0.7 } }, "🔒"), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" } }, r.tiers.indexOf("inner") !== -1 ? T("Nur Inner Circle", "Inner Circle only") : T("Nur Syndicate", "Syndicate only")))),
         h("div", { style: { padding: "28px 30px", display: "flex", alignItems: "center", background: "var(--bg-surface)" } }, h(Shot, { src: "assets/rituals/" + r.key + ".png", label: r.name }))));
   }
 
   function App() {
     const [gate, setGate] = useState("loading");
+    const [me, setMe] = useState(null);
+    const [prefs, setPrefs] = useState({});
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((res) => res.ok ? res.json() : null).then((d) => {
+        if (d && d.ok) { setMe(d); setPrefs(d.mailReports || {}); }
         const member = d && d.ok && PRIV.indexOf(d.tier) !== -1 && d.approval === "approved";
         setGate(member ? "ok" : "locked");
       }).catch(() => setGate("locked"));
@@ -105,13 +111,17 @@
       ]]
     ];
 
+    const uk = me ? (me.tier === "syndicate" || me.tier === "admin" ? "syndicate" : (me.tier === "inner-circle" || me.tier === "circle-of-trust" ? "inner" : "observer")) : "inner";
+    const isEnabled = (key) => key === "morning-compass" ? prefs[key] !== false : prefs[key] === true;
+    const onToggle = (key, v) => { setPrefs((p) => { const n = Object.assign({}, p); n[key] = v; return n; }); fetch(API + "/api/mail-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ report: key, on: v }) }).catch(() => { }); };
+
     return h("div", null, h(SiteNav, { active: "rituals.html" }),
       h(PyPageHead, { eyebrow: "Member rituals", title: "What arrives, and when.", sub: T("Der Wochen-Rhythmus aller Reports von Warren — was wann kommt, für wen, und wie du es liest.", "The weekly rhythm of all of Warren's reports — what arrives when, for whom, and how to read it.") }),
       h(TierSummary, null),
       h(Overview, { groups: GROUPS }),
       GROUPS.map(([gtitle, gtag, reports], gi) => h(PySection, { key: gi, alt: gi % 2 === 1 },
         h("div", { style: { marginBottom: 28 } }, h(PyEyebrow, null, T("Rhythmus", "Rhythm")), h(PyH2, null, gtitle), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-secondary)", margin: "6px 0 0" } }, gtag)),
-        reports.map((r) => h(Report, { key: r.key, r })))),
+        reports.map((r) => h(Report, { key: r.key, r: r, allowed: r.tiers.indexOf(uk) !== -1, checked: isEnabled(r.key), onToggle: onToggle })))),
       h(SiteFooter, null));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(h(App, null));

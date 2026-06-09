@@ -142,6 +142,7 @@
     const tier = a.tier || "observer";
     const paying = tier === "inner-circle" || tier === "syndicate";
     const [mails, setMails] = useState(a.mailsActive !== false);
+    const [compass, setCompass] = useState(a.mailReports ? a.mailReports["morning-compass"] !== false : true);
     const [mobileOn, setMobileOn] = useState(!!a.phone);
     const [phone, setPhone] = useState(a.phone || "");
     const [sent, setSent] = useState(false);
@@ -151,6 +152,7 @@
     const [note, setNote] = useState(null);
     const post = (path, body) => fetch(API + path, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).catch(() => ({ ok: false }));
     function toggleMails(v) { setMails(v); post("/api/mail-prefs", { mailsActive: v }); }
+    function toggleCompass(v) { setCompass(v); post("/api/mail-prefs", { report: "morning-compass", on: v }); }
     function toggleMobile(v) { setMobileOn(v); if (!v) { setSent(false); setVerified(false); post("/api/mobile/disable", {}); } }
     function sendCode() { if (!phone) return; post("/api/mobile/start", { phone }); setSent(true); }
     function verify() { post("/api/mobile/verify", { code }); setVerified(true); setSent(false); }
@@ -159,7 +161,9 @@
     return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
       h(PyEyebrow, null, T("Einstellungen", "Settings")),
       h("div", { style: { marginTop: 8 } },
-        h(SetRow, { title: T("Mails erhalten", "Receive emails"), sub: T("Daily Oracle & Briefings. System-Mails (Login) kommen immer.", "Daily Oracle & briefings. System mails (login) always arrive."), control: h(Switch, { checked: mails, onChange: toggleMails }) }),
+        h(SetRow, { title: T("Mails erhalten", "Receive emails"), sub: T("Der Hauptschalter. System-Mails (Login) kommen immer.", "The master switch. System mails (login) always arrive."), control: h(Switch, { checked: mails, onChange: toggleMails }) }),
+        h(Divider),
+        h(SetRow, { title: "Morning Compass", sub: T("Die t\xE4gliche Edukations-Mail — wo der Tag steht, News erkl\xE4rt, eine Beobachtung zum Nachpr\xFCfen. Weitere Briefings verwaltest du in den Rituals.", "The daily education email — where the day stands, news explained, one observation to verify. Manage further briefings in Rituals."), control: h("div", { style: { opacity: mails ? 1 : 0.4, pointerEvents: mails ? "auto" : "none" } }, h(Switch, { checked: compass, onChange: toggleCompass })) }),
         h(Divider),
         h(SetRow, { title: T("Mobilnummer nutzen", "Use mobile number"), sub: T("F\xFCr Verify-Codes & Service-Alerts. Kein Marketing.", "For verify codes & service alerts. No marketing."), control: verified ? h(Badge, { tone: "oracle", variant: "outline" }, T("verifiziert ✓", "verified ✓")) : h(Switch, { checked: mobileOn, onChange: toggleMobile }) }),
         mobileOn && !verified && h("div", { style: { display: "flex", flexDirection: "column", gap: 10, padding: "4px 0 14px" } },
@@ -354,10 +358,10 @@
   function viewFor(a) {
     if (a.tier === "admin") return "dashboard"; // Admin bypasst alle Gates
     const ap = a.approval;
+    if (ap === "approved") return "dashboard"; // nur Freigegebene sehen den Dashboard
     if (ap === "rejected") return "rejected";
-    if (ap === "approved" || ap == null) return "dashboard"; // legacy / Feld noch nicht gebaut → kein Lockout
-    if (ap === "pending" || a.onboardingConsent === true) return "waiting";
-    return "antrag"; // verified, approval none, noch kein Consent
+    if (ap === "pending" || a.onboardingConsent === true) return "waiting"; // wartet auf Freigabe
+    return "antrag"; // neu / ohne Freigabe → erst Consent, dann warten. Default-deny: jeder braucht Freigabe.
   }
 
   function Account() {
