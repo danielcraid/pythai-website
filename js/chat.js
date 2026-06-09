@@ -30,7 +30,7 @@
   }
 
   function TierBadge({ tier }) {
-    const map = { "inner-circle": ["Inner Circle", "var(--oracle-bright)", "var(--border-oracle)"], syndicate: ["Syndicate", "var(--oxblood-bright)", "rgba(168,65,79,0.5)"], lead: [T("Gast", "Guest"), "var(--text-muted)", "var(--border-strong)"] };
+    const map = { "inner-circle": ["Inner Circle", "var(--oracle-bright)", "var(--border-oracle)"], syndicate: ["Syndicate", "var(--oxblood-bright)", "rgba(168,65,79,0.5)"], observer: ["Observer", "var(--text-secondary)", "var(--border-strong)"], lead: [T("Gast", "Guest"), "var(--text-muted)", "var(--border-strong)"] };
     const m = map[tier] || map.lead;
     return h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: m[1], border: "1px solid " + m[2], borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" } }, m[0]);
   }
@@ -94,7 +94,7 @@
         const d = await r.json();
         if (!d || !d.ok) throw 0;
         setSid(d.sid); try { localStorage.setItem(LS, d.sid); } catch (e) { }
-        if (d.authed && d.tier) { setMode("member"); setTier(d.tier); setName(d.name || null); setObserverHint(false); setMsgs([{ role: "system", text: T("Du bist im Sanctum angemeldet.", "You’re signed in to the sanctum.") }, memberGreet(d.name)]); }
+        if (d.authed && d.tier) { setMode("member"); setTier(d.tier); setName(d.name || null); setObserverHint(false); setMsgs([{ role: "system", text: T("Du bist im Sanctum angemeldet.", "You’re signed in to the sanctum.") }, memberGreet(d.nickname || d.name)]); }
         else { setMode("lead"); setTier("lead"); setObserverHint(!!d.observerHint); setMsgs([leadGreet()]); }
       } catch (e) {
         push({ role: "warren", text: T("Verbindung weg. Mach den Chat gleich nochmal auf.", "Connection lost. Reopen the chat in a moment.") });
@@ -113,7 +113,7 @@
         const member = d.authed && d.tier;
         if (member) { setMode("member"); setTier(d.tier); setName(d.name || null); } else { setMode("lead"); setTier("lead"); }
         const conv = (d.conversation || []).map((m) => ({ role: m.role === "user" ? "user" : "warren", text: m.content }));
-        setMsgs(conv.length ? conv : [member ? memberGreet(d.name) : leadGreet()]);
+        setMsgs(conv.length ? conv : [member ? memberGreet(d.nickname || d.name) : leadGreet()]);
       } catch (e) { try { localStorage.removeItem(LS); } catch (e2) { } return startFresh(); }
     }
     function onOpen() { setOpen(true); boot(); }
@@ -157,9 +157,10 @@
       }, 3000);
     }
     function becomeMember(d) {
-      setAuth(null); setMode("member"); setTier(d.tier || "inner-circle"); setName(d.name || null); setObserverHint(false);
+      const nm = d.nickname || d.name;
+      setAuth(null); setMode("member"); setTier(d.tier || "inner-circle"); setName(nm || null); setObserverHint(false);
       push({ role: "system", text: T("Freigeschaltet.", "Unlocked.") });
-      push({ role: "warren", text: T((d.name ? "Schön, dich zu sehen, " + d.name + ". " : "") + "Ich bin jetzt im Member-Modus — leg los.", (d.name ? "Good to see you, " + d.name + ". " : "") + "I’m in member mode now — go ahead.") });
+      push({ role: "warren", text: T((nm ? "Schön, dich zu sehen, " + nm + ". " : "") + "Ich bin jetzt im Member-Modus — leg los.", (nm ? "Good to see you, " + nm + ". " : "") + "I’m in member mode now — go ahead.") });
     }
     async function submitEmail() {
       const email = (auth.email || "").trim();
@@ -190,6 +191,12 @@
       try { await api("/api/chat/logout", { method: "POST", body: JSON.stringify({ sid }) }); } catch (e) {}
       stopPolling(); try { localStorage.removeItem(LS); } catch (e) { } setSid(null); setMode("lead"); setTier("lead"); setName(null); setMsgs([]); setObserverHint(false); setAuth(null); startedRef.current = true; startFresh();
     }
+    async function resetChat() {
+      if (!confirm(T("Diesen Chat-Verlauf löschen und neu starten?", "Delete this chat and start over?"))) return;
+      try { await api("/api/chat/delete", { method: "POST", body: JSON.stringify({ sid }) }); } catch (e) { }
+      try { localStorage.removeItem(LS); } catch (e) { }
+      stopPolling(); setSid(null); setMode("lead"); setTier("lead"); setName(null); setMsgs([]); setObserverHint(false); setAuth(null); startedRef.current = true; startFresh();
+    }
 
     // ---- Render ----
     const fld = { width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "10px 12px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 14, outline: "none", boxSizing: "border-box" };
@@ -207,9 +214,8 @@
         h("img", { src: PORTRAIT, alt: "", style: { width: 34, height: 34, borderRadius: "50%", objectFit: "cover", objectPosition: "center 20%", border: "1px solid var(--border-oracle)" } }),
         h("div", { style: { flex: 1, lineHeight: 1.1 } }, h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 18, color: "var(--text-primary)" } }, "Warren"), h("div", { style: { marginTop: 3 } }, h(TierBadge, { tier: mode === "member" ? tier : "lead" }))),
         mode === "member" ? h("button", { onClick: logout, title: T("Abmelden", "Log out"), style: { background: "none", border: "none", color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", marginRight: 6 } }, T("Abmelden", "Log out")) : null,
+        msgs.length > 1 ? h("button", { onClick: resetChat, title: T("Chat zurücksetzen", "Reset chat"), "aria-label": "Reset", style: { background: "none", border: "none", color: "var(--text-muted)", fontSize: 16, cursor: "pointer", lineHeight: 1, marginRight: 4 } }, "↺") : null,
         h("button", { onClick: () => setOpen(false), "aria-label": "Close", style: { background: "none", border: "none", color: "var(--text-muted)", fontSize: 22, cursor: "pointer", lineHeight: 1 } }, "×")),
-      // observer hint
-      observerHint && mode !== "member" ? h("div", { style: { padding: "10px 14px", borderBottom: "1px solid var(--border-subtle)", background: "rgba(91,141,239,0.08)", display: "flex", gap: 10, alignItems: "center" } }, h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--text-secondary)", flex: 1, lineHeight: 1.4 } }, T("Du bist als Observer angemeldet — Chat gibt’s ab Inner Circle.", "You’re signed in as Observer — chat starts at Inner Circle.")), h("a", { href: "account.html?upgrade=1", style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", color: "#5B8DEF", whiteSpace: "nowrap", textDecoration: "none" } }, T("Upgrade", "Upgrade"))) : null,
       // body
       h("div", { ref: bodyRef, style: { flex: 1, overflowY: "auto", padding: "16px 14px" } },
         msgs.map((m, i) => h(Bubble, { key: i, m })),

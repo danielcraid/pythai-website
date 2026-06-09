@@ -43,6 +43,7 @@
     return { me, ready };
   }
   function logout() {
+    try { localStorage.removeItem("pythai_chat_sid"); } catch (e) { }
     fetch(API + "/api/logout", { method: "POST", credentials: "include" }).finally(() => window.location.reload());
   }
   function LangToggle() {

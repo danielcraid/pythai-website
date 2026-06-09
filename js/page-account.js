@@ -333,6 +333,7 @@
     const isObserver = tier === "observer";
     const [upgradeOpen, setUpgradeOpen] = useState(false);
     function logout() {
+      try { localStorage.removeItem("pythai_chat_sid"); } catch (e) { }
       fetch(API + "/api/logout", { method: "POST", credentials: "include" }).finally(() => { window.location.href = "index.html"; });
     }
     let included = OBSERVER_F.slice();
