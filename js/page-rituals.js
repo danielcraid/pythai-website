@@ -49,6 +49,7 @@
   function Overview({ groups, uk, isEnabled, onToggle }) {
     const all = [];
     groups.forEach((g) => g[2].forEach((r) => all.push(r)));
+    all.sort((a, b) => (b.tiers.indexOf("observer") > -1 ? 1 : 0) - (a.tiers.indexOf("observer") > -1 ? 1 : 0)); // Free (Observer) Reports nach oben
     const th = (txt) => h("th", { style: { textAlign: "left", padding: "0 14px 10px 0", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 400, borderBottom: "1px solid var(--border-subtle)" } }, txt);
     const td = (child) => h("td", { style: { padding: "12px 14px 12px 0", borderBottom: "1px solid var(--border-subtle)", verticalAlign: "middle" } }, child);
     return h(PySection, null,
