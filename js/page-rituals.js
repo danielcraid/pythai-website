@@ -85,6 +85,7 @@
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((res) => res.ok ? res.json() : null).then((d) => {
         if (d && d.ok) { setMe(d); setPrefs(d.mailReports || {}); }
+        if (d && d.onboardingRequired) { window.location.href = "account.html"; return; }
         const member = d && d.ok && PRIV.indexOf(d.tier) !== -1 && d.approval === "approved";
         setGate(member ? "ok" : "locked");
       }).catch(() => setGate("locked"));

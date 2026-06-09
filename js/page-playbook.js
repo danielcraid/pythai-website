@@ -43,6 +43,7 @@
     const [gate, setGate] = useState("loading");
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
+        if (d && d.onboardingRequired) { window.location.href = "account.html"; return; }
         const member = d && d.ok && PRIV.indexOf(d.tier) !== -1 && d.approval === "approved";
         setGate(member ? "ok" : "locked");
       }).catch(() => setGate("locked"));

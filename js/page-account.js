@@ -357,6 +357,7 @@
   // ============ Router ============
   function viewFor(a) {
     if (a.tier === "admin") return "dashboard"; // Admin bypasst alle Gates
+    if (a.onboardingRequired) return "antrag"; // Backend verlangt Consent (IC/Syndicate ohne Onboarding) → erst Strecke, auch wenn schon approved
     const ap = a.approval;
     if (ap === "approved") return "dashboard"; // nur Freigegebene sehen den Dashboard
     if (ap === "rejected") return "rejected";
@@ -383,7 +384,7 @@
     if (state === "out") return h("div", { style: { maxWidth: 460, margin: "0 auto", textAlign: "center" } }, h("img", { src: "assets/logo/pythai-oculus.svg", alt: "", style: { width: 60, height: 60, margin: "0 auto 22px", opacity: 0.7 } }), h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 40, margin: 0, color: "var(--text-primary)" } }, T("Nicht angemeldet.", "Not signed in.")), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-secondary)", margin: "16px 0 28px", lineHeight: 1.6 } }, T("Deine Sitzung ist abgelaufen oder der Link wurde schon benutzt.", "Your session has expired or the link was already used.")), h(Button, { variant: "oracle", onClick: () => { window.location.href = "register.html"; } }, T("Zum Login", "Go to sign in")));
 
     const view = localView || viewFor(a);
-    if (view === "antrag") return h(ConsentTrack, { onDone: () => setLocalView("waiting") });
+    if (view === "antrag") return h(ConsentTrack, { onDone: () => window.location.reload() }); // nach Consent neu laden → Backend routet: approved→Dashboard, sonst→Warten
     if (view === "waiting") return h(WaitingApproval, { email: a.email });
     if (view === "rejected") return h(RejectedNote, null);
     return h(Dashboard, { a, justJoined });
