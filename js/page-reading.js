@@ -1,6 +1,6 @@
 (() => {
   const { Card, Stat, Badge, Button } = window.PYTHAIDesignSystem_df6467;
-  const { SiteNav, SiteFooter, PyPageHead, PySection, PyH2, PyLead, PyEyebrow } = window;
+  const { SiteNav, SiteFooter, PyPageHead, PySection, PyH2, PyLead, PyEyebrow, PyHeroParticles } = window;
   const T = (de, en) => window.PYi18n.t(de, en);
   const h = React.createElement;
   function ReadingHero() {
@@ -8,6 +8,7 @@
       h("img", { src: "assets/imagery/pythai-book.png", alt: "", "aria-hidden": "true", style: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.5 } }),
       h("div", { style: { position: "absolute", inset: 0, background: "radial-gradient(80% 62% at 50% 45%, rgba(8,9,12,0.18) 0%, rgba(8,9,12,0.74) 60%, var(--void) 100%)" } }),
       h("div", { style: { position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(8,9,12,0.60) 0%, transparent 30%, transparent 58%, var(--void) 100%)" } }),
+      PyHeroParticles && h(PyHeroParticles, { count: 130 }),
       h("div", { style: { position: "relative", maxWidth: 1240, width: "100%", margin: "0 auto", padding: "120px 40px 90px", textAlign: "center" } },
         h(PyEyebrow, null, "The Daily Reading"),
         h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, letterSpacing: "-0.02em", fontSize: "clamp(40px,6vw,72px)", lineHeight: 1.05, margin: 0, color: "var(--parchment)" } }, "One prophecy, every dawn."),

@@ -36,7 +36,7 @@
       borderBottom: "1px solid var(--border-subtle)"
     } }, /* @__PURE__ */ React.createElement(Wordmark, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 32 } }, ["The Reading", "Signals", "Inner Circle", "Manifesto"].map((l) => /* @__PURE__ */ React.createElement("a", { key: l, href: "#", style: { fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-secondary)" } }, l)), /* @__PURE__ */ React.createElement(Button, { variant: "chrome", size: "sm", onClick: onEnter }, "Sign in"), /* @__PURE__ */ React.createElement(Button, { variant: "oracle", size: "sm", onClick: onEnter }, "Enter the Sanctum")));
   }
-  function HeroParticles() {
+  function HeroParticles({ count } = {}) {
     const ref = useRef(null);
     useEffect(() => {
       const canvas = ref.current;
@@ -45,7 +45,7 @@
       if (!ctx) return;
       const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const N = 69;
+      const N = count || 69;
       let w = 0, h = 0, parts = [], raf = 0, t = 0;
       function resize() {
         const r = canvas.getBoundingClientRect();
