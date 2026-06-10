@@ -230,7 +230,7 @@
     const [note, setNote] = useState(null);
     const post = (path, body) => fetch(API + path, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).catch(() => ({ ok: false }));
     function toggleMails(v) { setMails(v); post("/api/mail-prefs", { mailsActive: v }); }
-    function toggleCompass(v) { setCompass(v); post("/api/mail-prefs", { report: "morning-compass", on: v }); }
+    function toggleCompass(v) { setCompass(v); post("/api/mail-prefs", { report: "morning-compass", on: v }); post("/api/mail-prefs", { report: "markt-vibe", on: v }); }
     function toggleMobile(v) { setMobileOn(v); if (!v) { setSent(false); setVerified(false); post("/api/mobile/disable", {}); } }
     function sendCode() { if (!phone) return; post("/api/mobile/start", { phone }); setSent(true); }
     function verify() { post("/api/mobile/verify", { code }); setVerified(true); setSent(false); }
@@ -241,7 +241,7 @@
       h("div", { style: { marginTop: 8 } },
         h(SetRow, { title: T("Mails erhalten", "Receive emails"), sub: T("Der Hauptschalter. System-Mails (Login) kommen immer.", "The master switch. System mails (login) always arrive."), control: h(Switch, { checked: mails, onChange: toggleMails }) }),
         h(Divider),
-        h(SetRow, { title: "Morning Compass", sub: T("Die t\xE4gliche Edukations-Mail — wo der Tag steht, News erkl\xE4rt, eine Beobachtung zum Nachpr\xFCfen. Weitere Briefings verwaltest du in den Rituals.", "The daily education email — where the day stands, news explained, one observation to verify. Manage further briefings in Rituals."), control: h("div", { style: { opacity: mails ? 1 : 0.4, pointerEvents: mails ? "auto" : "none" } }, h(Switch, { checked: compass, onChange: toggleCompass })) }),
+        h(SetRow, { title: T("Standard Rituals", "Standard rituals"), sub: T("Morning Compass & Market Vibe. Die t\xE4gliche Edukations-Mail — wo der Tag startet, News erkl\xE4rt, eine Beobachtung zum Nachpr\xFCfen. 1\xD7 die Woche der Market Vibe. (Weitere Reports ab Inner Circle in den Rituals.)", "Morning Compass & Market Vibe. The daily education email — where the day starts, news explained, one observation to verify. Plus the weekly Market Vibe. (Further reports from Inner Circle in Rituals.)"), control: h("div", { style: { opacity: mails ? 1 : 0.4, pointerEvents: mails ? "auto" : "none" } }, h(Switch, { checked: compass, onChange: toggleCompass })) }),
         h(Divider),
         h(SetRow, { title: T("Mobilnummer nutzen", "Use mobile number"), sub: T("F\xFCr Verify-Codes & Service-Alerts. Kein Marketing.", "For verify codes & service alerts. No marketing."), control: verified ? h(Badge, { tone: "oracle", variant: "outline" }, T("verifiziert ✓", "verified ✓")) : h(Switch, { checked: mobileOn, onChange: toggleMobile }) }),
         mobileOn && !verified && h("div", { style: { display: "flex", flexDirection: "column", gap: 10, padding: "4px 0 14px" } },
