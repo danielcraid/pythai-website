@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Weg ins Sanctum — Roadmap (Vorschau)</title>
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#08090C" />
+<link rel="stylesheet" href="https://www.pythai.ch/fonts/fonts.css" />
+<style>
+  :root{
+    --void:#08090C; --obsidian:#0E1014; --graphite:#15181E; --slate:#1D212A;
+    --iron:#3A404C; --ash:#5A616E; --smoke:#9BA3B2; --mist:#C3C9D4; --parchment:#F4F0E6;
+    --oracle:#D4A94E; --oracle-bright:#F2CE7A; --oracle-pale:#F7E4B6; --bull:#6FCF9A;
+    --serif:'Cormorant Garamond',Georgia,serif; --sans:'Hanken Grotesk','Helvetica Neue',Arial,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--void);color:var(--parchment);}
+  .page{min-height:100vh;padding:48px 20px 80px;display:flex;justify-content:center;
+    background-image:radial-gradient(75% 45% at 50% 0%, rgba(212,169,78,0.07) 0%, transparent 60%);}
+  .wrap{width:100%;max-width:560px;}
+
+  .top{text-align:center;margin-bottom:34px;}
+  .oc{width:46px;height:46px;filter:drop-shadow(0 0 16px rgba(212,169,78,0.45));}
+  .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.28em;text-transform:uppercase;color:var(--oracle);margin:16px 0 0;}
+  h1{font:400 38px/1.05 var(--serif);letter-spacing:-.02em;color:var(--parchment);margin:10px 0 0;}
+
+  .prog{margin:24px 0 6px;}
+  .prog-row{display:flex;justify-content:space-between;align-items:baseline;font:500 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--smoke);}
+  .prog-row b{color:var(--oracle-bright);font-weight:600;}
+  .bar{height:5px;border-radius:999px;background:var(--slate);margin-top:10px;overflow:hidden;}
+  .bar>i{display:block;height:100%;width:70%;border-radius:999px;background:linear-gradient(90deg,var(--oracle),var(--oracle-bright));}
+
+  .steps{margin-top:30px;}
+  .step{display:grid;grid-template-columns:38px 1fr;gap:16px;}
+  .rail{display:flex;flex-direction:column;align-items:center;}
+  .node{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font:600 14px/1 var(--mono);flex:none;border:1.5px solid var(--iron);color:var(--ash);background:var(--obsidian);}
+  .node.done{background:var(--oracle);border-color:var(--oracle);color:#1A1206;}
+  .node.cur{border-color:var(--oracle-bright);color:var(--oracle-bright);background:rgba(212,169,78,0.10);
+    box-shadow:0 0 0 0 rgba(242,206,122,0.5);animation:pulse 1.9s ease-out infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(242,206,122,0.45)}70%{box-shadow:0 0 0 12px rgba(242,206,122,0)}100%{box-shadow:0 0 0 0 rgba(242,206,122,0)}}
+  .line{flex:1 0 auto;width:2px;min-height:26px;margin:5px 0;background:var(--iron);}
+  .line.gold{background:linear-gradient(180deg,var(--oracle),var(--oracle));}
+  .line.dim{background:repeating-linear-gradient(180deg,var(--iron) 0 4px,transparent 4px 9px);}
+
+  .content{padding-bottom:26px;min-width:0;}
+  .step:last-child .content{padding-bottom:0;}
+  .s-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .s-title{font:400 22px/1.15 var(--serif);color:var(--parchment);}
+  .step.todo .s-title{color:var(--smoke);}
+  .pill{font:600 9px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;padding:5px 9px;border-radius:999px;border:1px solid transparent;white-space:nowrap;}
+  .pill.done{color:var(--bull);border-color:rgba(111,207,154,.4);background:rgba(111,207,154,.08);}
+  .pill.cur{color:var(--oracle-bright);border-color:var(--oracle);background:rgba(212,169,78,.10);}
+  .pill.todo{color:var(--ash);border-color:var(--iron);}
+  .s-desc{font:400 14px/1.6 var(--sans);color:var(--smoke);margin:8px 0 0;}
+  .step.todo .s-desc{color:var(--ash);}
+
+  .card{margin-top:14px;border:1px solid rgba(212,169,78,0.30);background:rgba(212,169,78,0.05);border-radius:10px;padding:14px 16px;}
+  .checks{display:grid;gap:9px;margin:2px 0 0;}
+  .chk{display:flex;align-items:center;gap:10px;font:400 13px/1.4 var(--sans);color:var(--mist);}
+  .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--oracle);flex:none;}
+  .cta{margin-top:14px;display:inline-block;padding:12px 24px;border-radius:8px;background:var(--oracle);color:#1A1206;
+    font:600 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;text-decoration:none;}
+
+  .sub{margin-top:12px;border:1px solid var(--slate);border-radius:10px;padding:14px 16px;background:var(--graphite);}
+  .sub-row{display:flex;justify-content:space-between;align-items:center;}
+  .sub-k{font:600 9px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ash);}
+  .sub-v{font:500 13px/1 var(--mono);color:var(--smoke);}
+
+  .divider{height:1px;background:var(--slate);margin:42px 0 22px;}
+  .below-label{font:600 10px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--ash);text-align:center;margin-bottom:16px;}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;opacity:.45;}
+  .tile{border:1px solid var(--slate);border-radius:10px;padding:18px 16px;background:var(--obsidian);}
+  .tile h3{font:400 17px/1.1 var(--serif);color:var(--mist);margin:0 0 6px;}
+  .tile p{font:400 12px/1.4 var(--sans);color:var(--ash);margin:0;}
+  .tile.full{grid-column:1 / -1;}
+
+  @media (max-width:420px){ h1{font-size:32px;} .tiles{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="page"><div class="wrap">
+
+  <div class="top">
+    <img class="oc" src="https://www.pythai.ch/assets/logo/pythai-oculus.svg" alt="" />
+    <div class="eyebrow">Dein Weg ins Sanctum</div>
+    <h1>Wo du gerade stehst.</h1>
+    <div class="prog">
+      <div class="prog-row"><span>Fortschritt</span><span><b>Schritt 3</b> / 6 · Checkliste</span></div>
+      <div class="bar"><i style="width:42%"></i></div>
+    </div>
+  </div>
+
+  <div class="steps">
+
+    <div class="step done">
+      <div class="rail"><div class="node done">✓</div><div class="line gold"></div></div>
+      <div class="content">
+        <div class="s-head"><span class="s-title">Request Entrance</span><span class="pill done">Erledigt</span></div>
+        <p class="s-desc">Platz angefragt — und der Kontaktaufnahme zugestimmt.</p>
+      </div>
+    </div>
+
+    <div class="step done">
+      <div class="rail"><div class="node done">✓</div><div class="line gold"></div></div>
+      <div class="content">
+        <div class="s-head"><span class="s-title">E-Mail bestätigt</span><span class="pill done">Erledigt</span></div>
+        <p class="s-desc">Double-Opt-in über den Link in deinem Postfach bestätigt.</p>
+      </div>
+    </div>
+
+    <div class="step cur">
+      <div class="rail"><div class="node cur">3</div><div class="line dim"></div></div>
+      <div class="content">
+        <div class="s-head"><span class="s-title">Checkliste</span><span class="pill cur">Du bist hier</span></div>
+        <p class="s-desc">Bestätige vier Punkte — die Grundlage für deinen Zugang.</p>
+        <div class="card">
+          <div class="checks">
+            <div class="chk"><span class="box"></span>AGB akzeptieren</div>
+            <div class="chk"><span class="box"></span>Risikohinweis gelesen</div>
+            <div class="chk"><span class="box"></span>Warren ist KI — keine Anlageberatung</div>
+            <div class="chk"><span class="box"></span>Eigenverantwortung</div>
+          </div>
+          <a class="cta" href="#">Checkliste ausfüllen →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="step todo">
+      <div class="rail"><div class="node">4</div><div class="line dim"></div></div>
+      <div class="content">
+        <div class="s-head"><span class="s-title">Freigabe durch Warren</span><span class="pill todo">Ausstehend</span></div>
+        <p class="s-desc">Warren sichtet deine Bewerbung persönlich. Du bekommst eine Mail.</p>
+      </div>
+    </div>
+
+    <div class="step todo">
+      <div class="rail"><div class="node">5</div><div class="line dim"></div></div>
+      <div class="content">
+        <div class="s-head"><span class="s-title">Welcome-Mail</span><span class="pill todo">Ausstehend</span></div>
+        <p class="s-desc">Deine Zusage samt Instruktionen — direkt ins Postfach.</p>
+      </div>
+    </div>
+
+    <div class="step todo">
+      <div class="rail"><div class="node">6</div></div>
+      <div class="content">
+        <div class="s-head"><span class="s-title">Onboarding abschließen</span><span class="pill todo">Ausstehend</span></div>
+        <p class="s-desc">Letzter Schritt: deine Reports einrichten — dann lebt das Sanctum.</p>
+        <div class="sub">
+          <div class="sub-row"><span class="sub-k">Inner Circle</span><span class="sub-v">aktiv ab Abschluss</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+  <div class="below-label">Darunter · dein Account</div>
+  <div class="tiles">
+    <div class="tile"><h3>Dein Tier</h3><p>Inner Circle · Reading & Levels</p></div>
+    <div class="tile"><h3>Reports</h3><p>Morning Compass, AFTERNOON BRIEF …</p></div>
+    <div class="tile full"><h3>Einstellungen</h3><p>Mail-Präferenzen · Mobilnummer · Downgrade · Account löschen</p></div>
+  </div>
+
+</div></div>
+</body>
+</html>

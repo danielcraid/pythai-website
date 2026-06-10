@@ -96,6 +96,82 @@
       h(Button, { variant: "ghost", onClick: () => { window.location.href = "mailto:support@pythai.ch"; } }, T("Support kontaktieren", "Contact support")));
   }
 
+  // ============ Journey roadmap — "Dein Weg ins Sanctum" ============
+  const JR_CSS = `
+.jr-wrap{max-width:560px;margin:0 auto;}
+.jr-eyebrow{font:600 10px/1 var(--font-mono);letter-spacing:.24em;text-transform:uppercase;color:var(--oracle);text-align:center;}
+.jr-progrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font:500 11px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);margin-top:16px;}
+.jr-progrow b{color:var(--oracle-bright);font-weight:600;}
+.jr-bar{height:5px;border-radius:999px;background:var(--bg-elevated);margin-top:10px;overflow:hidden;}
+.jr-bar>i{display:block;height:100%;border-radius:999px;background:var(--oracle);transition:width .4s ease;}
+.jr-steps{margin-top:28px;}
+.jr-step{display:grid;grid-template-columns:38px 1fr;gap:16px;}
+.jr-rail{display:flex;flex-direction:column;align-items:center;}
+.jr-node{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 14px/1 var(--font-mono);flex:none;border:1.5px solid var(--border-strong);color:var(--text-muted);background:var(--bg-surface);}
+.jr-node-done{background:var(--oracle);border-color:var(--oracle);color:var(--text-on-gold);}
+.jr-node-cur{border-color:var(--oracle-bright);color:var(--oracle-bright);background:rgba(212,169,78,.10);animation:jrpulse 1.9s ease-out infinite;}
+@keyframes jrpulse{0%{box-shadow:0 0 0 0 rgba(242,206,122,.45)}70%{box-shadow:0 0 0 12px rgba(242,206,122,0)}100%{box-shadow:0 0 0 0 rgba(242,206,122,0)}}
+.jr-line{flex:1 0 auto;width:2px;min-height:24px;margin:5px 0;background:var(--border-strong);}
+.jr-line-gold{background:var(--oracle);}
+.jr-line-dim{background:repeating-linear-gradient(180deg,var(--border-strong) 0 4px,transparent 4px 9px);}
+.jr-content{padding-bottom:24px;min-width:0;}
+.jr-step:last-child .jr-content{padding-bottom:0;}
+.jr-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.jr-title{font:400 21px/1.15 var(--font-oracle);color:var(--text-primary);}
+.jr-todo .jr-title{color:var(--text-secondary);}
+.jr-pill{font:600 9px/1 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;padding:5px 9px;border-radius:999px;border:1px solid transparent;white-space:nowrap;}
+.jr-pill-done{color:var(--bull-bright);border-color:rgba(111,207,154,.4);background:rgba(111,207,154,.08);}
+.jr-pill-cur{color:var(--oracle-bright);border-color:var(--border-oracle);background:rgba(212,169,78,.10);}
+.jr-pill-todo{color:var(--text-muted);border-color:var(--border-strong);}
+.jr-desc{font:400 14px/1.55 var(--font-ui);color:var(--text-secondary);margin:7px 0 0;}
+.jr-todo .jr-desc{color:var(--text-muted);}
+.jr-cta{margin-top:12px;display:inline-block;padding:11px 22px;border-radius:8px;background:var(--oracle);color:var(--text-on-gold);font:600 12px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;}
+@media (max-width:420px){.jr-title{font-size:19px;}}
+`;
+  function JourneyRoadmap({ a }) {
+    const consent = a.onboardingConsent === true;
+    const approved = a.approval === "approved";
+    const confirmed = a.confirmed !== false;
+    const lsDone = (() => { try { return localStorage.getItem("py_setup_done") === "1"; } catch (e) { return false; } })();
+    const [setupDone, setSetupDone] = useState(a.setupComplete === true || lsDone);
+    function finishSetup() {
+      try { localStorage.setItem("py_setup_done", "1"); } catch (e) { }
+      setSetupDone(true);
+      fetch(API + "/api/setup-complete", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setupComplete: true }) }).catch(() => { });
+    }
+    const STEPS = [
+      [T("Request Entrance", "Request entrance"), T("Platz angefragt — und der Kontaktaufnahme zugestimmt.", "Access requested — and contact consent given."), true],
+      [T("E-Mail best\xE4tigt", "Email confirmed"), T("Double-Opt-in \xFCber den Link in deinem Postfach.", "Double opt-in confirmed via the link in your inbox."), confirmed],
+      [T("Checkliste", "Checklist"), T("Vier Punkte best\xE4tigt: AGB, Risiko, KI, Eigenverantwortung.", "Four points confirmed: terms, risk, AI, own responsibility."), consent],
+      [T("Freigabe durch Warren", "Approval by Warren"), T("Warren sichtet deine Bewerbung pers\xF6nlich.", "Warren reviews your request personally."), approved],
+      [T("Welcome-Mail", "Welcome mail"), T("Deine Zusage samt Instruktionen — direkt ins Postfach.", "Your acceptance and instructions — straight to your inbox."), approved],
+      [T("Onboarding abschlie\xDFen", "Finish onboarding"), T("Reports einrichten — dann lebt das Sanctum.", "Set up your reports — then the Sanctum lives."), approved && consent && setupDone]
+    ];
+    let cur = STEPS.findIndex((s) => !s[2]); if (cur === -1) cur = STEPS.length;
+    const doneCount = STEPS.filter((s) => s[2]).length;
+    const pct = Math.round(doneCount / STEPS.length * 100);
+    const curLabel = cur < STEPS.length ? STEPS[cur][0] : T("Abgeschlossen", "Complete");
+    return h("div", { className: "jr-wrap" },
+      h("style", null, JR_CSS),
+      h("div", { className: "jr-eyebrow" }, T("Dein Weg ins Sanctum", "Your path into the Sanctum")),
+      h("div", { className: "jr-progrow" }, h("span", null, T("Fortschritt", "Progress")), h("span", null, h("b", null, T("Schritt", "Step") + " " + Math.min(cur + 1, STEPS.length)), " / " + STEPS.length + " \xB7 " + curLabel)),
+      h("div", { className: "jr-bar" }, h("i", { style: { width: pct + "%" } })),
+      h("div", { className: "jr-steps" }, STEPS.map((s, i) => {
+        const st = s[2] ? "done" : (i === cur ? "cur" : "todo");
+        const last = i === STEPS.length - 1;
+        return h("div", { key: i, className: "jr-step jr-" + st },
+          h("div", { className: "jr-rail" },
+            h("div", { className: "jr-node jr-node-" + st }, st === "done" ? "✓" : String(i + 1)),
+            !last && h("div", { className: "jr-line jr-line-" + (s[2] ? "gold" : "dim") })),
+          h("div", { className: "jr-content" },
+            h("div", { className: "jr-head" },
+              h("span", { className: "jr-title" }, s[0]),
+              h("span", { className: "jr-pill jr-pill-" + st }, st === "done" ? T("Erledigt", "Done") : st === "cur" ? T("Du bist hier", "You are here") : T("Ausstehend", "Pending"))),
+            h("p", { className: "jr-desc" }, s[1]),
+            (i === 5 && st === "cur") ? h("button", { className: "jr-cta", onClick: finishSetup }, T("Reports einrichten & abschlie\xDFen →", "Set up reports & finish →")) : null));
+      })));
+  }
+
   // ============ Syndicate tease + account settings ============
   function SyndicateTease() {
     return h(Card, { variant: "raised", padding: "28px", style: { marginBottom: 20 } },
@@ -386,10 +462,12 @@
     if (state === "out") return h("div", { style: { maxWidth: 460, margin: "0 auto", textAlign: "center" } }, h("img", { src: "assets/logo/pythai-oculus.svg", alt: "", style: { width: 60, height: 60, margin: "0 auto 22px", opacity: 0.7 } }), h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 40, margin: 0, color: "var(--text-primary)" } }, T("Nicht angemeldet.", "Not signed in.")), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-secondary)", margin: "16px 0 28px", lineHeight: 1.6 } }, T("Deine Sitzung ist abgelaufen oder der Link wurde schon benutzt.", "Your session has expired or the link was already used.")), h(Button, { variant: "oracle", onClick: () => { window.location.href = "register.html"; } }, T("Zum Login", "Go to sign in")));
 
     const view = localView || viewFor(a);
-    if (view === "antrag") return h(ConsentTrack, { onDone: () => window.location.reload() }); // nach Consent neu laden → Backend routet: approved→Dashboard, sonst→Warten
-    if (view === "waiting") return h(WaitingApproval, { email: a.email });
     if (view === "rejected") return h(RejectedNote, null);
-    return h(Dashboard, { a, justJoined });
+    const panel = view === "antrag" ? h(ConsentTrack, { onDone: () => window.location.reload() })
+      : view === "waiting" ? h(WaitingApproval, { email: a.email })
+      : h(Dashboard, { a, justJoined });
+    // Roadmap oben (Weg ins Sanctum) + die kontextuelle Aktion/Inhalt darunter
+    return h(React.Fragment, null, h(JourneyRoadmap, { a }), h("div", { style: { marginTop: 44 } }, panel));
   }
 
   function App() {
