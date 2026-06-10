@@ -1564,25 +1564,25 @@ function Button({
   const [press, setPress] = useState(false);
   const sizes = {
     sm: {
-      pad: '7px 14px',
-      fs: 'var(--text-xs)',
+      pad: '7px 15px',
+      fs: '0.875rem',
       gap: 6,
-      h: 32,
-      icon: 14
+      h: 34,
+      icon: 15
     },
     md: {
-      pad: '10px 20px',
-      fs: 'var(--text-sm)',
+      pad: '10px 22px',
+      fs: '1rem',
       gap: 8,
-      h: 42,
-      icon: 16
+      h: 45,
+      icon: 17
     },
     lg: {
-      pad: '15px 30px',
-      fs: 'var(--text-md)',
+      pad: '15px 32px',
+      fs: '1.1875rem',
       gap: 10,
-      h: 54,
-      icon: 19
+      h: 56,
+      icon: 20
     }
   };
   const s = sizes[size] || sizes.md;
