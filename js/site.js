@@ -12,6 +12,7 @@
     ["Inner Circle", "inner-circle.html"],
     ["Chartomat", "chartomat.html"],
     ["Playbook", "playbook.html"],
+    ["Methodik", "methodik.html"],
     ["Rituals", "rituals.html"]
   ];
   const MEMBER_AREA = ["chartomat.html", "playbook.html", "rituals.html"]; // hell-gold getoent wenn eingeloggt
@@ -120,7 +121,7 @@
   }
   function SiteFooter() {
     const FCOLS = [
-      ["Oracle", [["The Reading", "reading.html"], ["Signals", "signals.html"], ["Playbook", "playbook.html"], ["Manifesto", "manifesto.html"]]],
+      ["Oracle", [["The Reading", "reading.html"], ["Signals", "signals.html"], ["Methodik", "methodik.html"], ["Playbook", "playbook.html"], ["Manifesto", "manifesto.html"]]],
       ["Circle", [["Membership", "inner-circle.html"], ["Syndicate", "inner-circle.html"], ["Seek counsel", "inner-circle.html#waitlist"], ["Counsel", "mailto:warren@pythai.ch"]]],
       ["Legal", [[T("Risikohinweis", "Risk notice"), "legal.html#risk"], [T("AGB", "Terms"), "legal.html#terms"], [T("Datenschutz", "Privacy"), "legal.html#privacy"], [T("Impressum", "Imprint"), "legal.html#imprint"]]]
     ];
