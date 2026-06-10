@@ -194,17 +194,25 @@
     return h("div", { style: { minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 22, color: "var(--text-oracle)" } }, T("Das Orakel prüft deinen Zugang…", "The oracle checks your access…"));
   }
   function Locked({ mode }) {
-    const isPending = mode === "pending";
-    const sub = isPending
-      ? T("Dein Zugang wird gerade freigegeben. Sobald Warren dich bestätigt, liegt die Methodik hier offen.", "Your access is being approved. Once Warren confirms you, the methodology opens here.")
-      : T("Wie man das Daily Oracle liest — Idea-Score, Execute-Confidence und die Trade-Arten. Eingeloggten Mitgliedern vorbehalten — schon als kostenloser Observer.", "How to read the Daily Oracle — idea score, execute confidence and the trade types. Reserved for signed-in members — free as an Observer.");
-    const ctaLabel = isPending ? T("Zu meinem Konto", "To my account") : T("Kostenlos Observer werden", "Become an Observer — free");
-    const ctaHref = isPending ? "account.html" : "register.html";
+    var headline, sub, ctaLabel, ctaHref, showSignin = false;
+    if (mode === "pending") {
+      headline = T("Die Methodik lebt im Sanctum.", "The methodology lives in the sanctum.");
+      sub = T("Dein Zugang wird gerade freigegeben. Sobald Warren dich bestätigt, liegt die Methodik hier offen.", "Your access is being approved. Once Warren confirms you, the methodology opens here.");
+      ctaLabel = T("Zu meinem Konto", "To my account"); ctaHref = "account.html";
+    } else if (mode === "observer") {
+      headline = T("Die volle Methodik lebt im Inner Circle.", "The full methodology lives in the Inner Circle.");
+      sub = T("Als Observer siehst du, worum es geht. Die ganze Methodik — Idea-Score, Execute-Confidence und alle Trade-Arten — ist dem Inner Circle vorbehalten.", "As an Observer you see the gist. The full methodology — idea score, execute confidence and every trade type — is reserved for the Inner Circle.");
+      ctaLabel = T("Zum Inner Circle", "Go to Inner Circle"); ctaHref = "inner-circle.html";
+    } else {
+      headline = T("Die Methodik lebt im Sanctum.", "The methodology lives in the sanctum.");
+      sub = T("Wie man das Daily Oracle liest — Idea-Score, Execute-Confidence und die Trade-Arten. Die volle Methodik ist Mitgliedern vorbehalten; werde zuerst (kostenlos) Observer.", "How to read the Daily Oracle — idea score, execute confidence and the trade types. The full methodology is for members; become a (free) Observer first.");
+      ctaLabel = T("Kostenlos Observer werden", "Become an Observer — free"); ctaHref = "register.html"; showSignin = true;
+    }
     return h("section", { style: { minHeight: "calc(100vh - var(--nav-h))", display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" } },
       h("div", { style: { maxWidth: 560 } },
         h("img", { src: "assets/logo/pythai-oculus.svg", alt: "", style: { width: 58, height: 58, margin: "0 auto 22px", opacity: 0.75 } }),
         h(PyEyebrow, null, "Methodik"),
-        h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 40, margin: "8px 0 0", color: "var(--text-primary)" } }, T("Die Methodik lebt im Sanctum.", "The methodology lives in the sanctum.")),
+        h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 40, margin: "8px 0 0", color: "var(--text-primary)" } }, headline),
         h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", margin: "16px 0 22px" } }, sub),
         h("div", { style: { position: "relative", margin: "4px 0 26px", borderRadius: 12, overflow: "hidden", border: "1px solid var(--border-oracle)", boxShadow: "0 0 30px var(--glow-oracle-soft)" } },
           h("img", { src: "assets/methodik/trade-pills.png?v=2", alt: "", style: { width: "100%", display: "block", filter: "blur(3px) brightness(0.8) saturate(1.1)", transform: "scale(1.04)" } }),
@@ -213,15 +221,18 @@
             h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--text-oracle)", marginBottom: 6 } }, T("Vorschau", "Preview")),
             h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 } }, T("Idea-Score · Execute-Confidence · die Trade-Arten — mit Warrens Lesart.", "Idea score · execute confidence · the trade types — with Warren's read.")))),
         h(Button, { variant: "oracle", onClick: () => { window.location.href = ctaHref; } }, ctaLabel),
-        !isPending && h("div", { style: { marginTop: 12 } }, h("a", { href: "register.html", style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", textDecoration: "none" } }, T("Schon Mitglied? Anmelden →", "Already a member? Sign in →")))));
+        showSignin && h("div", { style: { marginTop: 12 } }, h("a", { href: "register.html", style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", textDecoration: "none" } }, T("Schon Mitglied? Anmelden →", "Already a member? Sign in →")))));
   }
   function App() {
+    const PRIV = ["inner-circle", "circle-of-trust", "syndicate", "admin"];
     const [gate, setGate] = useState("loading");
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
         if (d && d.onboardingRequired) { window.location.href = "account.html"; return; }
-        const member = d && d.ok && d.approval === "approved";
-        if (member) setGate("ok");
+        const approved = d && d.ok && d.approval === "approved";
+        const full = approved && PRIV.indexOf(d.tier) !== -1;
+        if (full) setGate("ok");          // Inner Circle und höher → volle Methodik
+        else if (approved) setGate("observer"); // freigegebener Observer → Teaser + Upgrade
         else if (d && d.ok) setGate("pending");
         else setGate("anon");
       }).catch(() => setGate("anon"));
