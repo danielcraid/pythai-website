@@ -23,7 +23,7 @@
   ];
   const MEMBER_AREA = ["chartomat.html", "playbook.html", "rituals.html", "methodik.html"]; // hell-gold getoent wenn eingeloggt
   const PRIV = ["inner-circle", "circle-of-trust", "syndicate", "admin"]; // Playbook + Rituals nur fuer diese Tiers
-  const MEMBER_ONLY = ["rituals.html"]; // Playbook + Methodik sind fuer alle sichtbar (Teaser); Voll-Content gated in der Seite
+  const MEMBER_ONLY = []; // alle Seiten im Nav sichtbar; Voll-Content je Seite gegated (Teaser fuer Public/Observer)
   function navItems(me) {
     const member = !!(me && PRIV.indexOf(me.tier) !== -1 && me.approval === "approved");
     return NAV.filter(function (n) { return MEMBER_ONLY.indexOf(n[1]) === -1 || member; });
