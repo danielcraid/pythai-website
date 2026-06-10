@@ -5,6 +5,12 @@
   const T = (de, en) => i18n.t(de, en);
   const { useState, useEffect } = React;
   const API = "https://api.pythai.ch";
+  // UI-Klick-Sounds (respektieren den Mute-Schalter py_sound). cb = nach kurzem Klang ausführen (für Navigation).
+  window.PYsfx = function (name, cb) {
+    var muted = false; try { muted = localStorage.getItem("py_sound") === "off"; } catch (e) { }
+    if (!muted) { try { var a = new Audio("assets/audio/ui/" + name + ".aac"); a.volume = 0.55; a.play().catch(function () { }); } catch (e) { } }
+    if (cb) setTimeout(cb, muted ? 0 : 170);
+  };
   const NAV = [
     ["The Reading", "reading.html"],
     ["Manifesto", "manifesto.html"],
@@ -73,16 +79,12 @@
   }
   function AuthArea({ me, ready, full }) {
     if (!ready) return null;
-    const signin = () => {
-      window.location.href = "register.html";
-    };
+    const signin = () => { window.PYsfx("menue-login", () => { window.location.href = "register.html"; }); };
     const enter = () => {
       window.location.href = "inner-circle.html#waitlist";
     };
     if (me) {
-      const goAccount = () => {
-        window.location.href = "account.html";
-      };
+      const goAccount = () => { window.PYsfx("menue-account", () => { window.location.href = "account.html"; }); };
       return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, me.email), /* @__PURE__ */ React.createElement(Button, { variant: "oracle", size: "sm", full, onClick: goAccount, style: { fontSize: "1rem" } }, T("Account", "Account")), /* @__PURE__ */ React.createElement(Button, { variant: "chrome", size: "sm", full, onClick: logout, style: { fontSize: "1rem" } }, T("Abmelden", "Log out")));
     }
     return /* @__PURE__ */ React.createElement(Button, { variant: "oracle", size: "sm", full, onClick: signin, style: { fontSize: "1rem" } }, "Enter the Sanctum");
