@@ -170,7 +170,7 @@
               h("span", { className: "jr-title" }, s[0]),
               h("span", { className: "jr-pill jr-pill-" + st }, st === "done" ? T("Erledigt", "Done") : st === "cur" ? T("Du bist hier", "You are here") : T("Ausstehend", "Pending"))),
             h("p", { className: "jr-desc" }, s[1]),
-            (i === 5 && st === "cur") ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 } }, h("a", { className: "jr-cta", href: "rituals.html" }, T("Reports einrichten →", "Set up reports →")), h("button", { className: "jr-cta-ghost", onClick: finishSetup }, T("Als erledigt markieren", "Mark as done"))) : null));
+            (i === 5 && st === "cur") ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 } }, h("a", { className: "jr-cta", href: "#account-reports", onClick: () => { try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } } }, T("Reports einrichten →", "Set up reports →")), h("button", { className: "jr-cta-ghost", onClick: finishSetup }, T("Als erledigt markieren", "Mark as done"))) : null));
       })));
   }
 
@@ -428,7 +428,7 @@
       tier !== "syndicate" && tier !== "admin" && h(SyndicateTease, null),
       isObserver && h(CircleOfTrust, null),
       h(SubscriptionBox, null),
-      h(AccountSettings, { a }),
+      h("div", { id: "account-reports", style: { scrollMarginTop: "90px" } }, h(AccountSettings, { a })),
       h(ActivityLog, null),
       h("div", { style: { textAlign: "center" } }, h(Button, { variant: "ghost", onClick: logout }, T("Abmelden", "Log out"))));
   }
