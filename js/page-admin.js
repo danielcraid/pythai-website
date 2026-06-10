@@ -46,7 +46,7 @@
     const [gate, setGate] = useState("loading");
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
-        setGate(d && d.ok && d.tier === "admin" ? "ok" : "denied");
+        setGate(d && d.ok && (d.isAdmin === true || d.tier === "admin") ? "ok" : "denied");
       }).catch(() => setGate("denied"));
     }, []);
     const wrap = (inner) => h("div", null, h(SiteNav, { active: "" }),
