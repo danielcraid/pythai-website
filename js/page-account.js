@@ -145,8 +145,8 @@
       [T("E-Mail best\xE4tigt", "Email confirmed"), T("Double-Opt-in \xFCber den Link in deinem Postfach.", "Double opt-in confirmed via the link in your inbox."), confirmed],
       [T("Checkliste", "Checklist"), T("Vier Punkte best\xE4tigt: AGB, Risiko, KI, Eigenverantwortung.", "Four points confirmed: terms, risk, AI, own responsibility."), consent],
       [T("Freigabe durch Warren", "Approval by Warren"), T("Warren sichtet deine Bewerbung pers\xF6nlich.", "Warren reviews your request personally."), approved],
-      [T("Welcome-Mail", "Welcome mail"), T("Deine Zusage samt Instruktionen — direkt ins Postfach.", "Your acceptance and instructions — straight to your inbox."), approved],
-      [T("Onboarding abschlie\xDFen", "Finish onboarding"), T("E-Mail & Standard-Report aktivieren. Alle weiteren Rituale verwaltest du sp\xE4ter in den Rituals.", "Activate email & the standard report. Manage all further rituals later in Rituals."), approved && consent && setupDone]
+      [T("Check-In-Mail", "Check-in mail"), T("Du bist freigegeben — schlie\xDFe deinen Check-In \xFCber den Link in der Mail ab.", "You're approved — finish your check-in via the link in the mail."), approved],
+      [T("Check-In abschlie\xDFen", "Finish check-in"), T("E-Mail & Standard-Report aktivieren. Danach kommt die Welcome-Mail mit allen Instruktionen & Login.", "Activate email & the standard report. The welcome mail with all instructions & login then follows."), approved && consent && setupDone]
     ];
     for (let i = 0, prev = true; i < STEPS.length; i++) { STEPS[i][2] = STEPS[i][2] && prev; prev = STEPS[i][2]; } // strikt sequenziell: kein Schritt erledigt, solange ein fr\xFCherer offen ist
     let cur = STEPS.findIndex((s) => !s[2]); if (cur === -1) cur = STEPS.length;
