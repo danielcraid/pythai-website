@@ -155,19 +155,24 @@
       function pref() { try { return localStorage.getItem("py_sound"); } catch (e) { return null; } }
       function setPref(v) { try { localStorage.setItem("py_sound", v); } catch (e) { } }
       // Gesture fallback — only used when the browser blocks unmuted autoplay (very first visit).
-      function unmute() { if (on && pref() !== "off") { audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () { }); } disarm(); }
+      function unmute() { if (on && pref() !== "off") { audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); setHint(false); }).catch(function () { }); } disarm(); }
       function arm() { if (gestureArmed) return; gestureArmed = true; ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.addEventListener(ev, unmute); }); }
       function disarm() { if (!gestureArmed) return; gestureArmed = false; ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.removeEventListener(ev, unmute); }); }
       // Start playback: try unmuted immediately. After the first interaction the browser keeps
       // the autoplay permission for the session, so navigation stays seamless. If it's still
       // blocked (first ever visit), fall back to muted autoplay + unmute on first gesture.
-      function start() { resume(); audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); disarm(); }).catch(function () { audio.muted = true; audio.play().catch(function () { }); arm(); }); }
+      function start() { resume(); audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); disarm(); setHint(false); }).catch(function () { audio.muted = true; audio.play().catch(function () { }); arm(); setHint(true); }); }
       var btn = document.createElement("button");
       btn.setAttribute("aria-label", "Sound");
       btn.style.cssText = "position:fixed;left:20px;bottom:20px;z-index:300;width:42px;height:42px;border-radius:50%;border:1px solid var(--border-strong);background:rgba(8,9,12,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .2s,border-color .2s,box-shadow .2s;";
+      // gentle pulse hint until the first gesture unmutes the ambient (browsers block audible autoplay)
+      var hintCss = document.createElement("style");
+      hintCss.textContent = "@keyframes pySoundPulse{0%{box-shadow:0 0 0 0 rgba(212,169,78,.5)}70%{box-shadow:0 0 0 13px rgba(212,169,78,0)}100%{box-shadow:0 0 0 0 rgba(212,169,78,0)}}.py-sound-hint{animation:pySoundPulse 1.9s ease-out infinite;border-color:var(--border-oracle)!important;color:var(--text-oracle)!important}";
+      document.head.appendChild(hintCss);
+      function setHint(v) { if (v) btn.classList.add("py-sound-hint"); else btn.classList.remove("py-sound-hint"); }
       function render() { btn.innerHTML = on ? ICON_ON : ICON_OFF; btn.style.color = on ? "var(--text-oracle)" : "var(--text-muted)"; btn.style.borderColor = on ? "var(--border-oracle)" : "var(--border-strong)"; btn.style.boxShadow = on ? "0 0 16px var(--glow-oracle-soft)" : "none"; }
       function enable() { on = true; setPref("on"); render(); start(); }
-      function disable() { on = false; setPref("off"); render(); disarm(); fade(0, function () { audio.pause(); audio.muted = true; }); }
+      function disable() { on = false; setPref("off"); render(); disarm(); setHint(false); fade(0, function () { audio.pause(); audio.muted = true; }); }
       // Stop the button's own pointerdown from triggering the window unmute handler (caused a blip).
       btn.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
       btn.addEventListener("click", function () { on ? disable() : enable(); });
