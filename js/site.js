@@ -15,7 +15,7 @@
     ["Methodik", "methodik.html"],
     ["Rituals", "rituals.html"]
   ];
-  const MEMBER_AREA = ["chartomat.html", "playbook.html", "rituals.html"]; // hell-gold getoent wenn eingeloggt
+  const MEMBER_AREA = ["chartomat.html", "playbook.html", "rituals.html", "methodik.html"]; // hell-gold getoent wenn eingeloggt
   const PRIV = ["inner-circle", "circle-of-trust", "syndicate", "admin"]; // Playbook + Rituals nur fuer diese Tiers
   const MEMBER_ONLY = ["playbook.html", "rituals.html"];
   function navItems(me) {
