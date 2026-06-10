@@ -6,11 +6,17 @@
   const { useState, useEffect } = React;
   const API = "https://api.pythai.ch";
   // UI-Klick-Sounds (respektieren den Mute-Schalter py_sound). cb = nach kurzem Klang ausführen (für Navigation).
-  window.PYsfx = function (name, cb) {
-    var muted = false; try { muted = localStorage.getItem("py_sound") === "off"; } catch (e) { }
-    if (!muted) { try { var a = new Audio("assets/audio/ui/" + name + ".aac"); a.volume = 0.55; a.play().catch(function () { }); } catch (e) { } }
-    if (cb) setTimeout(cb, muted ? 0 : 170);
-  };
+  // Sounds werden vorgeladen + gecacht, damit sie vor der Navigation auch wirklich abspielen.
+  window.PYsfx = (function () {
+    var cache = {};
+    function get(name) { if (!cache[name]) { var a = new Audio("assets/audio/ui/" + name + ".aac"); a.preload = "auto"; cache[name] = a; } return cache[name]; }
+    try { ["menue-account", "menue-login", "request-sanctum-button", "login-button"].forEach(get); } catch (e) { }
+    return function (name, cb) {
+      var muted = false; try { muted = localStorage.getItem("py_sound") === "off"; } catch (e) { }
+      if (!muted) { try { var a = get(name); a.currentTime = 0; a.volume = 0.55; var p = a.play(); if (p && p.catch) p.catch(function () { }); } catch (e) { } }
+      if (cb) setTimeout(cb, muted ? 0 : 200);
+    };
+  })();
   const NAV = [
     ["The Reading", "reading.html"],
     ["Manifesto", "manifesto.html"],
