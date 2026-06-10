@@ -180,6 +180,7 @@
       function setHint(v) { if (v) btn.classList.add("py-sound-hint"); else btn.classList.remove("py-sound-hint"); }
       function render() { btn.innerHTML = on ? ICON_ON : ICON_OFF; btn.style.color = on ? "var(--text-oracle)" : "var(--text-muted)"; btn.style.borderColor = on ? "var(--border-oracle)" : "var(--border-strong)"; btn.style.boxShadow = on ? "0 0 16px var(--glow-oracle-soft)" : "none"; }
       function enable() { on = true; setPref("on"); render(); start(); }
+      window.PYsoundEnable = enable; // erlaubt anderen Buttons (z.B. "Hear the Sanctum"), den Ambient anzuschalten
       function disable() { on = false; setPref("off"); render(); disarm(); setHint(false); fade(0, function () { audio.pause(); audio.muted = true; }); }
       // Stop the button's own pointerdown from triggering the window unmute handler (caused a blip).
       btn.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
