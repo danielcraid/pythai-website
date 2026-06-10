@@ -125,7 +125,8 @@
 .jr-pill-todo{color:var(--text-muted);border-color:var(--border-strong);}
 .jr-desc{font:400 14px/1.55 var(--font-ui);color:var(--text-secondary);margin:7px 0 0;}
 .jr-todo .jr-desc{color:var(--text-muted);}
-.jr-cta{margin-top:12px;display:inline-block;padding:11px 22px;border-radius:8px;background:var(--oracle);color:var(--text-on-gold);font:600 12px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;}
+.jr-cta{display:inline-block;padding:11px 22px;border-radius:8px;background:var(--oracle);color:var(--text-on-gold);font:600 12px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;text-decoration:none;}
+.jr-cta-ghost{display:inline-block;padding:11px 18px;border-radius:8px;background:transparent;color:var(--text-secondary);font:600 11px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--border-strong);cursor:pointer;}
 @media (max-width:420px){.jr-title{font-size:19px;}}
 `;
   function JourneyRoadmap({ a }) {
@@ -147,6 +148,7 @@
       [T("Welcome-Mail", "Welcome mail"), T("Deine Zusage samt Instruktionen — direkt ins Postfach.", "Your acceptance and instructions — straight to your inbox."), approved],
       [T("Onboarding abschlie\xDFen", "Finish onboarding"), T("Reports einrichten — dann lebt das Sanctum.", "Set up your reports — then the Sanctum lives."), approved && consent && setupDone]
     ];
+    for (let i = 0, prev = true; i < STEPS.length; i++) { STEPS[i][2] = STEPS[i][2] && prev; prev = STEPS[i][2]; } // strikt sequenziell: kein Schritt erledigt, solange ein fr\xFCherer offen ist
     let cur = STEPS.findIndex((s) => !s[2]); if (cur === -1) cur = STEPS.length;
     const doneCount = STEPS.filter((s) => s[2]).length;
     const pct = Math.round(doneCount / STEPS.length * 100);
@@ -168,7 +170,7 @@
               h("span", { className: "jr-title" }, s[0]),
               h("span", { className: "jr-pill jr-pill-" + st }, st === "done" ? T("Erledigt", "Done") : st === "cur" ? T("Du bist hier", "You are here") : T("Ausstehend", "Pending"))),
             h("p", { className: "jr-desc" }, s[1]),
-            (i === 5 && st === "cur") ? h("button", { className: "jr-cta", onClick: finishSetup }, T("Reports einrichten & abschlie\xDFen →", "Set up reports & finish →")) : null));
+            (i === 5 && st === "cur") ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 } }, h("a", { className: "jr-cta", href: "rituals.html" }, T("Reports einrichten →", "Set up reports →")), h("button", { className: "jr-cta-ghost", onClick: finishSetup }, T("Als erledigt markieren", "Mark as done"))) : null));
       })));
   }
 
