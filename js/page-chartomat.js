@@ -53,6 +53,7 @@
     const lbl = { display: "block", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 6px" };
     function send() {
       if (busy) return; setBusy(true);
+      if (typeof window.PYsfx === "function") window.PYsfx("request-sanctum-button");
       fetch(API + "/api/chartomat/request", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ symbol: symbol.trim(), question: q.trim() }) })
         .then((res) => {
           setBusy(false); setOpen(false);
