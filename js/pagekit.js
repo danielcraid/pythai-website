@@ -33,19 +33,22 @@
         return;
       }
       setMsg(T("Das Orakel wird befragt\u2026", "Consulting the oracle\u2026"));
-      const done = () => {
+      let settled = false;
+      const ok = () => {
+        if (settled) return; settled = true; clearTimeout(to);
         setMsg(T("Fast geschafft \u2014 best\xE4tige die Anmeldung \xFCber die Mail, die wir dir gerade geschickt haben.", "Almost there \u2014 confirm your sign-up via the email we just sent you."));
-        setV("");
-        setConsent(false);
+        setV(""); setConsent(false);
       };
+      const fail = () => {
+        if (settled) return; settled = true; clearTimeout(to);
+        setMsg(T("Da ging etwas schief \u2014 versuch es gleich noch einmal.", "Something went wrong \u2014 please try again in a moment."));
+      };
+      const to = setTimeout(fail, 12000); // nie ewig auf "wird befragt" h\xE4ngen bleiben
       fetch("https://api.pythai.ch/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: v.trim(), consent: true, lang: window.PYi18n.lang, source: "pythai.ch/inner-circle" })
-      }).then((r) => {
-        if (!r.ok) throw 0;
-        done();
-      }).catch(done);
+      }).then((r) => { (r.ok || r.status === 202) ? ok() : fail(); }).catch(fail);
     }
     return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 560, margin: "0 auto", textAlign: "center" } }, /* @__PURE__ */ React.createElement(Eyebrow, null, "Request entrance"), /* @__PURE__ */ React.createElement(H2, null, "Request Sanctum Entrance."), /* @__PURE__ */ React.createElement(Lead, { center: true }, T("Der Sanctum ist menschlich kuratiert — keine Bots, keine Massen-Freigabe. Hinterlasse deine Adresse: du kommst auf die Warteliste, jede Bewerbung wird gepr\xFCft, und du bekommst eine Welcome-Mail, sobald dein Platz frei ist.", "The Sanctum is human-curated — no bots, no mass approvals. Leave your address: you join the waitlist, every request is reviewed, and you’ll get a welcome mail once your seat is ready.")), /* @__PURE__ */ React.createElement("form", { onSubmit: submit, style: { marginTop: 28 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
       "input",
