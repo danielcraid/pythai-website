@@ -146,7 +146,7 @@
       [T("Checkliste", "Checklist"), T("Vier Punkte best\xE4tigt: AGB, Risiko, KI, Eigenverantwortung.", "Four points confirmed: terms, risk, AI, own responsibility."), consent],
       [T("Freigabe durch Warren", "Approval by Warren"), T("Warren sichtet deine Bewerbung pers\xF6nlich.", "Warren reviews your request personally."), approved],
       [T("Welcome-Mail", "Welcome mail"), T("Deine Zusage samt Instruktionen — direkt ins Postfach.", "Your acceptance and instructions — straight to your inbox."), approved],
-      [T("Onboarding abschlie\xDFen", "Finish onboarding"), T("Reports einrichten — dann lebt das Sanctum.", "Set up your reports — then the Sanctum lives."), approved && consent && setupDone]
+      [T("Onboarding abschlie\xDFen", "Finish onboarding"), T("E-Mail & Standard-Report aktivieren. Alle weiteren Rituale verwaltest du sp\xE4ter in den Rituals.", "Activate email & the standard report. Manage all further rituals later in Rituals."), approved && consent && setupDone]
     ];
     for (let i = 0, prev = true; i < STEPS.length; i++) { STEPS[i][2] = STEPS[i][2] && prev; prev = STEPS[i][2]; } // strikt sequenziell: kein Schritt erledigt, solange ein fr\xFCherer offen ist
     let cur = STEPS.findIndex((s) => !s[2]); if (cur === -1) cur = STEPS.length;
@@ -170,7 +170,7 @@
               h("span", { className: "jr-title" }, s[0]),
               h("span", { className: "jr-pill jr-pill-" + st }, st === "done" ? T("Erledigt", "Done") : st === "cur" ? T("Du bist hier", "You are here") : T("Ausstehend", "Pending"))),
             h("p", { className: "jr-desc" }, s[1]),
-            (i === 5 && st === "cur") ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 } }, h("a", { className: "jr-cta", href: "#account-reports", onClick: () => { try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } } }, T("Reports einrichten →", "Set up reports →")), h("button", { className: "jr-cta-ghost", onClick: finishSetup }, T("Als erledigt markieren", "Mark as done"))) : null));
+            (i === 5 && st === "cur") ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 } }, h("a", { className: "jr-cta", href: "#account-reports", onClick: () => { try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } } }, T("E-Mail & Standard-Report aktivieren →", "Activate email & standard report →")), h("button", { className: "jr-cta-ghost", onClick: finishSetup }, T("Als erledigt markieren", "Mark as done"))) : null));
       })));
   }
 
