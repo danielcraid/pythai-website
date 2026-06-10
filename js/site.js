@@ -14,7 +14,7 @@
     return function (name, cb) {
       var muted = false; try { muted = localStorage.getItem("py_sound") === "off"; } catch (e) { }
       if (!muted) { try { var a = get(name); a.currentTime = 0; a.volume = 0.55; var p = a.play(); if (p && p.catch) p.catch(function () { }); } catch (e) { } }
-      if (cb) setTimeout(cb, muted ? 0 : 200);
+      if (cb) setTimeout(cb, muted ? 0 : 300);
     };
   })();
   const NAV = [

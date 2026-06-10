@@ -204,9 +204,9 @@
       sub = T("Als Observer siehst du, worum es geht. Die ganze Methodik — Idea-Score, Execute-Confidence und alle Trade-Arten — ist dem Inner Circle vorbehalten.", "As an Observer you see the gist. The full methodology — idea score, execute confidence and every trade type — is reserved for the Inner Circle.");
       ctaLabel = T("Zum Inner Circle", "Go to Inner Circle"); ctaHref = "inner-circle.html";
     } else {
-      headline = T("Die Methodik lebt im Sanctum.", "The methodology lives in the sanctum.");
-      sub = T("Wie man das Daily Oracle liest — Idea-Score, Execute-Confidence und die Trade-Arten. Die volle Methodik ist Mitgliedern vorbehalten; werde zuerst (kostenlos) Observer.", "How to read the Daily Oracle — idea score, execute confidence and the trade types. The full methodology is for members; become a (free) Observer first.");
-      ctaLabel = T("Kostenlos Observer werden", "Become an Observer — free"); ctaHref = "register.html"; showSignin = true;
+      headline = T("Die volle Methodik lebt im Inner Circle.", "The full methodology lives in the Inner Circle.");
+      sub = T("Wie man das Daily Oracle liest — Idea-Score, Execute-Confidence und die Trade-Arten. Die volle Methodik ist dem Inner Circle vorbehalten.", "How to read the Daily Oracle — idea score, execute confidence and the trade types. The full methodology is reserved for the Inner Circle.");
+      ctaLabel = T("Zum Inner Circle", "Go to Inner Circle"); ctaHref = "inner-circle.html"; showSignin = true;
     }
     return h("section", { style: { minHeight: "calc(100vh - var(--nav-h))", display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" } },
       h("div", { style: { maxWidth: 560 } },
