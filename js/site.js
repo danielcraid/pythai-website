@@ -175,7 +175,11 @@
       function disable() { on = false; setPref("off"); render(); disarm(); setHint(false); fade(0, function () { audio.pause(); audio.muted = true; }); }
       // Stop the button's own pointerdown from triggering the window unmute handler (caused a blip).
       btn.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
-      btn.addEventListener("click", function () { on ? disable() : enable(); });
+      btn.addEventListener("click", function () {
+        if (!on) { enable(); return; }                 // was off → turn on
+        if (audio.muted || audio.paused) { setPref("on"); start(); render(); return; } // on-intent but not yet audible → activate
+        disable();                                       // actually playing → turn off
+      });
       document.body.appendChild(btn);
       var want = pref() !== "off"; // default on, unless the user explicitly opted out
       on = want; render();
