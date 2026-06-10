@@ -135,7 +135,7 @@
     function boot() {
       var ICON_ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>';
       var ICON_OFF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>';
-      var TARGET = 0.32, on = false, fadeT;
+      var TARGET = 0.32, on = false, fadeT, gestureArmed = false;
       var audio = document.createElement("audio");
       audio.loop = true; audio.preload = "auto"; audio.volume = 0; audio.muted = true;
       [["assets/audio/sanctum.m4a", "audio/mp4"], ["assets/audio/sanctum.mp3", "audio/mpeg"]].forEach(function (s) {
@@ -146,29 +146,35 @@
       var SAVE_KEY = "py_sound_t";
       function savedTime() { try { return parseFloat(sessionStorage.getItem(SAVE_KEY)) || 0; } catch (e) { return 0; } }
       function saveTime() { try { sessionStorage.setItem(SAVE_KEY, String(audio.currentTime || 0)); } catch (e) { } }
-      audio.addEventListener("loadedmetadata", function () { var t = savedTime(); if (t > 0 && isFinite(t) && t < (audio.duration || 1e9)) { try { audio.currentTime = t; } catch (e) { } } }, { once: true });
+      function resume() { var t = savedTime(); if (t > 0 && isFinite(t) && t < (audio.duration || 1e9)) { try { audio.currentTime = t; } catch (e) { } } }
+      audio.addEventListener("loadedmetadata", resume, { once: true });
       window.addEventListener("pagehide", function () { if (on) saveTime(); });
       window.addEventListener("beforeunload", function () { if (on) saveTime(); });
+      setInterval(function () { if (on && !audio.paused) saveTime(); }, 1000); // robust position save (pagehide can miss)
       function fade(to, cb) { clearInterval(fadeT); var step = (to - audio.volume) / 18; fadeT = setInterval(function () { audio.volume = Math.min(1, Math.max(0, audio.volume + step)); if (Math.abs(audio.volume - to) < 0.02) { audio.volume = to; clearInterval(fadeT); if (cb) cb(); } }, 40); }
       function pref() { try { return localStorage.getItem("py_sound"); } catch (e) { return null; } }
       function setPref(v) { try { localStorage.setItem("py_sound", v); } catch (e) { } }
+      // Gesture fallback — only used when the browser blocks unmuted autoplay (very first visit).
+      function unmute() { if (on && pref() !== "off") { audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () { }); } disarm(); }
+      function arm() { if (gestureArmed) return; gestureArmed = true; ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.addEventListener(ev, unmute); }); }
+      function disarm() { if (!gestureArmed) return; gestureArmed = false; ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.removeEventListener(ev, unmute); }); }
+      // Start playback: try unmuted immediately. After the first interaction the browser keeps
+      // the autoplay permission for the session, so navigation stays seamless. If it's still
+      // blocked (first ever visit), fall back to muted autoplay + unmute on first gesture.
+      function start() { resume(); audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); disarm(); }).catch(function () { audio.muted = true; audio.play().catch(function () { }); arm(); }); }
       var btn = document.createElement("button");
       btn.setAttribute("aria-label", "Sound");
       btn.style.cssText = "position:fixed;left:20px;bottom:20px;z-index:300;width:42px;height:42px;border-radius:50%;border:1px solid var(--border-strong);background:rgba(8,9,12,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .2s,border-color .2s,box-shadow .2s;";
       function render() { btn.innerHTML = on ? ICON_ON : ICON_OFF; btn.style.color = on ? "var(--text-oracle)" : "var(--text-muted)"; btn.style.borderColor = on ? "var(--border-oracle)" : "var(--border-strong)"; btn.style.boxShadow = on ? "0 0 16px var(--glow-oracle-soft)" : "none"; }
-      function enable() { on = true; setPref("on"); render(); audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () { }); }
-      function disable() { on = false; setPref("off"); render(); fade(0, function () { audio.pause(); }); }
+      function enable() { on = true; setPref("on"); render(); start(); }
+      function disable() { on = false; setPref("off"); render(); disarm(); fade(0, function () { audio.pause(); audio.muted = true; }); }
+      // Stop the button's own pointerdown from triggering the window unmute handler (caused a blip).
+      btn.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
       btn.addEventListener("click", function () { on ? disable() : enable(); });
       document.body.appendChild(btn);
-      // default: sound on-intent (starts gently on first deliberate gesture); muted only if user opted out
-      var want = pref() === null ? true : pref() === "on";
+      var want = pref() !== "off"; // default on, unless the user explicitly opted out
       on = want; render();
-      if (want) {
-        audio.play().catch(function () { }); // muted autoplay is allowed by browsers
-        var unmute = function () { if (on) { audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); }).catch(function () { }); } clr(); };
-        var clr = function () { ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.removeEventListener(ev, unmute); }); };
-        ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.addEventListener(ev, unmute); });
-      }
+      if (want) start();
     }
     if (document.body) boot(); else document.addEventListener("DOMContentLoaded", boot);
   })();
