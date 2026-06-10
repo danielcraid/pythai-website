@@ -1,7 +1,7 @@
 /* ============================================================
-   PYTHAI — FONTS
-   Loaded from Google Fonts CDN (see readme — swap to self-hosted
-   binaries on request for offline shipping).
+   PYTHAI — FONTS  (self-hosted, DSGVO-konform)
+   Keine Übertragung an Google. Die @font-face-Blöcke liegen in
+   /fonts/fonts.css — Single Source of Truth für Website + Mail.
 
    - Cormorant Garamond : the ORACLE VOICE — high-contrast,
      classical, prophetic display serif.
@@ -9,4 +9,4 @@
    - JetBrains Mono      : DATA & INTEL — tickers, labels, terminal.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Hanken+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('/fonts/fonts.css');
