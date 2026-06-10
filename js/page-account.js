@@ -129,7 +129,7 @@
 .jr-cta-ghost{display:inline-block;padding:11px 18px;border-radius:8px;background:transparent;color:var(--text-secondary);font:600 11px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--border-strong);cursor:pointer;}
 @media (max-width:420px){.jr-title{font-size:19px;}}
 `;
-  function JourneyRoadmap({ a }) {
+  function JourneyRoadmap({ a, inlinePanel }) {
     const consent = a.onboardingConsent === true;
     const approved = a.approval === "approved";
     const confirmed = a.confirmed !== false;
@@ -158,10 +158,10 @@
       h("div", { className: "jr-eyebrow" }, T("Dein Weg ins Sanctum", "Your path into the Sanctum")),
       h("div", { className: "jr-progrow" }, h("span", null, T("Fortschritt", "Progress")), h("span", null, h("b", null, T("Schritt", "Step") + " " + Math.min(cur + 1, STEPS.length)), " / " + STEPS.length + " \xB7 " + curLabel)),
       h("div", { className: "jr-bar" }, h("i", { style: { width: pct + "%" } })),
-      h("div", { className: "jr-steps" }, STEPS.map((s, i) => {
+      h("div", { className: "jr-steps" }, STEPS.reduce((acc, s, i) => {
         const st = s[2] ? "done" : (i === cur ? "cur" : "todo");
         const last = i === STEPS.length - 1;
-        return h("div", { key: i, className: "jr-step jr-" + st },
+        acc.push(h("div", { key: i, className: "jr-step jr-" + st },
           h("div", { className: "jr-rail" },
             h("div", { className: "jr-node jr-node-" + st }, st === "done" ? "✓" : String(i + 1)),
             !last && h("div", { className: "jr-line jr-line-" + (s[2] ? "gold" : "dim") })),
@@ -170,8 +170,10 @@
               h("span", { className: "jr-title" }, s[0]),
               h("span", { className: "jr-pill jr-pill-" + st }, st === "done" ? T("Erledigt", "Done") : st === "cur" ? T("Du bist hier", "You are here") : T("Ausstehend", "Pending"))),
             h("p", { className: "jr-desc" }, s[1]),
-            (i === 5 && st === "cur") ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 } }, h("a", { className: "jr-cta", href: "#account-reports", onClick: () => { try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } } }, T("E-Mail & Standard-Report aktivieren →", "Activate email & standard report →")), h("button", { className: "jr-cta-ghost", onClick: finishSetup }, T("Als erledigt markieren", "Mark as done"))) : null));
-      })));
+            (i === 5 && st === "cur") ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 } }, h("a", { className: "jr-cta", href: "#account-reports", onClick: () => { try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } } }, T("E-Mail & Standard-Report aktivieren →", "Activate email & standard report →")), h("button", { className: "jr-cta-ghost", onClick: finishSetup }, T("Als erledigt markieren", "Mark as done"))) : null)));
+        if (i === cur && inlinePanel) acc.push(h("div", { key: "ip", style: { margin: "6px 0 30px" } }, inlinePanel));
+        return acc;
+      }, [])));
   }
 
   // ============ Syndicate tease + account settings ============
@@ -465,11 +467,11 @@
 
     const view = localView || viewFor(a);
     if (view === "rejected") return h(RejectedNote, null);
-    const panel = view === "antrag" ? h(ConsentTrack, { onDone: () => window.location.reload() })
-      : view === "waiting" ? h(WaitingApproval, { email: a.email })
-      : h(Dashboard, { a, justJoined });
-    // Roadmap oben (Weg ins Sanctum) + die kontextuelle Aktion/Inhalt darunter
-    return h(React.Fragment, null, h(JourneyRoadmap, { a }), h("div", { style: { marginTop: 44 } }, panel));
+    // Onboarding: das Aktions-Panel wird INLINE nach dem aktuellen Schritt eingeschoben (3→Checkliste, 4→Warten)
+    if (view === "antrag") return h(JourneyRoadmap, { a, inlinePanel: h(ConsentTrack, { onDone: () => window.location.reload() }) });
+    if (view === "waiting") return h(JourneyRoadmap, { a, inlinePanel: h(WaitingApproval, { email: a.email }) });
+    // Aktiv: Roadmap oben + volles Dashboard darunter (volle Breite)
+    return h(React.Fragment, null, h(JourneyRoadmap, { a }), h("div", { style: { marginTop: 44 } }, h(Dashboard, { a, justJoined })));
   }
 
   function App() {
