@@ -359,6 +359,7 @@
   function viewFor(a) {
     if (a.tier === "admin") return "dashboard"; // Admin bypasst alle Gates
     if (a.onboardingRequired) return "antrag"; // Backend verlangt Consent (IC/Syndicate ohne Onboarding) → erst Strecke, auch wenn schon approved
+    if (a.onboardingConsent === false) return "antrag"; // Sicherheitsnetz: approved/whatever, aber Consent fehlt → Legal-Pflicht, erst Antragstrecke
     const ap = a.approval;
     if (ap === "approved") return "dashboard"; // nur Freigegebene sehen den Dashboard
     if (ap === "rejected") return "rejected";
