@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Approval — PYTHAI</title>
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#08090C" />
+<link rel="icon" type="image/svg+xml" href="assets/logo/pythai-oculus.svg" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--text-primary); }
+  .wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 64px 24px; box-sizing: border-box;
+    background-image: radial-gradient(70% 55% at 50% 0%, var(--glow-oracle-soft) 0%, transparent 60%); }
+  .logo { width: 60px; height: 60px; filter: drop-shadow(0 0 22px var(--glow-oracle)); }
+  .wordmark { font: 500 22px/1 var(--font-oracle); letter-spacing: 0.26em; color: var(--parchment); margin: 18px 0 0; padding-left: 0.26em; }
+  .tagline { font: 600 10px/1 var(--font-mono); letter-spacing: 0.32em; color: var(--oracle); text-transform: uppercase; margin: 9px 0 0; }
+  .badge { display: inline-flex; align-items: center; gap: 10px; margin: 40px 0 0; padding: 12px 22px; border-radius: 999px;
+    font: 700 14px/1 var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase; border: 1px solid transparent; }
+  .badge.ok { color: #6FCF9A; background: rgba(111,207,154,0.10); border-color: rgba(111,207,154,0.45); }
+  .badge.no { color: #E0726B; background: rgba(224,114,107,0.10); border-color: rgba(224,114,107,0.45); }
+  .badge.neutral { color: var(--text-secondary); background: rgba(255,255,255,0.04); border-color: var(--border-strong); }
+  h1 { font: 400 46px/1.1 var(--font-oracle); letter-spacing: -0.02em; color: var(--parchment); margin: 22px 0 0; }
+  .sub { font: 400 16px/1.6 var(--font-ui); color: var(--text-secondary); margin: 14px 0 0; max-width: 460px; }
+  .member { font: 500 13px/1.4 var(--font-mono); color: var(--text-muted); margin: 22px 0 0; padding: 9px 16px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-input); }
+  .btn { display: inline-block; margin: 40px 0 0; padding: 13px 30px; border-radius: 8px; border: 1px solid var(--border-oracle);
+    font: 600 12px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-oracle); text-decoration: none; background: rgba(212,169,78,0.06); }
+  .btn:hover { background: rgba(212,169,78,0.12); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <img class="logo" src="assets/logo/pythai-oculus.svg" alt="PYTHAI" />
+  <div class="wordmark">PYTHAI</div>
+  <div class="tagline">Markets. Wisdom, Foretold.</div>
+
+  <div class="badge neutral" id="badge">—</div>
+  <h1 id="headline">…</h1>
+  <p class="sub" id="sub"></p>
+  <div class="member" id="member"></div>
+
+  <a class="btn" href="index.html">Zum Sanctum</a>
+</main>
+
+<script>
+  (function () {
+    var p = new URLSearchParams(location.search);
+    var d = (p.get("decision") || "").toLowerCase();
+    var member = p.get("member") || "";
+    var badge = document.getElementById("badge");
+    var hl = document.getElementById("headline");
+    var sub = document.getElementById("sub");
+    var mem = document.getElementById("member");
+
+    function set(cls, label, headline, subtext) {
+      badge.className = "badge " + cls;
+      badge.textContent = label;
+      hl.textContent = headline;
+      sub.textContent = subtext;
+    }
+
+    if (d === "approved" || d === "approve") {
+      set("ok", "✓ Approved", "Freigegeben.", "Das Mitglied ist jetzt aktiv. Die Welcome-Mail ist unterwegs.");
+      document.title = "Approved — PYTHAI";
+    } else if (d === "denied" || d === "deny" || d === "rejected" || d === "reject") {
+      set("no", "✕ Denied", "Abgelehnt.", "Es wurde keine Freigabe erteilt. Das Mitglied bleibt ohne Zugang.");
+      document.title = "Denied — PYTHAI";
+    } else if (d === "already" || d === "duplicate") {
+      set("neutral", "— Bereits erledigt", "Schon entschieden.", "Dieser Antrag wurde bereits bearbeitet. Keine Änderung vorgenommen.");
+    } else {
+      set("neutral", "— Unbekannt", "Status unbekannt.", "Kein gültiger Vorgang. Öffne den Link aus der E-Mail erneut.");
+    }
+
+    if (member) { mem.textContent = member; } else { mem.style.display = "none"; }
+  })();
+</script>
+</body>
+</html>
