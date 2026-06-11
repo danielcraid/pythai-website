@@ -30,16 +30,38 @@
     return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30, border: "1px solid var(--border-oracle)" } },
       h(PyEyebrow, null, T("Einladungen", "Invitations")),
       h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 24, color: "var(--text-primary)", margin: "6px 0 16px" } }, T("Einladung versenden", "Send an invitation")),
-      h("div", { style: { display: "flex", gap: 8, marginBottom: 8 } }, seg(tier === "inner-circle", "Inner Circle", () => setTier("inner-circle")), seg(tier === "circle-of-trust", "Circle of Trust", () => setTier("circle-of-trust"))),
+      h("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, seg(tier === "inner-circle", "Inner Circle", () => setTier("inner-circle")), seg(tier === "circle-of-trust", "Circle of Trust", () => setTier("circle-of-trust")), seg(tier === "inner-circle-test", "IC · Test 0 €", () => setTier("inner-circle-test"))),
       h("div", { style: { display: "flex", gap: 8 } }, seg(lang === "de", "DE", () => setLang("de")), seg(lang === "en", "EN", () => setLang("en"))),
       h("label", { style: lbl }, T("Name", "Name")), h("input", { style: fld, value: name, onChange: (e) => setName(e.target.value), placeholder: "Anna" }),
       h("label", { style: lbl }, T("E-Mail", "Email")), h("input", { style: fld, type: "email", value: email, onChange: (e) => setEmail(e.target.value), placeholder: "anna@example.com" }),
-      h("label", { style: lbl }, tier === "inner-circle" ? T("Rabattcode (Stripe)", "Discount code (Stripe)") : T("Einladungscode", "Invitation code")), h("input", { style: fld, value: code, onChange: (e) => setCode(e.target.value), placeholder: "CIRCLEOFTRUST26" }),
+      h("label", { style: lbl }, tier !== "circle-of-trust" ? T("Rabattcode (Stripe)", "Discount code (Stripe)") : T("Einladungscode", "Invitation code")), h("input", { style: fld, value: code, onChange: (e) => setCode(e.target.value), placeholder: "CIRCLEOFTRUST26" }),
       h("label", { style: lbl }, T("Gültig bis", "Valid until")), h("input", { style: fld, value: expiry, onChange: (e) => setExpiry(e.target.value), placeholder: "31.07.2026" }),
       h("label", { style: lbl }, T("Persönliche Notiz", "Personal note")), h("textarea", { style: { ...fld, minHeight: 70, resize: "vertical" }, value: note, onChange: (e) => setNote(e.target.value), placeholder: T("Eine persönliche Zeile…", "A personal line…") }),
       h("label", { style: lbl }, T("Absender", "From")), h("input", { style: fld, value: from, onChange: (e) => setFrom(e.target.value), placeholder: "Daniel" }),
       h("div", { style: { marginTop: 20 } }, h(Button, { variant: "oracle", full: true, loading: busy, disabled: !email.trim() || busy, onClick: send }, T("Einladung senden", "Send invitation"))),
       msg && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, margin: "14px 0 0", color: msg.ok ? "var(--bull-bright)" : "var(--text-warn, #d8a34a)" } }, msg.t));
+  }
+
+  function InviteLog() {
+    const [rows, setRows] = useState(null);
+    const [st, setSt] = useState("loading");
+    useEffect(() => {
+      fetch(API + "/api/admin/invites", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
+        const list = Array.isArray(d) ? d : (d && Array.isArray(d.invites) ? d.invites : null);
+        if (list) { setRows(list); setSt("ok"); } else setSt("empty");
+      }).catch(() => setSt("empty"));
+    }, []);
+    function fmt(r) { const v = r.at || r.timestamp || r.sentAt || r.date || ""; try { const d = new Date(v); if (isNaN(d.getTime())) return String(v); const lang = (localStorage.getItem("py_lang") || "de"); return d.toLocaleString(lang === "en" ? "en-GB" : "de-DE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return String(v); } }
+    const tierName = { "inner-circle": "Inner Circle", "circle-of-trust": "Circle of Trust", "inner-circle-test": "IC · Test" };
+    return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
+      h(PyEyebrow, null, T("Versendete Einladungen", "Invitations sent")),
+      st === "loading" ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--text-muted)", margin: "10px 0 0" } }, T("Lädt…", "Loading…"))
+        : st === "empty" ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--text-muted)", margin: "10px 0 0" } }, T("Noch keine Daten (oder der Log-Endpoint ist noch nicht aktiv).", "No data yet (or the log endpoint is not active yet)."))
+          : h(React.Fragment, null,
+            h("div", { style: { display: "flex", alignItems: "baseline", gap: 10, margin: "10px 0 18px" } }, h("span", { style: { fontFamily: "var(--font-oracle)", fontSize: 40, lineHeight: 1, color: "var(--text-primary)" } }, String(rows.length)), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" } }, T("Einladungen gesamt", "invitations total"))),
+            rows.length ? h("div", { style: { borderTop: "1px solid var(--border-subtle)" } }, rows.slice(-15).reverse().map((r, i) => h("div", { key: i, style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--border-subtle)" } },
+              h("div", { style: { minWidth: 0 } }, h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, r.email || r.name || "—"), h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, (tierName[r.tier] || r.tier || "") + (r.lang ? " · " + String(r.lang).toUpperCase() : ""))),
+              h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap", flexShrink: 0 } }, fmt(r))))) : null));
   }
 
   function App() {
@@ -63,7 +85,7 @@
       h(Button, { variant: "oracle", onClick: () => { window.location.href = "account.html"; } }, T("Zum Konto", "To account"))));
     return wrap(h(React.Fragment, null,
       h("div", { style: { marginBottom: 30 } }, h(PyEyebrow, null, "Admin"), h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, letterSpacing: "-0.02em", fontSize: "clamp(34px,5vw,52px)", lineHeight: 1.05, margin: 0, color: "var(--text-primary)" } }, T("Admin-Bereich", "Admin area"))),
-      h(AdminInvite, null)));
+      h(AdminInvite, null), h(InviteLog, null)));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(h(App, null));
 })();
