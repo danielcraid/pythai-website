@@ -22,7 +22,7 @@
     const RITUALS = [
       ["Morning Compass", T("Mo–Fr", "Mon–Fri"), T("Alle — auch Observer", "Everyone — incl. Observers")],
       ["Daily Oracle", T("Mo–Fr · 06:00", "Mon–Fri · 06:00"), "Inner Circle"],
-      ["AFTERNOON BRIEF & EOD", T("Werktäglich", "Every weekday"), "Inner Circle"],
+      ["Im Spiel & EOD", T("Werktäglich", "Every weekday"), "Inner Circle"],
       ["Weekly Recap & Markt-Vibe", T("Wöchentlich", "Weekly"), T("Alle — auch Observer", "Everyone — incl. Observers")],
       ["Sunday Briefing", T("Sonntags", "Sundays"), "Inner Circle"],
       ["Live-Updates & Trade-Alerts", T("In Echtzeit", "Real-time"), "Syndicate"]

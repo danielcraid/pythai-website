@@ -20,6 +20,31 @@
       ["Computer", "https://www.pythai.ch/assets/imagery/pythai-computer.png"]
     ];
     const [heroImage, setHeroImage] = useState(IMAGES[0][1]);
+    const DEFAULTS = {
+      "inner-circle": {
+        de: {
+          body: "jeden Morgen, noch bevor die Börse öffnet, erscheint im Sanctum ein vollständiges Reading: zwei bis fünf Setups, jedes mit Begründung, Risikoklasse und Klartext. Kein Lärm, keine Tipps aus dem Nichts — nur die Lesart, die Warren aus Daten, Catalysts und Live-Bedingungen formt.\n\nEin Platz im Inner Circle wird nicht einfach gekauft — er wird vergeben. Für dich habe ich einen persönlichen Code hinterlegt. Mein Dank dafür, dass du von Anfang an dabei bist.",
+          steps: "1 · Erstelle deinen Zugang auf pythai.ch — du startest automatisch als Observer (kostenlos).\n2 · Bist du schon Observer? Dann wähle in deinem Konto den Inner Circle.\n3 · Gib deinen Code an der Kasse ein — der Rabatt wird sofort abgezogen.\n\nWillkommen im Inner Circle."
+        },
+        en: {
+          body: "every morning, before the market opens, a full reading appears in the Sanctum: two to five setups, each with its reasoning, risk class and plain talk. No noise, no tips out of nowhere — only the interpretation Warren shapes from data, catalysts and live conditions.\n\nAn Inner Circle seat isn't simply bought — it's granted. I've set up a personal code for you. My thanks for being there from the start.",
+          steps: "1 · Create your access at pythai.ch — you start automatically as an Observer (free).\n2 · Already an Observer? Then choose Inner Circle in your account.\n3 · Enter your code at checkout — the discount applies instantly.\n\nWelcome to the Inner Circle."
+        }
+      },
+      "circle-of-trust": {
+        de: {
+          body: "der Circle of Trust ist mein engster Kreis bei PYTHAI — Menschen, denen ich vertraue und die ich teilhaben lassen will, ohne Preisschild und ohne Bewerbung. Du gehörst für mich dazu.\n\nMit dem Code unten schaltest du deinen Platz frei: Zugang zum Reading, zu Warren und zum Sanctum. Keine Zahlung — nur eine Einladung von mir an dich.",
+          steps: "1 · Erstelle deinen Zugang auf pythai.ch — du startest automatisch als Observer (kostenlos).\n2 · Gib deinen Einladungscode in deinem Konto ein.\n3 · Dein Platz im Circle of Trust ist freigeschaltet — komplett kostenlos.\n\nWillkommen."
+        },
+        en: {
+          body: "the Circle of Trust is my closest circle at PYTHAI — people I trust and want to share this with, no price tag and no application. To me, you're one of them.\n\nThe code below unlocks your seat: access to the reading, to Warren and to the Sanctum. No payment — just an invitation, from me to you.",
+          steps: "1 · Create your access at pythai.ch — you start automatically as an Observer (free).\n2 · Enter your invitation code in your account.\n3 · Your seat in the Circle of Trust is unlocked — completely free.\n\nWelcome."
+        }
+      }
+    };
+    const [bodyText, setBodyText] = useState(DEFAULTS["inner-circle"].de.body);
+    const [stepsText, setStepsText] = useState(DEFAULTS["inner-circle"].de.steps);
+    useEffect(() => { const t = DEFAULTS[tier] || DEFAULTS["inner-circle"]; const d = t[lang] || t.de; setBodyText(d.body); setStepsText(d.steps); }, [tier, lang]);
     const effPct = () => disc === "custom" ? Math.max(0, Math.min(100, parseInt(customDisc, 10) || 0)) : disc;
     const fmtPrice = (pct) => { const v = Math.round(69 * (100 - pct)) / 100; const two = v.toFixed(2); const t = two.slice(-3) === ".00" ? two.slice(0, -3) : two; return lang === "en" ? ("€" + t + "/month") : (t.replace(".", ",") + " €/Monat"); };
     const discLabel = (pct) => lang === "en" ? (pct + "% off") : (pct + " % Rabatt");
@@ -34,8 +59,8 @@
     function send() {
       if (busy || !email.trim()) return; setBusy(true); setMsg(null);
       const pct = effPct();
-      const body = { tier, lang, name: name.trim(), email: email.trim(), code: code.trim(), expiry: expiry.trim(), note: note.trim(), from: from.trim(), priceOld: lang === "en" ? "€69/month" : "69 €/Monat", priceNew: fmtPrice(pct), discount: discLabel(pct), heroImage: heroImage };
-      fetch(API + "/api/admin/invite", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      const payload = { tier, lang, name: name.trim(), email: email.trim(), code: code.trim(), expiry: expiry.trim(), note: note.trim(), from: from.trim(), priceOld: lang === "en" ? "€69/month" : "69 €/Monat", priceNew: fmtPrice(pct), discount: discLabel(pct), heroImage: heroImage, body: bodyText, steps: stepsText };
+      fetch(API + "/api/admin/invite", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
         .then((r) => { setBusy(false); if (r.ok || r.status === 202) { setMsg({ ok: true, t: T("Einladung gesendet an ", "Invitation sent to ") + email.trim() }); setName(""); setEmail(""); setCode(""); setNote(""); } else if (r.status === 401 || r.status === 403) { setMsg({ ok: false, t: T("Nicht berechtigt.", "Not authorised.") }); } else { setMsg({ ok: false, t: T("Versand fehlgeschlagen.", "Sending failed.") }); } })
         .catch(() => { setBusy(false); setMsg({ ok: false, t: T("Keine Verbindung.", "No connection.") }); });
     }
@@ -61,6 +86,10 @@
       h("label", { style: lbl }, T("Gültig bis", "Valid until")), h("input", { style: fld, value: expiry, onChange: (e) => setExpiry(e.target.value), placeholder: "31.07.2026" }),
       h("label", { style: lbl }, T("Persönliche Notiz", "Personal note")), h("textarea", { style: { ...fld, minHeight: 70, resize: "vertical" }, value: note, onChange: (e) => setNote(e.target.value), placeholder: T("Eine persönliche Zeile…", "A personal line…") }),
       h("label", { style: lbl }, T("Absender", "From")), h("input", { style: fld, value: from, onChange: (e) => setFrom(e.target.value), placeholder: "Daniel" }),
+      h("label", { style: lbl }, T("Nachricht (frei editierbar)", "Message (editable)")),
+      h("textarea", { style: Object.assign({}, fld, { minHeight: 150, resize: "vertical", lineHeight: 1.6 }), value: bodyText, onChange: (e) => setBodyText(e.target.value) }),
+      h("label", { style: lbl }, T("Anleitung (frei editierbar)", "Instructions (editable)")),
+      h("textarea", { style: Object.assign({}, fld, { minHeight: 120, resize: "vertical", lineHeight: 1.6 }), value: stepsText, onChange: (e) => setStepsText(e.target.value) }),
       h("div", { style: { marginTop: 20 } }, h(Button, { variant: "oracle", full: true, loading: busy, disabled: !email.trim() || busy, onClick: send }, T("Einladung senden", "Send invitation"))),
       msg && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, margin: "14px 0 0", color: msg.ok ? "var(--bull-bright)" : "var(--text-warn, #d8a34a)" } }, msg.t));
   }
