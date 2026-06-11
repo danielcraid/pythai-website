@@ -10,6 +10,19 @@
   function AdminInvite() {
     const [tier, setTier] = useState("inner-circle");
     const [lang, setLang] = useState("de");
+    const [disc, setDisc] = useState(90);
+    const [customDisc, setCustomDisc] = useState("");
+    const IMAGES = [
+      ["Sanctum · Boardroom", "https://www.pythai.ch/assets/imagery/sanctum-boardroom.png"],
+      ["Sanctum · Lichtschacht", "https://www.pythai.ch/assets/imagery/sanctum-lightshaft.png"],
+      ["Warren · Porträt", "https://www.pythai.ch/assets/imagery/warren-oracle-portrait.png"],
+      ["Buch", "https://www.pythai.ch/assets/imagery/pythai-book.png"],
+      ["Computer", "https://www.pythai.ch/assets/imagery/pythai-computer.png"]
+    ];
+    const [heroImage, setHeroImage] = useState(IMAGES[0][1]);
+    const effPct = () => disc === "custom" ? Math.max(0, Math.min(100, parseInt(customDisc, 10) || 0)) : disc;
+    const fmtPrice = (pct) => { const v = Math.round(69 * (100 - pct)) / 100; const two = v.toFixed(2); const t = two.slice(-3) === ".00" ? two.slice(0, -3) : two; return lang === "en" ? ("€" + t + "/month") : (t.replace(".", ",") + " €/Monat"); };
+    const discLabel = (pct) => lang === "en" ? (pct + "% off") : (pct + " % Rabatt");
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [code, setCode] = useState("");
@@ -20,7 +33,9 @@
     const [msg, setMsg] = useState(null);
     function send() {
       if (busy || !email.trim()) return; setBusy(true); setMsg(null);
-      fetch(API + "/api/admin/invite", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tier, lang, name: name.trim(), email: email.trim(), code: code.trim(), expiry: expiry.trim(), note: note.trim(), from: from.trim() }) })
+      const pct = effPct();
+      const body = { tier, lang, name: name.trim(), email: email.trim(), code: code.trim(), expiry: expiry.trim(), note: note.trim(), from: from.trim(), priceOld: lang === "en" ? "€69/month" : "69 €/Monat", priceNew: fmtPrice(pct), discount: discLabel(pct), heroImage: heroImage };
+      fetch(API + "/api/admin/invite", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
         .then((r) => { setBusy(false); if (r.ok || r.status === 202) { setMsg({ ok: true, t: T("Einladung gesendet an ", "Invitation sent to ") + email.trim() }); setName(""); setEmail(""); setCode(""); setNote(""); } else if (r.status === 401 || r.status === 403) { setMsg({ ok: false, t: T("Nicht berechtigt.", "Not authorised.") }); } else { setMsg({ ok: false, t: T("Versand fehlgeschlagen.", "Sending failed.") }); } })
         .catch(() => { setBusy(false); setMsg({ ok: false, t: T("Keine Verbindung.", "No connection.") }); });
     }
@@ -30,8 +45,16 @@
     return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30, border: "1px solid var(--border-oracle)" } },
       h(PyEyebrow, null, T("Einladungen", "Invitations")),
       h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 24, color: "var(--text-primary)", margin: "6px 0 16px" } }, T("Einladung versenden", "Send an invitation")),
-      h("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, seg(tier === "inner-circle", "Inner Circle", () => setTier("inner-circle")), seg(tier === "circle-of-trust", "Circle of Trust", () => setTier("circle-of-trust")), seg(tier === "inner-circle-test", "IC · Test 0 €", () => setTier("inner-circle-test"))),
+      h("div", { style: { display: "flex", gap: 8, marginBottom: 8 } }, seg(tier === "inner-circle", "Inner Circle", () => setTier("inner-circle")), seg(tier === "circle-of-trust", "Circle of Trust", () => setTier("circle-of-trust"))),
       h("div", { style: { display: "flex", gap: 8 } }, seg(lang === "de", "DE", () => setLang("de")), seg(lang === "en", "EN", () => setLang("en"))),
+      tier !== "circle-of-trust" && h("div", { style: { marginTop: 14 } },
+        h("label", { style: lbl }, T("Rabatt-Staffel", "Discount tier")),
+        h("select", { value: String(disc), onChange: (e) => setDisc(e.target.value === "custom" ? "custom" : parseInt(e.target.value, 10)), style: Object.assign({}, fld, { cursor: "pointer" }) }, [20, 30, 40, 50, 75, 90, 100].map((p) => h("option", { key: p, value: String(p) }, p + " % → " + fmtPrice(p))), h("option", { value: "custom" }, T("Frei eingeben…", "Custom…"))),
+        disc === "custom" && h("input", { style: Object.assign({}, fld, { marginTop: 8 }), type: "number", min: 0, max: 100, value: customDisc, onChange: (e) => setCustomDisc(e.target.value), placeholder: T("Rabatt in % (0–100)", "Discount in % (0–100)") }),
+        h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-oracle)", margin: "8px 0 0" } }, T("In der Mail: ", "In the mail: ") + fmtPrice(effPct()) + " · " + discLabel(effPct()))),
+      h("label", { style: lbl }, T("Bild", "Image")),
+      h("select", { value: heroImage, onChange: (e) => setHeroImage(e.target.value), style: Object.assign({}, fld, { cursor: "pointer" }) }, IMAGES.map((im) => h("option", { key: im[1], value: im[1] }, im[0]))),
+      h("img", { src: heroImage, alt: "", style: { width: "100%", maxWidth: 300, borderRadius: 8, border: "1px solid var(--border-subtle)", marginTop: 10, display: "block" } }),
       h("label", { style: lbl }, T("Name", "Name")), h("input", { style: fld, value: name, onChange: (e) => setName(e.target.value), placeholder: "Anna" }),
       h("label", { style: lbl }, T("E-Mail", "Email")), h("input", { style: fld, type: "email", value: email, onChange: (e) => setEmail(e.target.value), placeholder: "anna@example.com" }),
       h("label", { style: lbl }, tier !== "circle-of-trust" ? T("Rabattcode (Stripe)", "Discount code (Stripe)") : T("Einladungscode", "Invitation code")), h("input", { style: fld, value: code, onChange: (e) => setCode(e.target.value), placeholder: "CIRCLEOFTRUST26" }),
