@@ -116,7 +116,7 @@
     ];
 
     const uk = me ? (me.tier === "syndicate" || me.tier === "admin" ? "syndicate" : (me.tier === "inner-circle" || me.tier === "circle-of-trust" ? "inner" : "observer")) : "inner";
-    const isEnabled = (key) => (key === "morning-compass" || key === "breaking-critical" || key === "morning-news-flash") ? prefs[key] !== false : prefs[key] === true;
+    const isEnabled = (key) => (key === "morning-compass" || key === "breaking-critical" || key === "morning-news-flash" || key === "daily-oracle" || key === "im-spiel") ? prefs[key] !== false : prefs[key] === true;
     const onToggle = (key, v) => { setPrefs((p) => { const n = Object.assign({}, p); n[key] = v; return n; }); fetch(API + "/api/mail-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ report: key, on: v }) }).catch(() => { }); try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } fetch(API + "/api/setup-complete", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setupComplete: true }) }).catch(() => { }); };
 
     return h("div", null, h(SiteNav, { active: "rituals.html" }),
