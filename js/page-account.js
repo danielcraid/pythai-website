@@ -265,6 +265,31 @@
       note && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-oracle)", margin: "16px 0 0", lineHeight: 1.5 } }, note));
   }
 
+  // ============ Idea-Filter: welche Trade-Arten der Member sehen will ============
+  function IdeaPrefs({ a }) {
+    const tier = a.tier || "observer";
+    const synd = tier === "syndicate" || tier === "admin";
+    const ip = a.ideaPrefs || {};
+    const CATS = [
+      ["stocks-etfs", T("Aktien & ETFs (Long)", "Stocks & ETFs (long)"), T("Brot-und-Butter-Setups: Long auf Aktien, Sektor- und Rohstoff-ETFs.", "Bread-and-butter setups: long on stocks, sector & commodity ETFs.")],
+      ["index-short", T("Index-Shorts & Hedges", "Index shorts & hedges"), T("Absicherungen und Short-Setups auf Indizes.", "Hedges and short setups on indices.")],
+      ["leverage", T("Gehebelte Produkte", "Leveraged products"), h("span", null, T("Hebelscheine & Knock-Outs — ", "Leverage certs & knock-outs — "), h("span", { style: { color: "var(--oxblood-bright)" } }, T("h\xF6chste Risikoklasse, Totalverlust m\xF6glich.", "highest risk class, total loss possible.")))]
+    ];
+    if (synd) {
+      CATS.push(["crypto", T("Krypto", "Crypto"), T("Bitcoin, Ethereum & Co.", "Bitcoin, Ethereum & co.")]);
+      CATS.push(["forex", T("Forex", "Forex"), T("W\xE4hrungspaare.", "Currency pairs.")]);
+    }
+    const init = {};
+    CATS.forEach((c) => { init[c[0]] = ip[c[0]] !== false; });
+    const [st, setSt] = useState(init);
+    const toggle = (cat) => { const v = !st[cat]; setSt((s) => Object.assign({}, s, { [cat]: v })); fetch(API + "/api/idea-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ category: cat, on: v }) }).catch(() => { }); };
+    return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
+      h(PyEyebrow, null, T("Deine Ideas", "Your ideas")),
+      h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 24, margin: "8px 0 6px", color: "var(--text-primary)" } }, T("Welche Setups willst du sehen?", "Which setups do you want?")),
+      h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 4px" } }, T("Gilt f\xFCr Daily Oracle und Im Spiel. Abgew\xE4hlte Arten erscheinen nicht mehr in deinen Mails — der Rest l\xE4uft normal weiter.", "Applies to Daily Oracle and Im Spiel. Deselected types no longer appear in your mails — everything else continues as normal.")),
+      h("div", { style: { marginTop: 8 } }, CATS.map((c, i) => h(React.Fragment, { key: c[0] }, i > 0 ? h(Divider) : null, h(SetRow, { title: c[1], sub: c[2], control: h(Switch, { checked: st[c[0]], onChange: () => toggle(c[0]) }) })))));
+  }
+
   // ============ Upgrade dialog (in-page, kein Wegspringen) ============
   const REQUIRE_CODE = false; // Inner-Circle-Rabatt läuft über Stripes eigenes Promo-Code-Feld im Checkout.
   function UpgradeDialog({ onClose }) {
@@ -441,6 +466,7 @@
       isObserver && h(CircleOfTrust, null),
       h(SubscriptionBox, null),
       h("div", { id: "account-reports", style: { scrollMarginTop: "90px" } }, h(AccountSettings, { a })),
+      !isObserver && h("div", { id: "account-ideas", style: { scrollMarginTop: "90px" } }, h(IdeaPrefs, { a })),
       h(ActivityLog, null),
       h("div", { style: { textAlign: "center" } }, h(Button, { variant: "ghost", onClick: logout }, T("Abmelden", "Log out"))));
   }
