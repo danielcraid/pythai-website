@@ -269,7 +269,7 @@
   function IdeaPrefs({ a }) {
     const tier = a.tier || "observer";
     const synd = tier === "syndicate" || tier === "admin";
-    const ip = a.ideaPrefs || {};
+    const ip = a.ideaPrefs || a.idea_prefs || a.ideaPreferences || {};
     const CATS = [
       ["stocks-etfs", T("Aktien & ETFs (Long)", "Stocks & ETFs (long)"), T("Brot-und-Butter-Setups: Long auf Aktien, Sektor- und Rohstoff-ETFs.", "Bread-and-butter setups: long on stocks, sector & commodity ETFs.")],
       ["index-short", T("Index-Shorts & Hedges", "Index shorts & hedges"), T("Absicherungen und Short-Setups auf Indizes.", "Hedges and short setups on indices.")],
