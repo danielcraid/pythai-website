@@ -238,6 +238,7 @@
     const paying = tier === "inner-circle" || tier === "syndicate";
     const [mails, setMails] = useState(a.mailsActive !== false);
     const [nick, setNick] = useState(a.nickname || "");
+    const [nickSaved, setNickSaved] = useState(false);
     const [compass, setCompass] = useState(a.mailReports ? a.mailReports["morning-compass"] !== false : true);
     const [mobileOn, setMobileOn] = useState(!!a.phone);
     const [phone, setPhone] = useState(a.phone || "");
@@ -258,7 +259,7 @@
     return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
       h(PyEyebrow, null, T("Einstellungen", "Settings")),
       h("div", { style: { marginTop: 8 } },
-        h(SetRow, { title: T("Wie Warren dich nennt", "What Warren calls you"), sub: T("Dein Nickname — erscheint oben im Men\xFC und in Warrens Begr\xFC\xDFung.", "Your nickname — shown in the top menu and in Warren's greeting."), control: h("input", { value: nick, onChange: (e) => setNick(e.target.value), onBlur: saveNick, onKeyDown: (e) => { if (e.key === "Enter") e.target.blur(); }, placeholder: a.name || T("Dein Name", "Your name"), maxLength: 24, style: { width: 150, background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "8px 11px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 14, outline: "none", textAlign: "right" } }) }),
+        h(SetRow, { title: T("Wie Warren dich nennt", "What Warren calls you"), sub: T("Dein Nickname — erscheint oben im Men\xFC und in Warrens Begr\xFC\xDFung.", "Your nickname — shown in the top menu and in Warren's greeting."), control: h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" } }, h("input", { value: nick, onChange: (e) => { setNick(e.target.value); if (nickSaved) setNickSaved(false); }, onKeyDown: (e) => { if (e.key === "Enter") { saveNick(); setNickSaved(true); } }, placeholder: a.name || T("Dein Name", "Your name"), maxLength: 24, style: { width: 130, background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "8px 11px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 14, outline: "none" } }), h(Button, { variant: "chrome", size: "sm", onClick: () => { saveNick(); setNickSaved(true); }, disabled: nick.trim() === (a.nickname || "").trim() }, nickSaved ? T("Gespeichert ✓", "Saved ✓") : T("\xC4ndern", "Change"))) }),
         h(Divider),
         h(SetRow, { title: T("Mails erhalten", "Receive emails"), sub: T("Der Hauptschalter. System-Mails (Login) kommen immer.", "The master switch. System mails (login) always arrive."), control: h(Switch, { checked: mails, onChange: toggleMails }) }),
         h(Divider),
