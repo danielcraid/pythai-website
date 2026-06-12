@@ -35,7 +35,7 @@
     return h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: m[1], border: "1px solid " + m[2], borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" } }, m[0]);
   }
 
-  function Bubble({ m }) {
+  function Bubble({ m, onSignin }) {
     if (m.role === "user") {
       return h("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 12 } },
         h("div", { style: { maxWidth: "82%", background: "var(--grad-gold)", color: "var(--text-on-gold)", borderRadius: "12px 12px 4px 12px", padding: "9px 13px", fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" } }, m.text));
@@ -52,7 +52,7 @@
           h("img", { src: a.url, alt: a.alt || "", loading: "lazy", style: { width: "100%", borderRadius: 8, border: "1px solid var(--border-subtle)", display: "block", cursor: "zoom-in" }, onClick: () => window.open(a.url, "_blank", "noopener") }),
           a.alt ? h("figcaption", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginTop: 4 } }, a.alt) : null)),
         m.validatorOk === false ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", marginTop: 5 } }, T("Geprüft — diese Antwort wurde zur Sicherheit angepasst.", "Reviewed — this answer was adjusted for safety.")) : null,
-        m.button ? h("div", { style: { marginTop: 9 } }, h(Button, { variant: "oracle", size: "sm", onClick: () => { window.location.href = m.button.href; } }, m.button.label)) : null));
+        m.button ? h("div", { style: { marginTop: 9 } }, h(Button, { variant: "oracle", size: "sm", onClick: () => { if (m.button.action === "reload") { window.location.reload(); } else if (m.button.action === "signin") { onSignin && onSignin(); } else { window.location.href = m.button.href; } } }, m.button.label)) : null));
   }
 
   function Typing() {
@@ -88,16 +88,20 @@
     const LS = "pythai_chat_sid";
     const leadGreet = () => ({ role: "warren", text: T("Schön, dass du da bist. Ich bin Warren, das KI-Hirn hinter PYTHAI. Frag mich, was du wissen willst — oder ob das hier was für dich ist.", "Good to have you here. I’m Warren, the AI mind behind PYTHAI. Ask me anything — or whether this is for you.") });
     const memberGreet = (nm) => ({ role: "warren", text: T((nm ? nm + ", schön dich zu sehen. " : "") + "Ich bin im Member-Modus — frag mich nach einem Wert, einem Chart oder dem Markt heute.", (nm ? nm + ", good to see you. " : "") + "I’m in member mode — ask me about a stock, a chart, or the market today.") });
-    async function startFresh() {
+    async function startFresh(expired) {
       try {
         const r = await api("/api/chat/session", { method: "POST" });
         const d = await r.json();
         if (!d || !d.ok) throw 0;
         setSid(d.sid); try { localStorage.setItem(LS, d.sid); } catch (e) { }
         if (d.authed && d.tier) { setMode("member"); setTier(d.tier); setName(d.name || null); setObserverHint(false); setMsgs([{ role: "system", text: T("Du bist im Sanctum angemeldet.", "You’re signed in to the sanctum.") }, memberGreet(d.nickname || d.name)]); }
-        else { setMode("lead"); setTier("lead"); setObserverHint(!!d.observerHint); setMsgs([leadGreet()]); }
+        else {
+          setMode("lead"); setTier("lead"); setObserverHint(!!d.observerHint);
+          const expiredNote = { role: "warren", text: T("Deine Sitzung ist abgelaufen. Melde dich neu an, um wieder im Member-Modus zu chatten.", "Your session has expired. Sign in again to chat in member mode."), button: { label: T("Neu anmelden", "Sign in again"), action: "signin" } };
+          setMsgs(expired ? [expiredNote, leadGreet()] : [leadGreet()]);
+        }
       } catch (e) {
-        push({ role: "warren", text: T("Verbindung weg. Mach den Chat gleich nochmal auf.", "Connection lost. Reopen the chat in a moment.") });
+        push({ role: "warren", text: T("Verbindung zu Warren verloren — vielleicht ist deine Sitzung abgelaufen. Lade die Seite neu.", "Lost the connection to Warren — your session may have expired. Reload the page."), button: { label: T("Neu laden", "Reload"), action: "reload" } });
         startedRef.current = false;
       }
     }
@@ -108,7 +112,7 @@
       try {
         const r = await api("/api/chat/history?sid=" + encodeURIComponent(sid0));
         const d = await r.json();
-        if (!d || !d.ok || d.status === "no_session") { try { localStorage.removeItem(LS); } catch (e) { } return startFresh(); }
+        if (!d || !d.ok || d.status === "no_session") { try { localStorage.removeItem(LS); } catch (e) { } return startFresh(true); }
         setSid(d.sid || sid0);
         const member = d.authed && d.tier;
         if (member) { setMode("member"); setTier(d.tier); setName(d.name || null); } else { setMode("lead"); setTier("lead"); }
@@ -138,7 +142,7 @@
           if (d.memberName) setName(d.memberName);
           push({ role: "warren", text: d.reply, attachments: d.attachments || [], validatorOk: d.validatorOk !== false });
         }
-      } catch (err) { push({ role: "warren", text: T("Verbindung weg. Versuch’s gleich nochmal.", "Connection lost. Try again in a moment."), retry: true }); }
+      } catch (err) { push({ role: "warren", text: T("Verbindung weg. Lade die Seite neu, dann läuft’s wieder.", "Connection lost. Reload the page and it’ll work again."), button: { label: T("Neu laden", "Reload"), action: "reload" } }); }
       clearTimeout(softT); clearTimeout(to); setBusy(false); setSoft(false);
     }
 
@@ -218,7 +222,7 @@
         h("button", { onClick: () => setOpen(false), "aria-label": "Close", style: { background: "none", border: "none", color: "var(--text-muted)", fontSize: 22, cursor: "pointer", lineHeight: 1 } }, "×")),
       // body
       h("div", { ref: bodyRef, style: { flex: 1, overflowY: "auto", padding: "16px 14px" } },
-        msgs.map((m, i) => h(Bubble, { key: i, m })),
+        msgs.map((m, i) => h(Bubble, { key: i, m, onSignin: () => setAuth({ phase: "email", email: "" }) })),
         busy ? h(Typing, null) : null,
         busy && soft ? h("div", { style: { textAlign: "center", fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", marginTop: 2 } }, T("Warren denkt nach — Recherche dauert manchmal.", "Warren is thinking — research takes a moment.")) : null),
       // footer / auth
