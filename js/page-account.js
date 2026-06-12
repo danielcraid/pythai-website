@@ -146,6 +146,13 @@
     const lsDone = (() => { try { return localStorage.getItem("py_setup_done") === "1"; } catch (e) { return false; } })();
     const [setupDone, setSetupDone] = useState(a.setupComplete === true || lsDone);
     const [nick, setNick] = useState(a.nickname || "");
+    const lsNickDone = (() => { try { return localStorage.getItem("py_nick_done") === "1"; } catch (e) { return false; } })();
+    const [nickDone, setNickDone] = useState(!!a.nickname || lsNickDone);
+    function saveNickStep(skip) {
+      try { localStorage.setItem("py_nick_done", "1"); } catch (e) { }
+      setNickDone(true);
+      if (!skip && nick.trim()) fetch(API + "/api/account/nickname", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nickname: nick.trim() }) }).catch(() => { });
+    }
     function finishSetup() {
       try { localStorage.setItem("py_setup_done", "1"); } catch (e) { }
       setSetupDone(true);
@@ -154,13 +161,15 @@
     const STEPS = [
       [T("Request Entrance", "Request entrance"), T("Platz angefragt — und der Kontaktaufnahme zugestimmt.", "Access requested — and contact consent given."), true],
       [T("E-Mail best\xE4tigt", "Email confirmed"), T("Double-Opt-in \xFCber den Link in deinem Postfach.", "Double opt-in confirmed via the link in your inbox."), confirmed],
+      [T("Dein Name f\xFCr Warren", "Your name for Warren"), T("Wie soll Warren dich nennen? Du kannst es jederzeit \xE4ndern.", "How should Warren address you? You can change it anytime."), nickDone, true],
       [T("Checkliste", "Checklist"), T("Vier Punkte best\xE4tigt: AGB, Risiko, KI, Eigenverantwortung.", "Four points confirmed: terms, risk, AI, own responsibility."), consent],
       [T("Freigabe durch Warren", "Approval by Warren"), T("Warren sichtet deine Bewerbung pers\xF6nlich.", "Warren reviews your request personally."), approved],
       [T("Check-In-Mail", "Check-in mail"), T("Du bist freigegeben — schlie\xDFe deinen Check-In \xFCber den Link in der Mail ab.", "You're approved — finish your check-in via the link in the mail."), approved],
       [T("Check-In abschlie\xDFen", "Finish check-in"), T("E-Mail & Standard-Report aktivieren. Danach kommt die Welcome-Mail mit allen Instruktionen & Login.", "Activate email & the standard report. The welcome mail with all instructions & login then follows."), approved && consent && setupDone]
     ];
-    for (let i = 0, prev = true; i < STEPS.length; i++) { STEPS[i][2] = STEPS[i][2] && prev; prev = STEPS[i][2]; } // strikt sequenziell: kein Schritt erledigt, solange ein fr\xFCherer offen ist
+    for (let i = 0, prev = true; i < STEPS.length; i++) { STEPS[i][2] = STEPS[i][2] && prev; if (!STEPS[i][3]) prev = STEPS[i][2]; } // strikt sequenziell; optionale Schritte (Nickname) blocken die Kette nicht
     let cur = STEPS.findIndex((s) => !s[2]); if (cur === -1) cur = STEPS.length;
+    let panelAt = STEPS.findIndex((s) => !s[2] && !s[3]); if (panelAt === -1) panelAt = cur;
     const doneCount = STEPS.filter((s) => s[2]).length;
     const pct = Math.round(doneCount / STEPS.length * 100);
     const curLabel = cur < STEPS.length ? STEPS[cur][0] : T("Abgeschlossen", "Complete");
@@ -181,12 +190,12 @@
               h("span", { className: "jr-title" }, s[0]),
               h("span", { className: "jr-pill jr-pill-" + st }, st === "done" ? T("Erledigt", "Done") : st === "cur" ? T("Du bist hier", "You are here") : T("Ausstehend", "Pending"))),
             h("p", { className: "jr-desc" }, s[1]),
-            (i === 5 && st === "cur") ? h("div", { style: { marginTop: 12 } },
-              h("div", { style: { marginBottom: 12 } },
-                h("label", { style: { display: "block", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 } }, T("Wie soll Warren dich nennen?", "What should Warren call you?")),
-                h("input", { value: nick, onChange: (e) => setNick(e.target.value), placeholder: a.name || T("Dein Name", "Your name"), maxLength: 24, style: { width: "100%", maxWidth: 280, background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "10px 13px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 15, outline: "none", boxSizing: "border-box" } })),
-              h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, h("a", { className: "jr-cta", href: "#account-reports", onClick: () => { try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } } }, T("E-Mail & Standard-Report aktivieren →", "Activate email & standard report →")), h("button", { className: "jr-cta-ghost", onClick: finishSetup }, T("Als erledigt markieren", "Mark as done")))) : null)));
-        if (i === cur && inlinePanel) acc.push(h("div", { key: "ip", style: { margin: "6px 0 30px" } }, inlinePanel));
+            (s[3] && st === "cur") ? h("div", { style: { marginTop: 12 } },
+              h("input", { value: nick, onChange: (e) => setNick(e.target.value), onKeyDown: (e) => { if (e.key === "Enter") saveNickStep(false); }, placeholder: a.name || T("Dein Name", "Your name"), maxLength: 24, style: { width: "100%", maxWidth: 280, background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "10px 13px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 15, outline: "none", boxSizing: "border-box" } }),
+              h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 } }, h("button", { className: "jr-cta", onClick: () => saveNickStep(false) }, T("Speichern →", "Save →")), h("button", { className: "jr-cta-ghost", onClick: () => saveNickStep(true) }, T("\xDCberspringen", "Skip"))))
+            : (i === 6 && st === "cur") ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 } }, h("a", { className: "jr-cta", href: "#account-reports", onClick: () => { try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } } }, T("E-Mail & Standard-Report aktivieren →", "Activate email & standard report →")), h("button", { className: "jr-cta-ghost", onClick: finishSetup }, T("Als erledigt markieren", "Mark as done")))
+            : null)));
+        if (i === panelAt && inlinePanel) acc.push(h("div", { key: "ip", style: { margin: "6px 0 30px" } }, inlinePanel));
         return acc;
       }, [])));
   }
@@ -259,7 +268,7 @@
     return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
       h(PyEyebrow, null, T("Einstellungen", "Settings")),
       h("div", { style: { marginTop: 8 } },
-        h(SetRow, { title: T("Wie Warren dich nennt", "What Warren calls you"), sub: T("Dein Nickname — erscheint oben im Men\xFC und in Warrens Begr\xFC\xDFung.", "Your nickname — shown in the top menu and in Warren's greeting."), control: h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" } }, h("input", { value: nick, onChange: (e) => { setNick(e.target.value); if (nickSaved) setNickSaved(false); }, onKeyDown: (e) => { if (e.key === "Enter") { saveNick(); setNickSaved(true); } }, placeholder: a.name || T("Dein Name", "Your name"), maxLength: 24, style: { width: 130, background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "8px 11px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 14, outline: "none" } }), h(Button, { variant: "chrome", size: "sm", onClick: () => { saveNick(); setNickSaved(true); }, disabled: nick.trim() === (a.nickname || "").trim() }, nickSaved ? T("Gespeichert ✓", "Saved ✓") : T("\xC4ndern", "Change"))) }),
+        h(SetRow, { title: T("Wie Warren dich nennt", "What Warren calls you"), sub: T("Dein Nickname — erscheint oben im Men\xFC und in Warrens Begr\xFC\xDFung.", "Your nickname — shown in the top menu and in Warren's greeting."), control: h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" } }, h("input", { value: nick, onChange: (e) => { setNick(e.target.value); if (nickSaved) setNickSaved(false); }, onKeyDown: (e) => { if (e.key === "Enter") { saveNick().then(() => window.location.reload()); } }, placeholder: a.name || T("Dein Name", "Your name"), maxLength: 24, style: { width: 130, background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "8px 11px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 14, outline: "none" } }), h(Button, { variant: "chrome", size: "sm", onClick: () => { saveNick().then(() => window.location.reload()); }, disabled: nick.trim() === (a.nickname || "").trim() }, T("\xC4ndern", "Change"))) }),
         h(Divider),
         h(SetRow, { title: T("Mails erhalten", "Receive emails"), sub: T("Der Hauptschalter. System-Mails (Login) kommen immer.", "The master switch. System mails (login) always arrive."), control: h(Switch, { checked: mails, onChange: toggleMails }) }),
         h(Divider),
@@ -467,7 +476,7 @@
     // Upgrade läuft jetzt in-page über den UpgradeDialog (kein Wegspringen mehr).
     return h("div", { style: { maxWidth: 680, margin: "0 auto" } },
       justJoined && h("div", { style: { border: "1px solid var(--border-oracle)", background: "rgba(212,169,78,0.07)", borderRadius: 10, padding: "16px 20px", marginBottom: 28, textAlign: "center" } }, h("span", { style: { fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 20, color: "var(--text-oracle)" } }, T("Du bist drin. Willkommen im Sanctum.", "You’re in. Welcome to the sanctum."))),
-      h("div", { style: { marginBottom: 30 } }, h(PyEyebrow, null, T("Dein Account", "Your account")), h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, letterSpacing: "-0.02em", fontSize: "clamp(34px,5vw,52px)", lineHeight: 1.05, margin: 0, color: "var(--text-primary)" } }, a.name ? a.name : T("Member", "Member")), h("div", { style: { display: "flex", alignItems: "center", gap: 12, marginTop: 14, flexWrap: "wrap" } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)" } }, a.email), a.status && h(Badge, { tone: "neutral", variant: "outline" }, a.status))),
+      h("div", { style: { marginBottom: 30 } }, h(PyEyebrow, null, T("Dein Account", "Your account")), h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, letterSpacing: "-0.02em", fontSize: "clamp(34px,5vw,52px)", lineHeight: 1.05, margin: 0, color: "var(--text-primary)" } }, a.nickname || a.name || T("Member", "Member")), h("div", { style: { display: "flex", alignItems: "center", gap: 12, marginTop: 14, flexWrap: "wrap" } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)" } }, a.email), a.status && h(Badge, { tone: "neutral", variant: "outline" }, a.status))),
       (a.isAdmin || tier === "admin") && h("a", { href: "admin.html", style: { display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 22, padding: "10px 18px", borderRadius: 999, border: "1px solid var(--border-oracle)", background: "rgba(212,169,78,0.07)", color: "var(--text-oracle)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", textDecoration: "none" } }, T("Admin-Bereich", "Admin area"), " →"),
       h(TierBox, { premium: !isObserver && tier !== "syndicate", royal: tier === "syndicate", eyebrow: T("Deine Subscription", "Your subscription"), name: TIER[tier], price: PRICE[tier], memberSince: a.memberSince, features: included }),
       isObserver && h(React.Fragment, null, h(TierBox, { premium: true, eyebrow: T("Aufsteigen", "Level up"), name: "Inner Circle", price: "69 € / Monat", features: INNER_F }), h("div", { style: { margin: "-6px 0 20px" } }, h(Button, { variant: "oracle", full: true, onClick: () => setUpgradeOpen(true) }, T("Upgrade auf Inner Circle", "Upgrade to Inner Circle")))),
