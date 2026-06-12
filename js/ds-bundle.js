@@ -1820,14 +1820,14 @@ function Switch({
   size = 'md'
 }) {
   const dims = size === 'sm' ? {
-    w: 36,
-    h: 20,
-    knob: 14,
+    w: 42,
+    h: 24,
+    knob: 18,
     pad: 3
   } : {
-    w: 46,
-    h: 26,
-    knob: 18,
+    w: 54,
+    h: 30,
+    knob: 22,
     pad: 4
   };
   const switchId = id || (label ? 'py-sw-' + label.replace(/\s+/g, '-').toLowerCase() : undefined);
@@ -1853,13 +1853,18 @@ function Switch({
     onClick: toggle,
     style: {
       width: dims.w,
+      minWidth: dims.w,
+      maxWidth: dims.w,
       height: dims.h,
+      boxSizing: 'border-box',
+      display: 'inline-block',
+      flex: '0 0 auto',
       flexShrink: 0,
       padding: 0,
-      border: `1px solid ${checked ? 'var(--oracle)' : 'var(--border-strong)'}`,
+      border: `1px solid ${checked ? 'var(--oracle)' : 'var(--steel)'}`,
       borderRadius: 'var(--radius-pill)',
-      background: checked ? 'var(--grad-gold)' : 'var(--bg-input)',
-      boxShadow: checked ? '0 0 16px -4px var(--glow-oracle), var(--shadow-inset)' : 'var(--shadow-inset)',
+      background: checked ? 'rgba(212,169,78,0.18)' : 'var(--bg-input)',
+      boxShadow: checked ? '0 0 14px -5px var(--glow-oracle), var(--shadow-inset)' : 'var(--shadow-inset)',
       position: 'relative',
       cursor: disabled ? 'not-allowed' : 'pointer',
       transition: 'all var(--dur-base) var(--ease-oracle)'
@@ -1872,7 +1877,7 @@ function Switch({
       width: dims.knob,
       height: dims.knob,
       borderRadius: '50%',
-      background: checked ? 'var(--text-on-gold)' : 'var(--steel)',
+      background: checked ? 'var(--oracle-bright)' : 'var(--steel)',
       transition: 'left var(--dur-base) var(--ease-oracle), background var(--dur-base)'
     }
   })), label && /*#__PURE__*/React.createElement("span", {
