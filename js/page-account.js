@@ -145,10 +145,11 @@
     const confirmed = a.confirmed !== false;
     const lsDone = (() => { try { return localStorage.getItem("py_setup_done") === "1"; } catch (e) { return false; } })();
     const [setupDone, setSetupDone] = useState(a.setupComplete === true || lsDone);
+    const [nick, setNick] = useState(a.nickname || "");
     function finishSetup() {
       try { localStorage.setItem("py_setup_done", "1"); } catch (e) { }
       setSetupDone(true);
-      fetch(API + "/api/setup-complete", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setupComplete: true }) }).catch(() => { });
+      fetch(API + "/api/setup-complete", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setupComplete: true, nickname: nick.trim() }) }).catch(() => { });
     }
     const STEPS = [
       [T("Request Entrance", "Request entrance"), T("Platz angefragt — und der Kontaktaufnahme zugestimmt.", "Access requested — and contact consent given."), true],
@@ -180,7 +181,11 @@
               h("span", { className: "jr-title" }, s[0]),
               h("span", { className: "jr-pill jr-pill-" + st }, st === "done" ? T("Erledigt", "Done") : st === "cur" ? T("Du bist hier", "You are here") : T("Ausstehend", "Pending"))),
             h("p", { className: "jr-desc" }, s[1]),
-            (i === 5 && st === "cur") ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 } }, h("a", { className: "jr-cta", href: "#account-reports", onClick: () => { try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } } }, T("E-Mail & Standard-Report aktivieren →", "Activate email & standard report →")), h("button", { className: "jr-cta-ghost", onClick: finishSetup }, T("Als erledigt markieren", "Mark as done"))) : null)));
+            (i === 5 && st === "cur") ? h("div", { style: { marginTop: 12 } },
+              h("div", { style: { marginBottom: 12 } },
+                h("label", { style: { display: "block", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 } }, T("Wie soll Warren dich nennen?", "What should Warren call you?")),
+                h("input", { value: nick, onChange: (e) => setNick(e.target.value), placeholder: a.name || T("Dein Name", "Your name"), maxLength: 24, style: { width: "100%", maxWidth: 280, background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "10px 13px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 15, outline: "none", boxSizing: "border-box" } })),
+              h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, h("a", { className: "jr-cta", href: "#account-reports", onClick: () => { try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } } }, T("E-Mail & Standard-Report aktivieren →", "Activate email & standard report →")), h("button", { className: "jr-cta-ghost", onClick: finishSetup }, T("Als erledigt markieren", "Mark as done")))) : null)));
         if (i === cur && inlinePanel) acc.push(h("div", { key: "ip", style: { margin: "6px 0 30px" } }, inlinePanel));
         return acc;
       }, [])));
@@ -232,6 +237,7 @@
     const tier = a.tier || "observer";
     const paying = tier === "inner-circle" || tier === "syndicate";
     const [mails, setMails] = useState(a.mailsActive !== false);
+    const [nick, setNick] = useState(a.nickname || "");
     const [compass, setCompass] = useState(a.mailReports ? a.mailReports["morning-compass"] !== false : true);
     const [mobileOn, setMobileOn] = useState(!!a.phone);
     const [phone, setPhone] = useState(a.phone || "");
@@ -241,6 +247,7 @@
     const [confirming, setConfirming] = useState(null);
     const [note, setNote] = useState(null);
     const post = (path, body) => fetch(API + path, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).catch(() => ({ ok: false }));
+    const saveNick = () => post("/api/account/nickname", { nickname: nick.trim() });
     function toggleMails(v) { setMails(v); post("/api/mail-prefs", { mailsActive: v }); }
     function toggleCompass(v) { setCompass(v); post("/api/mail-prefs", { report: "morning-compass", on: v }); post("/api/mail-prefs", { report: "markt-vibe", on: v }); }
     function toggleMobile(v) { setMobileOn(v); if (!v) { setSent(false); setVerified(false); post("/api/mobile/disable", {}); } }
@@ -251,6 +258,8 @@
     return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
       h(PyEyebrow, null, T("Einstellungen", "Settings")),
       h("div", { style: { marginTop: 8 } },
+        h(SetRow, { title: T("Wie Warren dich nennt", "What Warren calls you"), sub: T("Dein Nickname — erscheint oben im Men\xFC und in Warrens Begr\xFC\xDFung.", "Your nickname — shown in the top menu and in Warren's greeting."), control: h("input", { value: nick, onChange: (e) => setNick(e.target.value), onBlur: saveNick, onKeyDown: (e) => { if (e.key === "Enter") e.target.blur(); }, placeholder: a.name || T("Dein Name", "Your name"), maxLength: 24, style: { width: 150, background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "8px 11px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 14, outline: "none", textAlign: "right" } }) }),
+        h(Divider),
         h(SetRow, { title: T("Mails erhalten", "Receive emails"), sub: T("Der Hauptschalter. System-Mails (Login) kommen immer.", "The master switch. System mails (login) always arrive."), control: h(Switch, { checked: mails, onChange: toggleMails }) }),
         h(Divider),
         h(SetRow, { title: T("Standard Rituals", "Standard rituals"), sub: T("Morning Compass & Market Vibe. Die t\xE4gliche Edukations-Mail — wo der Tag startet, News erkl\xE4rt, eine Beobachtung zum Nachpr\xFCfen. 1\xD7 die Woche der Market Vibe. (Weitere Reports ab Inner Circle in den Rituals.)", "Morning Compass & Market Vibe. The daily education email — where the day starts, news explained, one observation to verify. Plus the weekly Market Vibe. (Further reports from Inner Circle in Rituals.)"), control: h("div", { style: { opacity: mails ? 1 : 0.4, pointerEvents: mails ? "auto" : "none" } }, h(Switch, { checked: compass, onChange: toggleCompass })) }),
