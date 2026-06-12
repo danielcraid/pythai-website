@@ -25,14 +25,21 @@
     ["Chartomat", "chartomat.html"],
     ["Playbook", "playbook.html"],
     ["Methodik", "methodik.html"],
-    ["Rituals", "rituals.html"]
+    ["Rituals", "rituals.html"],
+    ["My Book", "mybook.html"]
   ];
-  const MEMBER_AREA = ["chartomat.html", "playbook.html", "rituals.html", "methodik.html"]; // hell-gold getoent wenn eingeloggt
+  const MEMBER_AREA = ["chartomat.html", "playbook.html", "rituals.html", "methodik.html", "mybook.html"]; // hell-gold getoent wenn eingeloggt
   const PRIV = ["inner-circle", "circle-of-trust", "syndicate", "admin"]; // Playbook + Rituals nur fuer diese Tiers
+  const SYNDICATE = ["syndicate", "admin"]; // My Book nur fuer Syndicate
   const MEMBER_ONLY = []; // alle Seiten im Nav sichtbar; Voll-Content je Seite gegated (Teaser fuer Public/Observer)
+  const SYNDICATE_ONLY = ["mybook.html"]; // nur fuer Syndicate sichtbar
   function navItems(me) {
     const member = !!(me && PRIV.indexOf(me.tier) !== -1 && me.approval === "approved");
-    return NAV.filter(function (n) { return MEMBER_ONLY.indexOf(n[1]) === -1 || member; });
+    const synd = !!(me && SYNDICATE.indexOf(me.tier) !== -1 && me.approval === "approved");
+    return NAV.filter(function (n) {
+      if (SYNDICATE_ONLY.indexOf(n[1]) !== -1) return synd;
+      return MEMBER_ONLY.indexOf(n[1]) === -1 || member;
+    });
   }
   const NAV_CSS = `
 .pynav-desktop{display:flex;align-items:center;gap:28px;}
