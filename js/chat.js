@@ -133,7 +133,7 @@
       try {
         const r = await api("/api/chat", { method: "POST", signal: ctrl.signal, body: JSON.stringify({ sid, message: text, lang: lang() }) });
         if (r.status === 429) { push({ role: "warren", text: T("Du hast viel auf einmal gefragt. Lass mir 30 Sekunden, dann gerne weiter.", "That was a lot at once. Give me 30 seconds, then go on.") }); const until = Date.now() + 30000; setCooldownTs(until); setTimeout(() => setCooldownTs(0), 30000); }
-        else if (r.status === 502) { push({ role: "warren", text: T("Warren ist gerade kurz weg. Versuch’s nochmal.", "Warren stepped out for a moment. Try again."), retry: true }); }
+        else if (r.status === 502) { push({ role: "warren", text: T("Warren ist gerade weg. Starte eine neue Sitzung.", "Warren is gone. Start a new session."), button: { label: T("Neue Sitzung", "New session"), action: "reload" } }); }
         else if (!r.ok) { const e = await r.json().catch(() => ({})); push({ role: "warren", text: e.error === "message_too_long" ? T("Die Nachricht ist zu lang (max. 4000 Zeichen).", "That message is too long (max 4000 chars).") : T("Da ging etwas schief. Versuch’s nochmal.", "Something went wrong. Try again.") }); }
         else {
           const d = await r.json();
