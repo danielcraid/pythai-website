@@ -263,7 +263,10 @@
     const addTopic = () => { setEditingId(null); setAddF(Object.assign({}, BLANK)); };
     const closeForm = () => { setAddF(null); setEditingId(null); };
     const setAf = (k, v) => setAddF((o) => Object.assign({}, o, { [k]: v }));
-    const formValid = !!(addF && addF.name.trim() && (addF.these || "").trim().length >= 10 && (addF.kill || "").trim());
+    const _en = addF ? deNum(addF.entry) : null, _st = addF ? deNum(addF.stop) : null, _short = !!(addF && /Short/i.test(addF.art || ""));
+    const stopOk = (!addF || _en == null || _st == null) ? true : (_short ? _st > _en : _st < _en);
+    const stopErr = stopOk ? "" : (_short ? T("Bei Short muss der Stop ÜBER dem Entry liegen.", "For short, stop must be ABOVE entry.") : T("Bei Long muss der Stop UNTER dem Entry liegen.", "For long, stop must be BELOW entry."));
+    const formValid = !!(addF && addF.name.trim() && (addF.these || "").trim().length >= 10 && (addF.kill || "").trim() && stopOk);
     const submitAdd = () => {
       const f = addF; if (!formValid) return;
       const body = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, market: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: deNum(f.entry), stop: deNum(f.stop), skim: deNum(f.skim), target: deNum(f.target), these: f.these, anti_these: f.kill };
@@ -316,7 +319,8 @@
       h("label", { className: "f-l" }, o.label, o.req ? h("span", { style: { color: "var(--ox-b)" } }, " *") : null),
       o.area ? h("textarea", { className: "f-i", rows: 2, value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) })
              : h("input", { className: "f-i", value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) }),
-      o.hint ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--text-muted)", marginTop: 4 } }, o.hint) : null);
+      o.hint ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--text-muted)", marginTop: 4 } }, o.hint) : null,
+      o.err ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--ox-b)", marginTop: 4 } }, o.err) : null);
     const Sel = (o) => h("div", { key: o.k, className: "f" },
       h("label", { className: "f-l" }, o.label),
       h("select", { className: "f-i", value: addF[o.k], onChange: (e) => setAf(o.k, e.target.value) }, o.opts.map((op) => h("option", { key: op, value: op }, op))));
@@ -329,7 +333,7 @@
           h("div", { className: "c-topic" }, h("div", { className: "nm" }, p.name), h("div", { className: "t-meta" },
             h("span", { className: "badge idx" }, p.idx),
             h("span", { className: "badge long" }, p.art),
-            h("span", { className: "badge " + (p.tracking_source === "member_only" ? "src-self" : "src-oracle") }, p.tracking_source === "member_only" ? T("Du trackst", "You track") : T("Orakel", "Oracle")),
+            p.oracle_mirror_available ? h("span", { className: "badge src-oracle" }, T("Orakel", "Oracle")) : (p.tracking_source === "member_only" ? h("span", { className: "badge src-self" }, T("Du trackst", "You track")) : null),
             p.action_required ? h("span", { className: "ar-pill" }, T("Schau hin", "Look")) : null,
             h("span", { className: "isin" }, p.isin + " · Live " + p.live + (p.currency ? " " + p.currency : "")))),
           h("div", { className: "c-stat" }, h(Mini, { p })),
@@ -342,7 +346,7 @@
             h("button", { className: "sw " + (p.tracking_source !== "member_only" ? "on" : "off"), onClick: () => toggleMirror(p) }, h("span", { className: "knob" })),
             h("div", null,
               h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" } }, T("Orakel-Mirror", "Oracle mirror")),
-              h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)" } }, p.tracking_source !== "member_only" ? T("spiegelt den Orakel-Score", "mirrors the oracle score") : T("du trackst selbst — gegen deine Marken", "you track yourself — against your levels")))),
+              h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)" } }, p.tracking_source === "member_only" ? T("du trackst selbst — gegen deine Marken", "you track yourself — against your levels") : (p.oracle_mirror_available ? T("spiegelt den Orakel-Score", "mirrors the oracle score") : T("kein aktiver Orakel-Trade — bewertet gegen deine Marken", "no active oracle trade — scored against your levels"))))),
           p.action_required ? h("div", { className: "ar-banner" },
             h("div", { className: "ar-head" }, T("Das Orakel meldet einen Bruch", "The oracle reports a break")),
             h("div", { className: "ar-reason" }, p.action_reason || T("Eine Kurs-Marke oder ein Kill-Trigger wurde berührt.", "A price level or kill-trigger was hit.")),
@@ -450,7 +454,7 @@
             Sel({ label: T("Handelsplatz", "Trading venue"), k: "venue", opts: ["Tradegate", "Lang & Schwarz", "Gettex", "Xetra", "Stuttgart", "Frankfurt", "NYSE", "NASDAQ", "Sonstige"] }),
             Sel({ label: T("Währung", "Currency"), k: "currency", opts: ["EUR", "USD", "GBP", "CHF", "JPY"] }),
             Fld({ label: "Entry", k: "entry", ph: "0,00" }),
-            Fld({ label: "Stop", k: "stop", ph: "0,00" }),
+            Fld({ label: "Stop", k: "stop", ph: "0,00", err: stopErr }),
             Fld({ label: "Skim", k: "skim", ph: "0,00" }),
             Fld({ label: "Target", k: "target", ph: "0,00" }),
             Fld({ label: T("Deine These", "Your thesis"), k: "these", full: true, area: true, req: true, ph: T("Warum hältst du das? Mindestens 1 Satz.", "Why do you hold this? At least one sentence."), hint: T("Pflicht · mindestens 1 Satz (10+ Zeichen)", "Required · at least one sentence (10+ chars)") }),
