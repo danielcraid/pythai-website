@@ -107,6 +107,15 @@
   #mb-root .flash{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:300;max-width:90vw;background:var(--raised);border:1px solid rgba(224,114,107,.6);border-left:3px solid var(--ox-b);border-radius:10px;padding:13px 18px;font-family:var(--font-ui);font-size:13.5px;color:var(--parch);box-shadow:0 14px 40px rgba(0,0,0,.5);}
   #mb-root .modal-wide{max-width:560px;max-height:90vh;overflow-y:auto;padding:22px 22px 0;}
   #mb-root .modal-wide h3{margin:0 0 12px;}
+  #mb-root .mode-tabs{display:flex;gap:6px;background:var(--input);border:1px solid var(--line);border-radius:9px;padding:4px;margin:0 0 16px;}
+  #mb-root .mtab{flex:1;font-family:var(--font-ui);font-size:12.5px;font-weight:600;border:none;background:transparent;color:var(--text-secondary);border-radius:6px;padding:8px 10px;cursor:pointer;}
+  #mb-root .mtab.on{background:var(--grad-gold);color:var(--text-on-gold);}
+  #mb-root .hgrid{display:flex;flex-direction:column;gap:8px;margin:4px 0 10px;}
+  #mb-root .hcard{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:12px 14px;cursor:pointer;}
+  #mb-root .hcard:hover{border-color:var(--border-oracle);background:rgba(212,169,78,.05);}
+  #mb-root .hcard-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  #mb-root .hcard-name{font-family:var(--font-oracle);font-size:18px;color:var(--parch);}
+  #mb-root .hcard-row{display:flex;align-items:center;gap:14px;margin-top:6px;}
   #mb-root .f-foot{position:sticky;bottom:0;background:var(--raised);border-top:1px solid var(--border-subtle);padding:12px 0;margin-top:14px;display:flex;gap:10px;justify-content:flex-end;}
   #mb-root .f-up{display:flex;align-items:center;justify-content:center;text-align:center;gap:8px;border:1px dashed var(--border-strong);border-radius:9px;background:rgba(212,169,78,.05);padding:11px 14px;cursor:pointer;font-family:var(--font-ui);font-size:12.5px;color:var(--oracle-b);margin:2px 0 7px;}
   #mb-root .f-up.busy{opacity:.7;cursor:wait;}
@@ -187,6 +196,10 @@
     const [addF, setAddF] = useState(null);
     const [editingId, setEditingId] = useState(null);
     const [addBusy, setAddBusy] = useState(false);
+    const [addMode, setAddMode] = useState("manual");
+    const [addSrc, setAddSrc] = useState(null);
+    const [hunter, setHunter] = useState(null);
+    const [hunterBusy, setHunterBusy] = useState(false);
     const [checkId, setCheckId] = useState(null);
     const [checkMsg, setCheckMsg] = useState({});
     const [flash, setFlash] = useState("");
@@ -260,8 +273,15 @@
     };
     const count = rows.length;
     const delName = (rows.find((r) => r.id === delId) || {}).name || "Dieses Topic";
-    const addTopic = () => { setEditingId(null); setAddF(Object.assign({}, BLANK)); };
-    const closeForm = () => { setAddF(null); setEditingId(null); };
+    const addTopic = () => { setEditingId(null); setAddMode("manual"); setAddSrc(null); setAddF(Object.assign({}, BLANK)); };
+    const closeForm = () => { setAddF(null); setEditingId(null); setAddSrc(null); };
+    const loadHunter = () => { setHunterBusy(true); fetch(API + "/api/mybook/hunter-shortlist", { credentials: "include" }).then((r) => { if (r && (r.status === 401 || r.status === 403) && window.PYsessionExpired) window.PYsessionExpired(); return r && r.ok ? r.json() : null; }).then((d) => { setHunter(d && d.ok && Array.isArray(d.trades) ? d.trades : []); setHunterBusy(false); }).catch(() => { setHunter([]); setHunterBusy(false); }); };
+    const goMode = (m) => { setAddMode(m); if (m === "oracle" && hunter === null && !hunterBusy) loadHunter(); };
+    const pickHunter = (t) => {
+      const firstSkim = (t.skim_levels || "").split(",")[0].trim();
+      setAddF({ name: t.asset || "", isin: t.isin || "", issuer: "", idx: "", art: t.art || "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: numStr(t.entry), stop: numStr(t.stop), skim: firstSkim ? numStr(parseFloat(firstSkim)) : "", target: numStr(t.target), these: t.thesis || "", kill: (t.thesis_kill_triggers || []).join(" · ") });
+      setAddSrc("oracle"); setAddMode("manual");
+    };
     const setAf = (k, v) => setAddF((o) => Object.assign({}, o, { [k]: v }));
     const _en = addF ? deNum(addF.entry) : null, _st = addF ? deNum(addF.stop) : null, _short = !!(addF && /Short/i.test(addF.art || ""));
     const stopOk = (!addF || _en == null || _st == null) ? true : (_short ? _st > _en : _st < _en);
@@ -270,6 +290,7 @@
     const submitAdd = () => {
       const f = addF; if (!formValid) return;
       const body = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, market: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: deNum(f.entry), stop: deNum(f.stop), skim: deNum(f.skim), target: deNum(f.target), these: f.these, anti_these: f.kill };
+      if (!editingId && addSrc) body.tracking_source = addSrc; // aus Orakel gepickt → oracle; sonst nicht senden (Backend default member_only)
       // optimistische Anzeige (gilt sofort); KEIN blindes Reload (Notion-Latenz würde zurückspringen)
       const opt = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, idx: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: f.entry, stop: f.stop, skim: f.skim, target: f.target, these: f.these, kill: f.kill };
       const readJson = (res) => (res && res.json) ? res.json().then((d) => ({ status: res.status, d })).catch(() => ({ status: res.status, d: null })) : { status: 0, d: null };
@@ -437,6 +458,21 @@
       addF ? h("div", { className: "ov2", onClick: closeForm },
         h("div", { className: "modal modal-wide", onClick: (e) => e.stopPropagation() },
           h("h3", null, editingId ? T("Topic bearbeiten", "Edit topic") : T("Neues Topic", "New topic")),
+          !editingId ? h("div", { className: "mode-tabs" },
+            h("button", { className: "mtab" + (addMode === "manual" ? " on" : ""), onClick: () => goMode("manual") }, T("Manuell anlegen", "Add manually")),
+            h("button", { className: "mtab" + (addMode === "oracle" ? " on" : ""), onClick: () => goMode("oracle") }, T("Aus Orakel auswählen", "Pick from oracle"))) : null,
+          (!editingId && addMode === "oracle") ? h("div", null,
+            hunterBusy ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-secondary)", textAlign: "center", padding: "28px 0" } }, T("Lade Orakel-Trades…", "Loading oracle trades…"))
+              : ((hunter && hunter.length) ? h("div", { className: "hgrid" }, hunter.map((t, i) => h("div", { key: (t.id || i), className: "hcard", onClick: () => pickHunter(t) },
+                  h("div", { className: "hcard-top" }, h("span", { className: "hcard-name" }, t.asset), h("span", { className: "badge long" }, t.art)),
+                  h("div", { className: "hcard-row" }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: Z[ZONE.indexOf(t.waage_label)] || "var(--text-secondary)" } }, t.waage_label || ""), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-muted)" } }, (t.days_active != null ? (t.days_active + T(" Tage aktiv", "d active")) : ""))),
+                  h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginTop: 5, letterSpacing: "0.04em" } }, t.isin))))
+                : h("div", { className: "empty", style: { padding: "30px 24px", marginTop: 6 } },
+                    h("div", { className: "empty-s" }, T("Aktuell keine Orakel-Trades zum Picken. Du kannst dein Topic manuell anlegen.", "No oracle trades to pick right now. You can add your topic manually.")),
+                    h("div", { style: { marginTop: 16 } }, h(Button, { variant: "oracle", size: "sm", onClick: () => goMode("manual") }, T("Manuell anlegen", "Add manually"))))),
+            h("div", { className: "f-foot" }, h(Button, { variant: "ghost", size: "sm", onClick: closeForm }, T("Abbrechen", "Cancel"))))
+          : h("div", null,
+          addSrc === "oracle" ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 10.5, lineHeight: 1.5, color: "var(--oracle-b)", border: "1px solid rgba(212,169,78,.4)", borderRadius: 7, padding: "8px 11px", margin: "2px 0 10px" } }, T("Aus dem Orakel übernommen — wird als Orakel-Mirror gespeichert. Du kannst alles anpassen.", "Taken from the oracle — saved as oracle mirror. You can adjust everything.")) : null,
           h("label", { className: "f-up" + (addBusy ? " busy" : "") },
             h("span", null, addBusy ? T("Warren liest…", "Warren is reading…") : T("Screenshot oder PDF hochladen / neu einlesen — Warren liest die Marken aus", "Upload or re-scan a screenshot/PDF — Warren reads the levels")),
             h("input", { type: "file", accept: ".png,.jpg,.jpeg,.webp,.pdf", style: { display: "none" }, disabled: addBusy, onChange: onVision })),
@@ -462,7 +498,7 @@
           h("div", { className: "f-note", style: { marginTop: 10 } }, T("Handelsplatz = wo du handelst. Standard Tradegate (EUR). Kurs-Felder leer lassen, wenn unbekannt.", "Trading venue = where you trade. Default Tradegate (EUR). Leave price fields empty if unknown.")),
           h("div", { className: "f-foot" },
             h(Button, { variant: "ghost", size: "sm", onClick: closeForm }, T("Abbrechen", "Cancel")),
-            h(Button, { variant: "oracle", size: "sm", disabled: !formValid, onClick: submitAdd }, editingId ? T("Speichern", "Save") : T("Topic anlegen", "Create topic"))))) : null,
+            h(Button, { variant: "oracle", size: "sm", disabled: !formValid, onClick: submitAdd }, editingId ? T("Speichern", "Save") : T("Topic anlegen", "Create topic")))))) : null,
       flash ? h("div", { className: "flash" }, flash) : null,
       h(SiteFooter, null));
   }
