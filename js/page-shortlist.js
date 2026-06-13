@@ -274,7 +274,7 @@
       const isOpen = open === t.id;
       const isShort = /short/i.test(t.art || "");
       const entry = num(t.entry), live = liveNum(t);
-      const noEntry = entry == null || t.state === "pending";
+      const isPending = t.state === "pending"; // Badge & Add-Gate NUR aus state, nicht aus Daten-Vollständigkeit
       const chg = pctStr(t.live_change_pct);
       const dSkim = pctStr(t.distance_to_skim), dStop = pctStr(t.distance_to_stop);
       const added = addedIds.indexOf(t.id) !== -1;
@@ -290,7 +290,7 @@
             h("div", { className: "nm" }, t.asset),
             h("div", { className: "sub" },
               h("span", { className: "isin" }, t.isin || ""),
-              noEntry ? h("span", { className: "wtag" }, T("Watchlist", "Watchlist")) : null,
+              isPending ? h("span", { className: "wtag" }, T("Watchlist", "Watchlist")) : null,
               t.days_active != null ? h("span", { className: "day" }, "Tag " + t.days_active) : null)),
           Barometer(t, false),
           h("div", { className: "live" },
@@ -313,11 +313,8 @@
           h("div", { className: "secl", style: { marginTop: 22 } }, T("These-Status", "Thesis status")),
           Barometer(t, true),
 
-          h("div", { className: "secl", style: { marginTop: 24 } }, T("Kursverlauf", "Price action")),
-          h("div", { className: "chartwrap" },
-            t.chart_img
-              ? h("img", { src: t.chart_img, alt: T("Kursverlauf", "Price action"), loading: "lazy" })
-              : (Ladder(t) || h("div", { className: "chartph" }, T("Kursverlauf folgt, sobald der Trade scharf ist.", "Price action follows once the trade is armed.")))),
+          t.chart_img ? h("div", { className: "secl", style: { marginTop: 24 } }, T("Kursverlauf · letzter Trading-Day", "Price action · last trading day")) : null,
+          t.chart_img ? h("div", { className: "chartwrap" }, h("img", { src: t.chart_img, alt: T("Kursverlauf", "Price action"), loading: "lazy" })) : null,
 
           h("div", { className: "detbody" },
             h("div", null,
@@ -334,7 +331,7 @@
                 h("div", { className: "lv skim" }, h("div", { className: "k" }, "Skim"), h("div", { className: "v" }, skims.length ? skims.map(deFmt).join(" / ") : "—")),
                 h("div", { className: "lv tgt" }, h("div", { className: "k" }, T("Ziel", "Target")), h("div", { className: "v" }, deFmt(num(t.target))))),
               h("div", { className: "acts" },
-                noEntry
+                isPending
                   ? h("div", null,
                       h("button", { className: "badd", disabled: true }, T("In My Book", "Add to My Book")),
                       h("div", { className: "baddhint watch" }, T("Watchlist — noch kein Entry. Sobald das Orakel scharf stellt, kannst du es übernehmen.", "Watchlist — no entry yet. Once the oracle arms it, you can add it.")))
