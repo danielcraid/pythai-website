@@ -88,6 +88,7 @@
   #mb-root .these{font-family:var(--font-ui);font-size:15px;line-height:1.6;color:var(--parch);margin:0;max-width:64ch;}
   #mb-root .kill{font-family:var(--font-mono);font-size:13.5px;line-height:1.55;color:var(--ox-b);margin:0;} #mb-root .kill b{color:#F0A39C;font-weight:700;}
   #mb-root .bline{font-family:var(--font-ui);font-size:12.5px;font-weight:600;border:1px solid rgba(212,169,78,.5);border-radius:8px;padding:11px 14px;cursor:pointer;background:rgba(212,169,78,.08);color:var(--oracle-b);text-align:center;white-space:nowrap;}
+  #mb-root .bline.chk{background:var(--grad-gold);color:var(--text-on-gold);border-color:transparent;} #mb-root .bline.chk:disabled{opacity:.7;cursor:wait;}
   #mb-root .bdel{font-family:var(--font-ui);font-size:12.5px;font-weight:600;border:1px solid rgba(224,114,107,.45);border-radius:8px;padding:11px 14px;cursor:pointer;background:transparent;color:var(--ox-b);text-align:center;white-space:nowrap;} #mb-root .bdel:hover{background:rgba(224,114,107,.1);}
   #mb-root .empty{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:48px 30px;text-align:center;}
   #mb-root .empty-t{font-family:var(--font-oracle);font-size:26px;color:var(--parch);}
@@ -183,6 +184,8 @@
     const [addF, setAddF] = useState(null);
     const [editingId, setEditingId] = useState(null);
     const [addBusy, setAddBusy] = useState(false);
+    const [checkId, setCheckId] = useState(null);
+    const [checkMsg, setCheckMsg] = useState({});
 
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
@@ -216,6 +219,23 @@
     const toggleMon = (p) => { if (p.monitored) setMon(p.id, false); else { setMonCh("mail"); setMonModal(p.id); } };
     const confirmMon = () => { setMon(monModal, true, monCh); setMonModal(null); };
     const openEdit = (p) => { setEditingId(p.id); setAddF({ name: p.name || "", isin: p.isin || "", issuer: p.issuer || "", idx: p.idx || "", art: p.art || "Aktie · Long", venue: p.venue || "Tradegate", currency: p.currency || "EUR", entry: p.entry || "", stop: p.stop || "", skim: p.skim || "", target: p.target || "", these: p.these || "", kill: p.kill || "" }); };
+    const checkedTime = (iso) => { try { return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+    const checkThesis = (p) => {
+      setCheckId(p.id); setCheckMsg((m) => Object.assign({}, m, { [p.id]: "" }));
+      fetch(API + "/api/mybook/" + p.id + "/check-thesis", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" })
+        .then((r) => {
+          if (r && (r.status === 401 || r.status === 403) && window.PYsessionExpired) { window.PYsessionExpired(); return null; }
+          if (r && r.status === 429) return { cooldown: true };
+          return r && r.ok ? r.json() : null;
+        })
+        .then((res) => {
+          setCheckId(null);
+          if (!res) return;
+          if (res.cooldown) { setCheckMsg((m) => Object.assign({}, m, { [p.id]: T("Cooldown — gerade erst geprüft. Versuch's in ein paar Minuten.", "Cooldown — just checked. Try again in a few minutes.") })); return; }
+          if (res.ok) setRows((rs) => rs.map((r) => r.id === p.id ? Object.assign({}, r, { score: res.score, zone: res.zone, waage_pct: (typeof res.score === "number" ? wpct(res.score) : r.waage_pct), einschaetzung: res.einschaetzung, last_checked_at: res.last_checked_at }) : r));
+        })
+        .catch(() => setCheckId(null));
+    };
     const doDelete = () => { api("/api/mybook/" + delId, null, "DELETE"); setRows((rs) => rs.filter((r) => r.id !== delId)); setDelId(null); };
     // Action-Required-Buttons (Soll-Mapping → PATCH; VC bestätigt Feld-Namen)
     const doAction = (p, act) => {
@@ -316,13 +336,18 @@
               h("button", { className: "arb warren", onClick: () => doAction(p, "ask_warren") }, T("Frag Warren", "Ask Warren")))) : null,
           h("div", { className: "dgrid" },
           h("div", { className: "dcol-act" },
+            h("button", { className: "bline chk", disabled: checkId === p.id, onClick: () => checkThesis(p) }, checkId === p.id ? T("Prüfe…", "Checking…") : T("These prüfen", "Check thesis")),
             h("button", { className: "bline" }, T("Chart-Analyse per Mail", "Chart analysis by mail")),
             h("button", { className: "bdel", onClick: () => setDelId(p.id) }, T("Topic löschen", "Delete topic"))),
           h("div", { className: "dcol-these" },
             h("div", { className: "tlbl", style: { color: "var(--ox-b)" } }, T("Anti-These", "Anti-thesis")),
             h("div", { className: "kill" }, h("b", null, T("Kippt bei: ", "Breaks on: ")), p.kill),
             h("div", { className: "tlbl" }, T("Deine These", "Your thesis")),
-            h("div", { className: "these" }, p.these))))) : null);
+            h("div", { className: "these" }, p.these),
+            p.einschaetzung ? h("div", { className: "tlbl" }, T("Warrens Einschätzung", "Warren's read")) : null,
+            p.einschaetzung ? h("div", { className: "these", style: { color: "var(--text-secondary)" } }, p.einschaetzung) : null,
+            (p.einschaetzung && p.last_checked_at) ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginTop: 6 } }, T("Geprüft ", "Checked ") + checkedTime(p.last_checked_at)) : null,
+            checkMsg[p.id] ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--ox-b)", marginTop: 8 } }, checkMsg[p.id]) : null)))) : null);
     };
 
     return h("div", { id: "mb-root" },
