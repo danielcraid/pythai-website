@@ -54,6 +54,17 @@
   #mb-root .badge{font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--mist);border:1px solid #2A2F39;border-radius:5px;padding:5px 9px;white-space:nowrap;}
   #mb-root .badge.long{color:var(--bull);border-color:rgba(111,207,154,.35);}
   #mb-root .badge.idx{border-radius:999px;font-size:8.5px;color:#7FB0E8;border-color:rgba(127,176,232,.45);background:rgba(127,176,232,.1);padding:4px 9px;}
+  #mb-root .badge.src-oracle{border-radius:999px;font-size:8.5px;color:var(--oracle-b);border-color:rgba(212,169,78,.5);background:rgba(212,169,78,.1);padding:4px 9px;}
+  #mb-root .badge.src-self{border-radius:999px;font-size:8.5px;color:#B58CE0;border-color:rgba(181,140,224,.5);background:rgba(181,140,224,.1);padding:4px 9px;}
+  #mb-root .ar-pill{font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#F0A39C;border:1px solid rgba(224,114,107,.6);background:rgba(224,114,107,.14);border-radius:999px;padding:4px 9px;}
+  #mb-root .ar-banner{border:1px solid rgba(224,114,107,.45);border-left:3px solid var(--ox-b);background:rgba(224,114,107,.07);border-radius:10px;padding:16px 18px;margin-bottom:22px;}
+  #mb-root .ar-head{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--ox-b);}
+  #mb-root .ar-reason{font-family:var(--font-ui);font-size:14px;line-height:1.5;color:var(--text-primary);margin:6px 0 14px;}
+  #mb-root .ar-btns{display:flex;gap:9px;flex-wrap:wrap;}
+  #mb-root .arb{font-family:var(--font-ui);font-size:12.5px;font-weight:600;border:1px solid var(--border-strong);background:transparent;color:var(--text-secondary);border-radius:7px;padding:8px 13px;cursor:pointer;}
+  #mb-root .arb:hover{border-color:var(--border-oracle);color:var(--text-primary);}
+  #mb-root .arb.keep{border-color:rgba(111,176,122,.5);color:var(--bull);} #mb-root .arb.close{border-color:rgba(224,114,107,.5);color:var(--ox-b);}
+  #mb-root .arb.warren{border-color:rgba(212,169,78,.5);background:rgba(212,169,78,.1);color:var(--oracle-b);}
   #mb-root .mks{display:flex;gap:12px;flex-wrap:wrap;}
   #mb-root .mk{display:flex;flex-direction:column;gap:3px;flex:0 0 72px;}
   #mb-root .mk .k{font-family:var(--font-mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);}
@@ -125,8 +136,9 @@
   }
 
   function Mini({ p }) {
+    const pct = (typeof p.waage_pct === "number") ? Math.max(3, Math.min(97, p.waage_pct)) : wpct(p.score);
     return h("div", { className: "mini" },
-      h("div", { className: "mk-row" }, h("span", { className: "arrow", style: { left: wpct(p.score) + "%" } }, "▼")),
+      h("div", { className: "mk-row" }, h("span", { className: "arrow", style: { left: pct + "%" } }, "▼")),
       h("div", { className: "bar" }, Z.map((c, i) => h("span", { key: i, style: { background: c } }))),
       h("div", { className: "lab", style: { color: Z[p.zone - 1] } }, statusText(p)));
   }
@@ -157,17 +169,37 @@
         setGate(ok ? "ok" : "locked");
       }).catch(() => setGate("locked"));
     }, []);
-    useEffect(() => { if (gate === "ok") injectCSS(); }, [gate]);
+    useEffect(() => {
+      if (gate !== "ok") return;
+      injectCSS();
+      fetch(API + "/api/mybook", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
+        if (d && d.ok && Array.isArray(d.topics)) {
+          setRows(d.topics);
+          if (d.topics.length) setOpen(d.topics[0].id);
+        }
+      }).catch(() => { });
+    }, [gate]);
 
     if (gate === "loading") return h("div", null, h(SiteNav, { active: "" }), h("div", { style: { minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 22, color: "var(--text-oracle)" } }, T("Das Orakel prüft deinen Zugang…", "The oracle checks your access…")), h(SiteFooter, null));
     if (gate === "locked") return h("div", null, h(SiteNav, { active: "" }), h("section", { style: { minHeight: "calc(100vh - var(--nav-h))", display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" } }, h("div", { style: { maxWidth: 480 } }, h(PyEyebrow, null, "Syndicate"), h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 44, margin: "8px 0 0", color: "var(--text-primary)" } }, T("My Book lebt im Syndicate.", "My Book lives in the Syndicate.")), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", margin: "16px 0 28px" } }, T("Dein persönliches Thesen-Buch — Trades tracken, These beobachten, Alerts setzen — ist dem Syndicate vorbehalten.", "Your personal thesis book — track trades, watch the thesis, set alerts — is reserved for the Syndicate.")), h(Button, { variant: "oracle", onClick: () => { window.location.href = "account.html"; } }, T("Zum Account", "Go to account")))), h(SiteFooter, null));
 
+    const api = (path, body, method) => fetch(API + path, { method: method || "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).catch(() => { });
+    const patch = (id, body) => api("/api/mybook/" + id, body, "PATCH");
     const setField = (id, k, v) => setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { [k]: v }) : r));
-    const setMon = (id, on, channel) => setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { monitored: on, channel: on ? (channel === "both" ? "SMS + Mail" : channel === "sms" ? "SMS" : "Mail") : null }) : r));
+    const setMon = (id, on, channel) => { setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { monitored: on, channel: on ? (channel === "both" ? "SMS + Mail" : channel === "sms" ? "SMS" : "Mail") : null }) : r)); api("/api/mybook/" + id + "/monitor", { on: on, channel: channel || "mail" }); };
     const toggleMon = (p) => { if (p.monitored) setMon(p.id, false); else { setMonCh("mail"); setMonModal(p.id); } };
     const confirmMon = () => { setMon(monModal, true, monCh); setMonModal(null); };
-    const toggleEdit = (id) => setEditId((e) => e === id ? null : id);
-    const doDelete = () => { setRows((rs) => rs.filter((r) => r.id !== delId)); setDelId(null); };
+    const toggleEdit = (id) => setEditId((e) => { if (e === id) { const r = rows.find((x) => x.id === id); if (r) patch(id, { entry: r.entry, stop: r.stop, skim: r.skim, target: r.target, these: r.these }); return null; } return id; });
+    const doDelete = () => { api("/api/mybook/" + delId, null, "DELETE"); setRows((rs) => rs.filter((r) => r.id !== delId)); setDelId(null); };
+    // Action-Required-Buttons (Soll-Mapping → PATCH; VC bestätigt Feld-Namen)
+    const doAction = (p, act) => {
+      if (act === "edit") { setEditId(p.id); return; }
+      if (act === "ask_warren") { if (typeof window.PYchatOpen === "function") window.PYchatOpen("Zu meinem Topic „" + p.name + "“: " + (p.action_reason || "Was meinst du?")); return; }
+      if (act === "close") { api("/api/mybook/" + p.id, { state: "closed" }, "PATCH"); setRows((rs) => rs.filter((r) => r.id !== p.id)); return; }
+      if (act === "member_only") { patch(p.id, { tracking_source: "member_only", action_required: false }); setRows((rs) => rs.map((r) => r.id === p.id ? Object.assign({}, r, { tracking_source: "member_only", action_required: false }) : r)); return; }
+      // keep
+      patch(p.id, { action_required: false }); setRows((rs) => rs.map((r) => r.id === p.id ? Object.assign({}, r, { action_required: false }) : r));
+    };
     const count = rows.length;
     const delName = (rows.find((r) => r.id === delId) || {}).name || "Dieses Topic";
 
@@ -176,13 +208,28 @@
       return h("div", { key: p.id, className: "topic" + (isOpen ? " open" : "") },
         h("div", { className: "orow", onClick: () => setOpen(isOpen ? null : p.id) },
           h("div", { className: "c-mon" }, h("span", { className: "mon-lbl" }, T("Beobachten", "Monitor")), h("button", { className: "sw " + (p.monitored ? "on" : "off"), onClick: (e) => { e.stopPropagation(); toggleMon(p); } }, h("span", { className: "knob" }))),
-          h("div", { className: "c-topic" }, h("div", { className: "nm" }, p.name), h("div", { className: "t-meta" }, h("span", { className: "badge idx" }, p.idx), h("span", { className: "badge long" }, p.art), h("span", { className: "isin" }, p.isin + " · " + p.live))),
+          h("div", { className: "c-topic" }, h("div", { className: "nm" }, p.name), h("div", { className: "t-meta" },
+            h("span", { className: "badge idx" }, p.idx),
+            h("span", { className: "badge long" }, p.art),
+            h("span", { className: "badge " + (p.tracking_source === "member_only" ? "src-self" : "src-oracle") }, p.tracking_source === "member_only" ? T("Du trackst", "You track") : T("Orakel", "Oracle")),
+            p.action_required ? h("span", { className: "ar-pill" }, "⚠ ", T("Schau hin", "Look")) : null,
+            h("span", { className: "isin" }, p.isin + " · " + p.live))),
           h("div", { className: "c-stat" }, h(Mini, { p })),
           h("div", { className: "c-trig" }, h(Marks, { p, editing: isEdit, onField: setField })),
           h("div", { className: "c-act" },
             h("span", { className: "det" }, isOpen ? T("Schließen ▴", "Close ▴") : T("Details ▾", "Details ▾")),
             h("button", { className: "bedit" + (isEdit ? " saving" : ""), onClick: (e) => { e.stopPropagation(); toggleEdit(p.id); } }, isEdit ? T("Speichern ✓", "Save ✓") : T("Bearbeiten ✎", "Edit ✎")))),
-        isOpen ? h("div", { className: "dpanel" }, h("div", { className: "dwrap" }, h("div", { className: "dgrid" },
+        isOpen ? h("div", { className: "dpanel" }, h("div", { className: "dwrap" },
+          p.action_required ? h("div", { className: "ar-banner" },
+            h("div", { className: "ar-head" }, "⚠ ", T("Das Orakel meldet einen Bruch", "The oracle reports a break")),
+            h("div", { className: "ar-reason" }, p.action_reason || T("Eine Kurs-Marke oder ein Kill-Trigger wurde berührt.", "A price level or kill-trigger was hit.")),
+            h("div", { className: "ar-btns" },
+              h("button", { className: "arb keep", onClick: () => doAction(p, "keep") }, T("Behalten", "Keep")),
+              h("button", { className: "arb", onClick: () => doAction(p, "edit") }, T("Marken anpassen", "Adjust levels")),
+              h("button", { className: "arb", onClick: () => doAction(p, "member_only") }, T("Weiter laufen lassen", "Let it run")),
+              h("button", { className: "arb close", onClick: () => doAction(p, "close") }, T("Schließen", "Close")),
+              h("button", { className: "arb warren", onClick: () => doAction(p, "ask_warren") }, T("Frag Warren", "Ask Warren")))) : null,
+          h("div", { className: "dgrid" },
           h("div", { className: "dcol-act" },
             h("button", { className: "bline" }, T("Chart-Analyse per Mail", "Chart analysis by mail")),
             h("button", { className: "bdel", onClick: () => setDelId(p.id) }, T("Topic löschen", "Delete topic"))),
