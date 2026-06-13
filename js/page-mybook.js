@@ -158,13 +158,12 @@
       h("div", { className: "lab", style: { color: Z[p.zone - 1] } }, statusText(p)));
   }
 
-  function Marks({ p, editing, onField }) {
+  function Marks({ p }) {
     const rows = [["Entry", "entry", ""], ["Stop", "stop", "stop"], ["Skim", "skim", "skim"], ["Target", "target", "tgt"]];
     return h("div", { className: "mks" }, rows.map((r) =>
       h("div", { key: r[1], className: "mk " + r[2] },
         h("span", { className: "k" }, r[0]),
-        editing ? h("input", { className: "vin", value: p[r[1]], onChange: (e) => onField(p.id, r[1], e.target.value), onClick: (e) => e.stopPropagation() })
-                : h("span", { className: "v" }, p[r[1]]))));
+        h("span", { className: "v" }, p[r[1]] || "—"))));
   }
 
   function App() {
@@ -172,14 +171,13 @@
     const [rows, setRows] = useState([]);
     const [loaded, setLoaded] = useState(false);
     const [open, setOpen] = useState(null);
-    const [editId, setEditId] = useState(null);
     const [monModal, setMonModal] = useState(null);
     const [monCh, setMonCh] = useState("mail");
     const [delId, setDelId] = useState(null);
     const [summary, setSummary] = useState(true);
-    const editOrig = useRef({});
-    const BLANK = { name: "", isin: "", idx: "", art: "Aktie · Long", currency: "EUR", entry: "", stop: "", skim: "", target: "", these: "", kill: "" };
+    const BLANK = { name: "", isin: "", issuer: "", idx: "", art: "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: "", stop: "", skim: "", target: "", these: "", kill: "" };
     const [addF, setAddF] = useState(null);
+    const [editingId, setEditingId] = useState(null);
     const [addBusy, setAddBusy] = useState(false);
 
     useEffect(() => {
@@ -210,26 +208,14 @@
     const api = (path, body, method) => fetch(API + path, { method: method || "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then((r) => { if (r && (r.status === 401 || r.status === 403) && window.PYsessionExpired) window.PYsessionExpired(); return r; }).catch(() => { });
     const patch = (id, body) => api("/api/mybook/" + id, body, "PATCH");
     const reload = () => fetch(API + "/api/mybook", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => { if (d && d.ok && Array.isArray(d.topics)) setRows(d.topics); }).catch(() => { });
-    const setField = (id, k, v) => setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { [k]: v }) : r));
     const setMon = (id, on, channel) => { setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { monitored: on, channel: on ? (channel === "both" ? "SMS + Mail" : channel === "sms" ? "SMS" : "Mail") : null }) : r)); api("/api/mybook/" + id + "/monitor", { on: on, channel: channel || "mail" }); };
     const toggleMon = (p) => { if (p.monitored) setMon(p.id, false); else { setMonCh("mail"); setMonModal(p.id); } };
     const confirmMon = () => { setMon(monModal, true, monCh); setMonModal(null); };
-    const enterEdit = (id) => { const r = rows.find((x) => x.id === id) || {}; editOrig.current = { entry: r.entry, stop: r.stop, skim: r.skim, target: r.target }; setEditId(id); };
-    const saveEdit = (id) => {
-      const r = rows.find((x) => x.id === id); const o = editOrig.current || {}; const body = {};
-      ["entry", "stop", "skim", "target"].forEach((k) => {
-        const cur = (r && r[k] != null) ? String(r[k]) : "";
-        const orig = (o[k] != null) ? String(o[k]) : "";
-        if (cur !== orig) body[k] = (cur === "" ? null : deNum(r[k])); // nur GEÄNDERTE Felder; als Number; geleert → explizit null
-      });
-      if (Object.keys(body).length) patch(id, body).then(reload);
-      setEditId(null);
-    };
-    const toggleEdit = (id) => { if (editId === id) saveEdit(id); else enterEdit(id); };
+    const openEdit = (p) => { setEditingId(p.id); setAddF({ name: p.name || "", isin: p.isin || "", issuer: p.issuer || "", idx: p.idx || "", art: p.art || "Aktie · Long", venue: p.venue || "Tradegate", currency: p.currency || "EUR", entry: p.entry || "", stop: p.stop || "", skim: p.skim || "", target: p.target || "", these: p.these || "", kill: p.kill || "" }); };
     const doDelete = () => { api("/api/mybook/" + delId, null, "DELETE"); setRows((rs) => rs.filter((r) => r.id !== delId)); setDelId(null); };
     // Action-Required-Buttons (Soll-Mapping → PATCH; VC bestätigt Feld-Namen)
     const doAction = (p, act) => {
-      if (act === "edit") { enterEdit(p.id); return; }
+      if (act === "edit") { openEdit(p); return; }
       if (act === "ask_warren") { if (typeof window.PYchatOpen === "function") window.PYchatOpen("Zu meinem Topic „" + p.name + "“: " + (p.action_reason || "Was meinst du?")); return; }
       if (act === "close") { api("/api/mybook/" + p.id, { state: "closed" }, "PATCH"); setRows((rs) => rs.filter((r) => r.id !== p.id)); return; }
       if (act === "member_only") { patch(p.id, { tracking_source: "member_only", action_required: false }); setRows((rs) => rs.map((r) => r.id === p.id ? Object.assign({}, r, { tracking_source: "member_only", action_required: false }) : r)); return; }
@@ -238,12 +224,23 @@
     };
     const count = rows.length;
     const delName = (rows.find((r) => r.id === delId) || {}).name || "Dieses Topic";
-    const addTopic = () => setAddF(Object.assign({}, BLANK));
+    const addTopic = () => { setEditingId(null); setAddF(Object.assign({}, BLANK)); };
+    const closeForm = () => { setAddF(null); setEditingId(null); };
     const setAf = (k, v) => setAddF((o) => Object.assign({}, o, { [k]: v }));
     const submitAdd = () => {
       const f = addF; if (!f || !f.name.trim()) return;
-      api("/api/mybook", { name: f.name.trim(), isin: f.isin.trim(), market: f.idx.trim(), art: f.art, currency: f.currency, entry: deNum(f.entry), stop: deNum(f.stop), skim: deNum(f.skim), target: deNum(f.target), these: f.these, anti_these: f.kill }, "POST").then(reload);
-      setAddF(null);
+      const body = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, market: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: deNum(f.entry), stop: deNum(f.stop), skim: deNum(f.skim), target: deNum(f.target), these: f.these, anti_these: f.kill };
+      if (editingId) api("/api/mybook/" + editingId, body, "PATCH").then(reload);
+      else api("/api/mybook", body, "POST").then(reload);
+      closeForm();
+    };
+    const isinLookup = () => {
+      const isin = ((addF && addF.isin) || "").trim(); if (!isin) return;
+      setAddBusy(true);
+      fetch(API + "/api/mybook/isin-lookup?isin=" + encodeURIComponent(isin), { credentials: "include" })
+        .then((r) => { if (r && (r.status === 401 || r.status === 403) && window.PYsessionExpired) window.PYsessionExpired(); return r.ok ? r.json() : null; })
+        .then((d) => { const s = d && d.ok && (d.instrument || d.suggestion); if (s) setAddF((o) => Object.assign({}, o || BLANK, { name: s.name || (o && o.name) || "", issuer: s.issuer || (o && o.issuer) || "", idx: s.market || (o && o.idx) || "", art: s.art || (o && o.art) || "Aktie · Long", currency: s.currency || (o && o.currency) || "EUR", venue: s.venue || (o && o.venue) || "Tradegate" })); setAddBusy(false); })
+        .catch(() => setAddBusy(false));
     };
     const numStr = (n) => (n == null ? "" : String(n).replace(".", ","));
     const onVision = (e) => {
@@ -273,7 +270,7 @@
       h("select", { className: "f-i", value: addF[o.k], onChange: (e) => setAf(o.k, e.target.value) }, o.opts.map((op) => h("option", { key: op, value: op }, op))));
 
     const Topic = (p) => {
-      const isOpen = open === p.id, isEdit = editId === p.id;
+      const isOpen = open === p.id;
       return h("div", { key: p.id, className: "topic" + (isOpen ? " open" : "") },
         h("div", { className: "orow", onClick: () => setOpen(isOpen ? null : p.id) },
           h("div", { className: "c-mon" }, h("span", { className: "mon-lbl" }, T("Beobachten", "Monitor")), h("button", { className: "sw " + (p.monitored ? "on" : "off"), onClick: (e) => { e.stopPropagation(); toggleMon(p); } }, h("span", { className: "knob" }))),
@@ -284,10 +281,10 @@
             p.action_required ? h("span", { className: "ar-pill" }, T("Schau hin", "Look")) : null,
             h("span", { className: "isin" }, p.isin + " · Live " + p.live + (p.currency ? " " + p.currency : "")))),
           h("div", { className: "c-stat" }, h(Mini, { p })),
-          h("div", { className: "c-trig" }, h(Marks, { p, editing: isEdit, onField: setField }), p.currency ? h("div", { className: "cur" }, p.currency) : null),
+          h("div", { className: "c-trig" }, h(Marks, { p }), p.currency ? h("div", { className: "cur" }, p.currency) : null),
           h("div", { className: "c-act" },
             h("span", { className: "det" }, isOpen ? T("Schließen ▴", "Close ▴") : T("Details ▾", "Details ▾")),
-            h("button", { className: "bedit" + (isEdit ? " saving" : ""), onClick: (e) => { e.stopPropagation(); toggleEdit(p.id); } }, isEdit ? T("Speichern ✓", "Save ✓") : T("Bearbeiten ✎", "Edit ✎")))),
+            h("button", { className: "bedit", onClick: (e) => { e.stopPropagation(); openEdit(p); } }, T("Bearbeiten", "Edit")))),
         isOpen ? h("div", { className: "dpanel" }, h("div", { className: "dwrap" },
           p.action_required ? h("div", { className: "ar-banner" },
             h("div", { className: "ar-head" }, T("Das Orakel meldet einen Bruch", "The oracle reports a break")),
@@ -358,28 +355,35 @@
           h("div", { className: "mrow" },
             h(Button, { variant: "ghost", size: "sm", onClick: () => setDelId(null) }, T("Abbrechen", "Cancel")),
             h("button", { className: "bdel", style: { padding: "9px 16px" }, onClick: doDelete }, T("Endgültig löschen", "Delete permanently"))))) : null,
-      addF ? h("div", { className: "ov2", onClick: () => setAddF(null) },
+      addF ? h("div", { className: "ov2", onClick: closeForm },
         h("div", { className: "modal modal-wide", onClick: (e) => e.stopPropagation() },
-          h("h3", null, T("Neues Topic", "New topic")),
+          h("h3", null, editingId ? T("Topic bearbeiten", "Edit topic") : T("Neues Topic", "New topic")),
           h("label", { className: "f-up" + (addBusy ? " busy" : "") },
-            h("span", null, addBusy ? T("Warren liest die Datei…", "Warren is reading the file…") : T("Screenshot oder PDF hochladen — Warren liest die Marken aus", "Upload a screenshot or PDF — Warren reads the levels")),
+            h("span", null, addBusy ? T("Warren liest…", "Warren is reading…") : T("Screenshot oder PDF hochladen / neu einlesen — Warren liest die Marken aus", "Upload or re-scan a screenshot/PDF — Warren reads the levels")),
             h("input", { type: "file", accept: ".png,.jpg,.jpeg,.webp,.pdf", style: { display: "none" }, disabled: addBusy, onChange: onVision })),
           h("div", { className: "f-note" }, T("Die Datei wird nicht gespeichert — nur die ausgelesenen Marken. Du kannst alles korrigieren.", "The file is not stored — only the extracted levels. You can correct everything.")),
           h("div", { className: "f-grid" },
             Fld({ label: "Name", k: "name", full: true, ph: "Rheinmetall AG" }),
-            Fld({ label: "ISIN", k: "isin", ph: "DE0007030009" }),
+            h("div", { key: "isin", className: "f f-full" },
+              h("label", { className: "f-l" }, T("ISIN — automatische Befüllung", "ISIN — auto-fill")),
+              h("div", { style: { display: "flex", gap: 8 } },
+                h("input", { className: "f-i", value: addF.isin, placeholder: "DE0007030009", onChange: (e) => setAf("isin", e.target.value) }),
+                h(Button, { variant: "ghost", size: "sm", disabled: addBusy || !(addF.isin && addF.isin.trim()), onClick: isinLookup }, T("Laden", "Load")))),
+            Fld({ label: T("Emittent", "Issuer"), k: "issuer", ph: T("z. B. Société Générale", "e.g. Société Générale") }),
             Sel({ label: T("Art", "Type"), k: "art", opts: ["Aktie · Long", "Aktie · Short", "ETC · Long", "ETC · Short", "Knock-out · Long", "Knock-out · Short", "Optionsschein", "Krypto · Long", "Forex"] }),
             Fld({ label: T("Markt / Index", "Market / index"), k: "idx", ph: "EURO STOXX 50" }),
+            Sel({ label: T("Handelsplatz", "Trading venue"), k: "venue", opts: ["Tradegate", "Lang & Schwarz", "Gettex", "Xetra", "Stuttgart", "Frankfurt", "NYSE", "NASDAQ", "Sonstige"] }),
             Sel({ label: T("Währung", "Currency"), k: "currency", opts: ["EUR", "USD", "GBP", "CHF", "JPY"] }),
-            Fld({ label: "Entry", k: "entry", ph: "1.197" }),
-            Fld({ label: "Stop", k: "stop", ph: "1.150" }),
-            Fld({ label: "Skim", k: "skim", ph: "1.260" }),
-            Fld({ label: "Target", k: "target", ph: "1.320" }),
+            Fld({ label: "Entry", k: "entry" }),
+            Fld({ label: "Stop", k: "stop" }),
+            Fld({ label: "Skim", k: "skim" }),
+            Fld({ label: "Target", k: "target" }),
             Fld({ label: T("Deine These", "Your thesis"), k: "these", full: true, area: true }),
             Fld({ label: T("Anti-These (Kippt bei)", "Anti-thesis (breaks on)"), k: "kill", full: true, ph: "Iran-Ceasefire · EU-Budget-Cut" })),
-          h("div", { className: "mrow", style: { marginTop: 18 } },
-            h(Button, { variant: "ghost", size: "sm", onClick: () => setAddF(null) }, T("Abbrechen", "Cancel")),
-            h(Button, { variant: "oracle", size: "sm", disabled: !addF.name.trim(), onClick: submitAdd }, T("Topic anlegen", "Create topic"))))) : null,
+          h("div", { className: "f-note", style: { marginTop: 12 } }, T("Handelsplatz = wo du handelst. Standard Tradegate (EUR) — bestimmt, woher der Live-Kurs kommt. Kurs-Felder leer lassen, wenn unbekannt.", "Trading venue = where you trade. Default Tradegate (EUR) — sets where the live price comes from. Leave price fields empty if unknown.")),
+          h("div", { className: "mrow", style: { marginTop: 16 } },
+            h(Button, { variant: "ghost", size: "sm", onClick: closeForm }, T("Abbrechen", "Cancel")),
+            h(Button, { variant: "oracle", size: "sm", disabled: !addF.name.trim(), onClick: submitAdd }, editingId ? T("Speichern", "Save") : T("Topic anlegen", "Create topic"))))) : null,
       h(SiteFooter, null));
   }
 
