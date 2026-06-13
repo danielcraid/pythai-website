@@ -241,7 +241,15 @@
         setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, opt) : r));
         api("/api/mybook/" + id, body, "PATCH").then((res) => (res && res.ok && res.json) ? res.json() : null).then((d) => { if (d && d.ok && d.topic) setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, d.topic) : r)); });
       } else {
-        api("/api/mybook", body, "POST").then((res) => (res && res.ok && res.json) ? res.json() : null).then((d) => { if (d && d.ok && d.topic) { const nt = d.topic; setRows((rs) => rs.concat([nt])); setOpen(nt.id); } else setTimeout(reload, 1500); });
+        const tempId = "tmp-" + Date.now();
+        setRows((rs) => rs.concat([Object.assign({ id: tempId, live: "", score: 0, zone: 3, waage_pct: 50, monitored: false, channel: null, state: "active", tracking_source: "member_only", action_required: false }, opt)]));
+        setOpen(tempId);
+        api("/api/mybook", body, "POST")
+          .then((res) => { if (!res || !res.ok) return { ok: false }; return res.json ? res.json() : { ok: true }; })
+          .then((d) => {
+            if (d && d.topic) setRows((rs) => rs.map((r) => r.id === tempId ? Object.assign({}, r, d.topic) : r));
+            else if (d && d.ok === false) setRows((rs) => rs.filter((r) => r.id !== tempId)); // echter Fehler → optimistische Zeile zurücknehmen
+          });
       }
       closeForm();
     };
