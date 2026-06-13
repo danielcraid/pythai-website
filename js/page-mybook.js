@@ -210,6 +210,7 @@
     };
     const count = rows.length;
     const delName = (rows.find((r) => r.id === delId) || {}).name || "Dieses Topic";
+    const addTopic = () => { const el = document.getElementById("mb-add"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); };
 
     const Topic = (p) => {
       const isOpen = open === p.id, isEdit = editId === p.id;
@@ -254,7 +255,9 @@
       h(PySection, null,
         h("div", { className: "toolbar" },
           h(PyEyebrow, null, T("Überblick · ", "Overview · ") + count + "/" + MAX + " Topics"),
-          h("label", { className: "rep" }, h("button", { className: "sw " + (summary ? "on" : "off"), onClick: () => setSummary(!summary) }, h("span", { className: "knob" })), T("Tägliche My-Book-Summary", "Daily My-Book summary"))),
+          h("div", { style: { display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" } },
+            h("label", { className: "rep" }, h("button", { className: "sw " + (summary ? "on" : "off"), onClick: () => setSummary(!summary) }, h("span", { className: "knob" })), T("Tägliche My-Book-Summary", "Daily My-Book summary")),
+            h(Button, { variant: "oracle", size: "sm", disabled: count >= MAX, onClick: addTopic }, T("+ Topic hinzufügen", "+ Add topic")))),
         h("h2", { className: "mb" }, T("Deine Topics auf einen Blick.", "Your topics at a glance.")),
         rows.length ? h("div", { className: "list" },
           h("div", { className: "hdr" },
@@ -266,8 +269,9 @@
           rows.map(Topic))
         : (loaded ? h("div", { className: "empty" },
             h("div", { className: "empty-t" }, T("Dein Buch ist noch leer.", "Your book is still empty.")),
-            h("div", { className: "empty-s" }, T("Leg dein erstes Topic an — per Upload oder von Hand. Warren beobachtet ab dann, ob deine These hält.", "Add your first topic — by upload or by hand. Warren then watches whether your thesis holds."))) : null),
-        h("div", { className: "add" + (count >= MAX ? " full" : "") },
+            h("div", { className: "empty-s" }, T("Leg ein Topic an, wenn eine These stark genug ist — per Upload oder von Hand. Warren beobachtet ab dann, ob sie hält.", "Add a topic when a thesis is strong enough — by upload or by hand. Warren then watches whether it holds.")),
+            h("div", { style: { marginTop: 22 } }, h(Button, { variant: "oracle", onClick: addTopic }, T("+ Topic hinzufügen", "+ Add topic")))) : null),
+        h("div", { id: "mb-add", className: "add" + (count >= MAX ? " full" : "") },
           h("div", { className: "addt" }, T("Neues Topic?", "New topic?")),
           h("div", { className: "adds" }, T("Lade einen Screenshot oder ein PDF hoch — Warren liest die Kurs-Marken aus und fragt nach deiner These. Die Datei wird nicht gespeichert: du bestätigst nur die ausgelesenen Marken. Oder trag alles selbst ein.", "Upload a screenshot or PDF — Warren reads the price levels and asks for your thesis. The file is not stored: you only confirm the extracted levels. Or enter everything yourself.")),
           h("div", { className: "addbtns", style: { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" } },
