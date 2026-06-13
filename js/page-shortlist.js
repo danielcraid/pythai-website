@@ -5,7 +5,8 @@
   const API = "https://api.pythai.ch";
   const { useState, useEffect } = React;
   const h = React.createElement;
-  const PRIV = ["syndicate", "admin"];
+  const PRIV = ["syndicate", "admin"];                                  // darf "In My Book" klicken
+  const VIEW = ["inner-circle", "circle-of-trust", "syndicate", "admin"]; // darf die Shortlist sehen
 
   const Z = ["#C4524C", "#CF7A4E", "#C9A24E", "#6FB07A", "#6FCF9A"];
   const ZONE = ["GEBROCHEN", "WACKELT", "NEUTRAL", "INTAKT", "STARK"];
@@ -69,9 +70,11 @@
 
   /* Kurs-Leiter (price ladder) */
   #sl-root .lad{position:relative;margin:4px 22px 20px;height:74px;}
-  #sl-root .lad-live{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:3px;z-index:3;}
-  #sl-root .lad-live .bub{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-on-gold);background:var(--grad-gold);border-radius:5px;padding:2px 7px;white-space:nowrap;box-shadow:0 4px 14px -4px rgba(212,169,78,.7);}
-  #sl-root .lad-live .ndl{width:2px;height:14px;background:var(--oracle-b);box-shadow:0 0 8px var(--oracle-b);}
+  #sl-root .lad-live{position:absolute;top:2px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:1px;z-index:3;pointer-events:none;}
+  #sl-root .lad-live .bub{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--oracle-b);white-space:nowrap;letter-spacing:.02em;}
+  #sl-root .lad-live .car{color:var(--oracle-b);font-size:9px;line-height:1;}
+  #sl-root .lad-live .ndl{width:1.5px;height:17px;background:var(--oracle-b);}
+  #sl-root .lad-live .dot{width:9px;height:9px;border-radius:50%;background:var(--oracle-b);border:2px solid var(--void);margin-top:-1px;}
   #sl-root .lad-track{position:absolute;top:42px;left:0;right:0;height:8px;border-radius:999px;background:linear-gradient(90deg,rgba(196,82,76,.85) 0%,rgba(201,162,78,.5) 50%,rgba(111,207,154,.85) 100%);}
   #sl-root .lad-skim{position:absolute;top:39px;transform:translateX(-50%);width:2px;height:14px;background:var(--oracle);border-radius:2px;z-index:2;}
   #sl-root .lad-mk{position:absolute;top:54px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;white-space:nowrap;}
@@ -100,6 +103,10 @@
   #sl-root .badd.done{background:rgba(111,207,154,.12);color:var(--bull);border:1px solid rgba(111,207,154,.4);}
   #sl-root .baddhint{font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--ash);margin-top:8px;text-align:center;}
   #sl-root .baddhint.watch{color:var(--ox-b);}
+  #sl-root .badd.lock{background:transparent;color:var(--oracle-b);border:1px solid rgba(212,169,78,.45);}
+  #sl-root .badd.lock .lk{font-size:10px;vertical-align:1px;}
+  #sl-root a.baddhint.up{display:block;color:var(--oracle-b);text-decoration:none;}
+  #sl-root a.baddhint.up:hover{color:var(--oracle);}
   #sl-root .openbook{display:inline-block;margin-top:9px;font-family:var(--font-mono);font-size:11px;color:var(--oracle-b);text-decoration:none;text-align:center;}
 
   /* Locked / states */
@@ -151,7 +158,7 @@
     const mk = (v, kls, key, label) => v == null ? null : h("div", { key: key, className: "lad-mk " + kls, style: { left: pos(v) + "%" } },
       h("div", { className: "t" }), h("div", { className: "k" }, label), h("div", { className: "v" }, deFmt(v)));
     return h("div", { className: "lad" },
-      live != null ? h("div", { className: "lad-live", style: { left: pos(live) + "%" } }, h("div", { className: "bub" }, deFmt(live)), h("div", { className: "ndl" })) : null,
+      live != null ? h("div", { className: "lad-live", style: { left: pos(live) + "%" } }, h("div", { className: "bub" }, deFmt(live)), h("div", { className: "car" }, "▾"), h("div", { className: "ndl" }), h("div", { className: "dot" })) : null,
       h("div", { className: "lad-track" }),
       skims.map((s, i) => h("div", { key: "sk" + i, className: "lad-skim", style: { left: pos(s) + "%" } })),
       mk(stop, "stop", "st", T("Stop", "Stop")),
@@ -162,25 +169,28 @@
   function App() {
     const [me, setMe] = useState(null);
     const [gate, setGate] = useState("loading"); // loading | ok | locked
+    const [denied, setDenied] = useState(false); // Member, aber Endpoint noch Syndicate-only (403)
     const [trades, setTrades] = useState(null);
     const [open, setOpen] = useState(null);
     const [addingId, setAddingId] = useState(null);
     const [addedIds, setAddedIds] = useState([]);
     const [flash, setFlash] = useState("");
     const showFlash = (m) => { setFlash(m); setTimeout(() => setFlash(""), 4500); };
+    const canAdd = !!(me && PRIV.indexOf(me.tier) !== -1 && me.approval === "approved");
 
     useEffect(() => { injectCSS(); }, []);
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
         setMe(d && d.ok ? d : null);
-        const ok = d && d.ok && PRIV.indexOf(d.tier) !== -1 && d.approval === "approved";
+        const ok = d && d.ok && VIEW.indexOf(d.tier) !== -1 && d.approval === "approved";
         setGate(ok ? "ok" : "locked");
       }).catch(() => setGate("locked"));
     }, []);
     useEffect(() => {
       if (gate !== "ok") return;
       fetch(API + "/api/mybook/hunter-shortlist", { credentials: "include" }).then((r) => {
-        if (r.status === 401 || r.status === 403) { if (window.PYsessionExpired) window.PYsessionExpired(); return null; }
+        if (r.status === 401) { if (window.PYsessionExpired) window.PYsessionExpired(); return null; }
+        if (r.status === 403) { setDenied(true); return null; } // Session gültig, aber Tier (noch) nicht freigegeben
         return r.ok ? r.json() : null;
       }).then((d) => {
         const tr = d && d.ok && Array.isArray(d.trades) ? d.trades : [];
@@ -260,13 +270,17 @@
               ? h("div", null,
                   h("button", { className: "badd", disabled: true }, T("In My Book", "Add to My Book")),
                   h("div", { className: "baddhint watch" }, T("Watchlist-Status — noch kein Entry. Sobald das Orakel scharf stellt, kannst du es übernehmen.", "Watchlist — no entry yet. Once the oracle arms it, you can add it.")))
-              : added
+              : !canAdd
                 ? h("div", null,
-                    h("button", { className: "badd done", disabled: true }, T("✓ Im My Book", "✓ In My Book")),
-                    h("a", { className: "openbook", href: "mybook.html" }, T("→ In My Book öffnen", "→ open My Book")))
-                : h("div", null,
-                    h("button", { className: "badd", disabled: addingId === t.id, onClick: () => addToBook(t) }, addingId === t.id ? T("übernehme…", "adding…") : T("In My Book übernehmen", "Add to My Book")),
-                    h("div", { className: "baddhint" }, T("Übernimmt These, Marken & Anti-These — als Orakel-Mirror. Du kannst alles anpassen.", "Copies thesis, levels & anti-thesis — as oracle mirror. You can adjust everything.")))))
+                    h("button", { className: "badd lock", disabled: true }, h("span", { className: "lk" }, "▲"), " ", T("In My Book — Syndicate", "In My Book — Syndicate")),
+                    h("a", { className: "baddhint up", href: "inner-circle.html" }, T("Im Syndicate übernimmst du Orakel-Trades mit einem Klick. → Syndicate ansehen", "In the Syndicate you copy oracle trades with one click. → see Syndicate")))
+                : added
+                  ? h("div", null,
+                      h("button", { className: "badd done", disabled: true }, T("✓ Im My Book", "✓ In My Book")),
+                      h("a", { className: "openbook", href: "mybook.html" }, T("→ In My Book öffnen", "→ open My Book")))
+                  : h("div", null,
+                      h("button", { className: "badd", disabled: addingId === t.id, onClick: () => addToBook(t) }, addingId === t.id ? T("übernehme…", "adding…") : T("In My Book übernehmen", "Add to My Book")),
+                      h("div", { className: "baddhint" }, T("Übernimmt These, Marken & Anti-These — als Orakel-Mirror. Du kannst alles anpassen.", "Copies thesis, levels & anti-thesis — as oracle mirror. You can adjust everything.")))))
           : null);
     };
 
@@ -283,7 +297,7 @@
 
     if (gate === "loading") return page(h("div", { className: "state" }, T("Das Orakel öffnet die Liste…", "The oracle opens the list…")));
 
-    if (gate === "locked") {
+    if (gate === "locked" || denied) {
       const loggedIn = !!me;
       return page(h("div", null,
         Hero(null),
