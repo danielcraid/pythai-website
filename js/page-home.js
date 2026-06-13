@@ -2,6 +2,7 @@
   const { Button, Card } = window.PYTHAIDesignSystem_df6467;
   const { PyReadingTeaser, PyPricing, PyHeroParticles, SiteNav, SiteFooter, PySection, PyH2, PyEyebrow } = window;
   const T = (de, en) => window.PYi18n.t(de, en);
+  const h = React.createElement;
   function go() {
     window.location.href = "inner-circle.html#waitlist";
   }
@@ -51,8 +52,30 @@
       /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-oracle)" } }, "Ask Warren")
     );
   }
+  function NotWhat() {
+    const NOT = [
+      [T("Keine Trading-Plattform", "Not a trading platform"), T("PYTHAI führt keine Orders aus und hält kein Geld. Du handelst wie immer bei deinem eigenen Broker.", "PYTHAI places no orders and holds no money. You trade at your own broker, as always.")],
+      [T("Kein Portfolio-Management", "No portfolio management"), T("Wir verwalten kein Vermögen, sehen deine Positionen nicht und geben keine personalisierte Allokation.", "We manage no assets, can't see your positions and give no personalised allocation.")],
+      [T("Keine Anlageberatung", "Not investment advice"), T("Das Orakel liefert Markt-Beobachtung mit offengelegter Begründung — keine auf dich zugeschnittene Empfehlung. Du entscheidest.", "The oracle delivers market observation with its reasoning laid open — never advice tailored to you. You decide.")],
+      [T("Kein Renditeversprechen", "No promised returns"), T("Keine garantierten Gewinne, keine Performance-Claims. Eine These ist eine These — sie kann kippen.", "No guaranteed gains, no performance claims. A thesis is a thesis — it can break.")],
+      [T("Keine Verwahrung, kein Broker", "No custody, no brokerage"), T("Wir halten keine Assets und keine Einlagen. PYTHAI fasst dein Geld nie an.", "We hold no assets and no deposits. PYTHAI never touches your money.")],
+      [T("Kein Copy-Trading", "No copy-trading"), T("My Book ist dein eigenes Thesen-Buch, rein kursbasiert — kein automatisches Kopieren fremder Depots.", "My Book is your own thesis book, purely price-based — no auto-copying of other people's portfolios.")]
+    ];
+    return h(PySection, { alt: true },
+      h("div", { style: { marginBottom: 40, maxWidth: 680 } },
+        h(PyEyebrow, null, T("Klare Abgrenzung", "Clear boundaries")),
+        h(PyH2, null, T("Was PYTHAI nicht ist.", "What PYTHAI is not.")),
+        h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.65, color: "var(--text-secondary)", margin: "14px 0 0" } }, T("Damit es keine Missverständnisse gibt — das hier sind wir bewusst nicht.", "So there's no misunderstanding — this is deliberately what we are not."))),
+      h("div", { className: "pk-grid3" }, NOT.map(([title, body]) =>
+        h(Card, { key: title, variant: "raised", padding: "28px" },
+          h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--oxblood-bright)", marginBottom: 12 } }, "PYTHAI ≠"),
+          h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 23, lineHeight: 1.1, color: "var(--text-primary)", marginBottom: 10 } }, title),
+          h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: 0 } }, body)))),
+      h("div", { style: { marginTop: 34, borderTop: "1px solid var(--border-subtle)", paddingTop: 24, maxWidth: 760 } },
+        h("p", { style: { fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: "clamp(19px,2.4vw,24px)", lineHeight: 1.45, color: "var(--parchment)", margin: 0 } }, T("Was wir sind: ein Orakel, das liest, bewertet und begründet. Den Trade machst du.", "What we are: an oracle that reads, scores and reasons. The trade is yours to make."))));
+  }
   function App() {
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SiteNav, { active: "index.html" }), /* @__PURE__ */ React.createElement(OracleHero, null), /* @__PURE__ */ React.createElement(PyReadingTeaser, null), /* @__PURE__ */ React.createElement(How, null), /* @__PURE__ */ React.createElement(PyPricing, { onEnter: go }), /* @__PURE__ */ React.createElement(ClosingCTA, null), /* @__PURE__ */ React.createElement(SiteFooter, null));
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SiteNav, { active: "index.html" }), /* @__PURE__ */ React.createElement(OracleHero, null), /* @__PURE__ */ React.createElement(PyReadingTeaser, null), /* @__PURE__ */ React.createElement(How, null), /* @__PURE__ */ React.createElement(NotWhat, null), /* @__PURE__ */ React.createElement(PyPricing, { onEnter: go }), /* @__PURE__ */ React.createElement(ClosingCTA, null), /* @__PURE__ */ React.createElement(SiteFooter, null));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(/* @__PURE__ */ React.createElement(App, null));
 })();
