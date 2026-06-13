@@ -145,7 +145,7 @@
       GROUPS.map(([gtitle, gtag, reports], gi) => h(PySection, { key: gi, alt: gi % 2 === 1 },
         h("div", { style: { marginBottom: 28 } }, h(PyEyebrow, null, T("Rhythmus", "Rhythm")), h(PyH2, null, gtitle), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-secondary)", margin: "6px 0 0" } }, gtag)),
         reports.map((r) => h(Report, { key: r.key, r: r })))),
-      smsModal ? h("div", { onClick: () => setSmsModal(false), style: { position: "fixed", inset: 0, zIndex: 200, background: "rgba(4,5,8,0.82)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } },
+      smsModal ? h("div", { onClick: () => setSmsModal(false), style: { position: "fixed", inset: 0, zIndex: 260, background: "rgba(4,5,8,0.82)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } },
         h("div", { onClick: (e) => e.stopPropagation(), style: { maxWidth: 440, width: "100%", boxSizing: "border-box", background: "var(--bg-raised)", border: "1px solid var(--border-oracle)", borderRadius: 14, padding: 28 } },
           h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 25, margin: "0 0 10px", color: "var(--oracle-bright)" } }, T("Mobilnummer verifizieren", "Verify your mobile number")),
           h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 18px" } }, T("SMS-Trade-Alerts gehen aufs Handy — dafür müssen wir deine Nummer einmal bestätigen. Wir schicken dir einen Code per SMS.", "SMS trade alerts go to your phone — we need to confirm your number once. We'll text you a code.")),
