@@ -103,6 +103,7 @@
   #mb-root .disc .tlbl{margin:0 0 5px;} #mb-root .disc p{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--mist);margin:0;max-width:none;}
   #mb-root .ov2{position:fixed;inset:0;background:rgba(4,5,8,.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;z-index:260;}
   #mb-root .modal{max-width:440px;width:100%;background:var(--raised);border:1px solid var(--border-oracle);border-radius:12px;padding:26px;}
+  #mb-root .flash{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:300;max-width:90vw;background:var(--raised);border:1px solid rgba(224,114,107,.6);border-left:3px solid var(--ox-b);border-radius:10px;padding:13px 18px;font-family:var(--font-ui);font-size:13.5px;color:var(--parch);box-shadow:0 14px 40px rgba(0,0,0,.5);}
   #mb-root .modal-wide{max-width:560px;max-height:90vh;overflow-y:auto;padding:22px 22px 0;}
   #mb-root .modal-wide h3{margin:0 0 12px;}
   #mb-root .f-foot{position:sticky;bottom:0;background:var(--raised);border-top:1px solid var(--border-subtle);padding:12px 0;margin-top:14px;display:flex;gap:10px;justify-content:flex-end;}
@@ -186,6 +187,8 @@
     const [addBusy, setAddBusy] = useState(false);
     const [checkId, setCheckId] = useState(null);
     const [checkMsg, setCheckMsg] = useState({});
+    const [flash, setFlash] = useState("");
+    const showFlash = (msg) => { setFlash(msg); setTimeout(() => setFlash(""), 4500); };
 
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
@@ -251,25 +254,25 @@
     const addTopic = () => { setEditingId(null); setAddF(Object.assign({}, BLANK)); };
     const closeForm = () => { setAddF(null); setEditingId(null); };
     const setAf = (k, v) => setAddF((o) => Object.assign({}, o, { [k]: v }));
+    const formValid = !!(addF && addF.name.trim() && (addF.these || "").trim().length >= 10 && (addF.kill || "").trim());
     const submitAdd = () => {
-      const f = addF; if (!f || !f.name.trim()) return;
+      const f = addF; if (!formValid) return;
       const body = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, market: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: deNum(f.entry), stop: deNum(f.stop), skim: deNum(f.skim), target: deNum(f.target), these: f.these, anti_these: f.kill };
       // optimistische Anzeige (gilt sofort); KEIN blindes Reload (Notion-Latenz würde zurückspringen)
       const opt = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, idx: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: f.entry, stop: f.stop, skim: f.skim, target: f.target, these: f.these, kill: f.kill };
+      const readJson = (res) => (res && res.json) ? res.json().then((d) => ({ status: res.status, d })).catch(() => ({ status: res.status, d: null })) : { status: 0, d: null };
       if (editingId) {
         const id = editingId;
         setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, opt) : r));
-        api("/api/mybook/" + id, body, "PATCH").then((res) => (res && res.ok && res.json) ? res.json() : null).then((d) => { if (d && d.ok && d.topic) setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, d.topic) : r)); });
+        api("/api/mybook/" + id, body, "PATCH").then(readJson).then(({ d }) => { if (d && d.ok && d.topic) setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, d.topic) : r)); else if (d && d.ok === false) showFlash(d.hint || T("Speichern fehlgeschlagen.", "Save failed.")); });
       } else {
         const tempId = "tmp-" + Date.now();
         setRows((rs) => rs.concat([Object.assign({ id: tempId, live: "", score: 0, zone: 3, waage_pct: 50, monitored: false, channel: null, state: "active", tracking_source: "member_only", action_required: false }, opt)]));
         setOpen(tempId);
-        api("/api/mybook", body, "POST")
-          .then((res) => { if (!res || !res.ok) return { ok: false }; return res.json ? res.json() : { ok: true }; })
-          .then((d) => {
-            if (d && d.topic) setRows((rs) => rs.map((r) => r.id === tempId ? Object.assign({}, r, d.topic) : r));
-            else if (d && d.ok === false) setRows((rs) => rs.filter((r) => r.id !== tempId)); // echter Fehler → optimistische Zeile zurücknehmen
-          });
+        api("/api/mybook", body, "POST").then(readJson).then(({ d }) => {
+          if (d && d.topic) setRows((rs) => rs.map((r) => r.id === tempId ? Object.assign({}, r, d.topic) : r));
+          else { setRows((rs) => rs.filter((r) => r.id !== tempId)); showFlash((d && d.hint) || T("Konnte nicht angelegt werden.", "Could not be created.")); } // Fehler → optimistische Zeile zurück
+        });
       }
       closeForm();
     };
@@ -301,9 +304,10 @@
       reader.readAsDataURL(file);
     };
     const Fld = (o) => h("div", { key: o.k, className: "f" + (o.full ? " f-full" : "") },
-      h("label", { className: "f-l" }, o.label),
+      h("label", { className: "f-l" }, o.label, o.req ? h("span", { style: { color: "var(--ox-b)" } }, " *") : null),
       o.area ? h("textarea", { className: "f-i", rows: 2, value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) })
-             : h("input", { className: "f-i", value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) }));
+             : h("input", { className: "f-i", value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) }),
+      o.hint ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--text-muted)", marginTop: 4 } }, o.hint) : null);
     const Sel = (o) => h("div", { key: o.k, className: "f" },
       h("label", { className: "f-l" }, o.label),
       h("select", { className: "f-i", value: addF[o.k], onChange: (e) => setAf(o.k, e.target.value) }, o.opts.map((op) => h("option", { key: op, value: op }, op))));
@@ -422,12 +426,13 @@
             Fld({ label: "Stop", k: "stop", ph: "0,00" }),
             Fld({ label: "Skim", k: "skim", ph: "0,00" }),
             Fld({ label: "Target", k: "target", ph: "0,00" }),
-            Fld({ label: T("Deine These", "Your thesis"), k: "these", full: true, area: true, ph: T("Schreibe deine These …", "Write your thesis …") }),
-            Fld({ label: T("Anti-These (Kippt bei)", "Anti-thesis (breaks on)"), k: "kill", full: true, ph: T("Schreibe deine Anti-These …", "Write your anti-thesis …") })),
+            Fld({ label: T("Deine These", "Your thesis"), k: "these", full: true, area: true, req: true, ph: T("Warum hältst du das? Mindestens 1 Satz.", "Why do you hold this? At least one sentence."), hint: T("Pflicht · mindestens 1 Satz (10+ Zeichen)", "Required · at least one sentence (10+ chars)") }),
+            Fld({ label: T("Anti-These (Kippt bei)", "Anti-thesis (breaks on)"), k: "kill", full: true, req: true, ph: T("Wann kippt die These? z. B. Ceasefire · Earnings-Miss", "When does it break? e.g. ceasefire · earnings miss") })),
           h("div", { className: "f-note", style: { marginTop: 10 } }, T("Handelsplatz = wo du handelst. Standard Tradegate (EUR). Kurs-Felder leer lassen, wenn unbekannt.", "Trading venue = where you trade. Default Tradegate (EUR). Leave price fields empty if unknown.")),
           h("div", { className: "f-foot" },
             h(Button, { variant: "ghost", size: "sm", onClick: closeForm }, T("Abbrechen", "Cancel")),
-            h(Button, { variant: "oracle", size: "sm", disabled: !addF.name.trim(), onClick: submitAdd }, editingId ? T("Speichern", "Save") : T("Topic anlegen", "Create topic"))))) : null,
+            h(Button, { variant: "oracle", size: "sm", disabled: !formValid, onClick: submitAdd }, editingId ? T("Speichern", "Save") : T("Topic anlegen", "Create topic"))))) : null,
+      flash ? h("div", { className: "flash" }, flash) : null,
       h(SiteFooter, null));
   }
 
