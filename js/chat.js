@@ -84,6 +84,11 @@
 
     useEffect(() => { if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight; }, [msgs, busy, auth]);
     useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+    // Globaler Hook: andere Seiten (z.B. My Book „Frag Warren") öffnen den Chat vorbefüllt
+    useEffect(() => {
+      window.PYchatOpen = (q) => { setOpen(true); boot(); if (q) setInput(q); };
+      return () => { try { delete window.PYchatOpen; } catch (e) { window.PYchatOpen = undefined; } };
+    }, []);
 
     const LS = "pythai_chat_sid";
     const leadGreet = () => ({ role: "warren", text: T("Schön, dass du da bist. Ich bin Warren, das KI-Hirn hinter PYTHAI. Frag mich, was du wissen willst — oder ob das hier was für dich ist.", "Good to have you here. I’m Warren, the AI mind behind PYTHAI. Ask me anything — or whether this is for you.") });
