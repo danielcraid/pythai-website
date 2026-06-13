@@ -234,13 +234,14 @@
     const submitAdd = () => {
       const f = addF; if (!f || !f.name.trim()) return;
       const body = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, market: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: deNum(f.entry), stop: deNum(f.stop), skim: deNum(f.skim), target: deNum(f.target), these: f.these, anti_these: f.kill };
+      // optimistische Anzeige (gilt sofort); KEIN blindes Reload (Notion-Latenz würde zurückspringen)
+      const opt = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, idx: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: f.entry, stop: f.stop, skim: f.skim, target: f.target, these: f.these, kill: f.kill };
       if (editingId) {
         const id = editingId;
-        // optimistisch sofort anzeigen (Notion-Write hat Latenz), dann verzögert abgleichen
-        setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, idx: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: f.entry, stop: f.stop, skim: f.skim, target: f.target, these: f.these, kill: f.kill }) : r));
-        api("/api/mybook/" + id, body, "PATCH").then(() => setTimeout(reload, 1200));
+        setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, opt) : r));
+        api("/api/mybook/" + id, body, "PATCH").then((res) => (res && res.ok && res.json) ? res.json() : null).then((d) => { if (d && d.ok && d.topic) setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, d.topic) : r)); });
       } else {
-        api("/api/mybook", body, "POST").then(() => setTimeout(reload, 1200));
+        api("/api/mybook", body, "POST").then((res) => (res && res.ok && res.json) ? res.json() : null).then((d) => { if (d && d.ok && d.topic) { const nt = d.topic; setRows((rs) => rs.concat([nt])); setOpen(nt.id); } else setTimeout(reload, 1500); });
       }
       closeForm();
     };
