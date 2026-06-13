@@ -89,7 +89,21 @@
   #sl-root .kurs .t{font-family:var(--font-mono);font-size:11px;color:var(--steel);}
   #sl-root .dist{display:flex;gap:28px;margin-top:9px;flex-wrap:wrap;}
   #sl-root .dist span{font-family:var(--font-mono);font-size:12px;}
-  #sl-root .dist .s{color:var(--bull);} #sl-root .dist .x{color:var(--ox-b);}
+  #sl-root .dist .s{color:var(--bull);} #sl-root .dist .x{color:var(--ox-b);} #sl-root .dist .f{color:var(--steel);}
+  #sl-root .stbadge{font-family:var(--font-mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;padding:2px 7px;}
+  #sl-root .stbadge.act{color:var(--bull);border:1px solid rgba(111,207,154,.4);}
+  #sl-root .stbadge.pend{color:var(--ash);border:1px solid #2A2F39;}
+  #sl-root .chg.flat{color:var(--steel);background:rgba(124,132,146,.1);border:1px solid rgba(124,132,146,.3);}
+  #sl-root .setup{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  #sl-root .setup .lab{font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel);}
+  #sl-root .setup .v{font-family:var(--font-mono);font-size:18px;color:var(--parch);}
+  #sl-root .setup .v.up{color:var(--bull);} #sl-root .setup .v.dn{color:var(--ox-b);}
+  #sl-root .setup .ar{font-family:var(--font-mono);font-size:14px;color:var(--steel);}
+  #sl-root .setupnote{font-family:var(--font-mono);font-size:11px;color:var(--steel);margin-top:8px;}
+  #sl-root .detmain{margin-top:22px;padding-top:22px;border-top:1px solid var(--line);}
+  #sl-root .actrow{display:flex;gap:12px;align-items:flex-start;margin-top:22px;padding-top:20px;border-top:1px solid var(--line);}
+  #sl-root .actcol{flex:1.5;display:flex;flex-direction:column;min-width:0;}
+  #sl-root .actrow .bchart{flex:1;align-self:flex-start;}
   #sl-root .chartwrap{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:var(--input);overflow:hidden;}
   #sl-root .chartwrap img{display:block;width:100%;height:auto;}
   #sl-root .detbody{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:30px;align-items:start;margin-top:22px;padding-top:22px;border-top:1px solid var(--line);}
@@ -155,7 +169,7 @@
     #sl-root .head{grid-template-columns:minmax(0,1fr) auto;gap:14px 18px;grid-template-areas:"id live" "bm bm";}
     #sl-root .id{grid-area:id;} #sl-root .live{grid-area:live;} #sl-root .bm{grid-area:bm;} #sl-root .chev{display:none;}
     #sl-root .nm{font-size:21px;}
-    #sl-root .detbody{grid-template-columns:1fr;gap:22px;}
+    #sl-root .actrow{flex-direction:column;}
   }`;
 
   function injectCSS() { if (document.getElementById("sl-css")) return; const s = document.createElement("style"); s.id = "sl-css"; s.textContent = CSS; document.head.appendChild(s); }
@@ -274,14 +288,22 @@
       const isOpen = open === t.id;
       const isShort = /short/i.test(t.art || "");
       const entry = num(t.entry), live = liveNum(t);
-      const isPending = t.state === "pending"; // Badge & Add-Gate NUR aus state, nicht aus Daten-Vollständigkeit
-      const chg = pctStr(t.live_change_pct);
-      const dSkim = pctStr(t.distance_to_skim), dStop = pctStr(t.distance_to_stop);
+      const isPending = t.state === "pending"; // Badge NUR aus state
+      const hasSetup = entry != null;           // Add nur mit Setup-Niveau möglich (kein p&l!)
+      // Tages-Trend (NICHT p&l vs Entry) — change_pct_today_fmt + trend_dir
+      const todayFmt = t.change_pct_today_fmt || (t.change_pct_today != null ? pctStr(t.change_pct_today) : null);
+      let dirN = null;
+      if (t.trend_dir != null) { const s = String(t.trend_dir).toLowerCase(); dirN = (s.indexOf("up") !== -1 || s === "1" || s === "+") ? 1 : (s.indexOf("down") !== -1 || s === "-1" || s === "-") ? -1 : 0; }
+      if (dirN == null && t.change_pct_today != null) { const n = Number(t.change_pct_today); dirN = n > 0 ? 1 : n < 0 ? -1 : 0; }
+      if (dirN == null && todayFmt) dirN = isNeg(todayFmt) ? -1 : 1;
+      const arrow = dirN > 0 ? "▲" : dirN < 0 ? "▼" : "—";
+      const trendCls = dirN > 0 ? "up" : dirN < 0 ? "dn" : "flat";
       const added = addedIds.indexOf(t.id) !== -1;
       const kills = killList(t);
-      const skims = parseSkims(t.skim_levels || t.skim);
       const recap = t.einschaetzung || "";
       const thesis = t.thesis || t.these || "";
+      const entryDisp = t.entry_de || (entry != null ? deFmt(entry) : null);
+      const liveDisp = (typeof t.live === "string" && t.live) ? t.live : (live != null ? deFmt(live) : null);
 
       return h("div", { key: t.id, className: "card" + (isOpen ? " open" : "") },
         h("div", { className: "head", onClick: () => setOpen(isOpen ? null : t.id) },
@@ -290,25 +312,25 @@
             h("div", { className: "nm" }, t.asset),
             h("div", { className: "sub" },
               h("span", { className: "isin" }, t.isin || ""),
-              isPending ? h("span", { className: "wtag" }, T("Watchlist", "Watchlist")) : null,
-              t.days_active != null ? h("span", { className: "day" }, "Tag " + t.days_active) : null)),
+              h("span", { className: "stbadge " + (isPending ? "pend" : "act") }, isPending ? T("Watchlist", "Watchlist") : T("Aktiv", "Active")),
+              t.days_active != null ? h("span", { className: "day" }, t.days_active + T(" Tage im Spiel", " days in play")) : null)),
           Barometer(t, false),
           h("div", { className: "live" },
-            live != null
-              ? h("div", null, h("span", { className: "px" }, deFmt(live)), h("span", { className: "cur" }, "EUR"))
-              : h("div", null, h("span", { className: "px na" }, "—"), h("span", { className: "cur" }, "EUR")),
-            chg ? h("span", { className: "chg " + (isNeg(chg) ? "dn" : "up") }, chg) : null),
+            liveDisp ? h("div", null, h("span", { className: "px" }, liveDisp), h("span", { className: "cur" }, "EUR")) : h("div", null, h("span", { className: "px na" }, "—")),
+            todayFmt ? h("span", { className: "chg " + trendCls }, arrow + " " + todayFmt + " " + T("heute", "today")) : null),
           h("div", { className: "chev" }, "▼")),
 
         isOpen ? h("div", { className: "det" },
-          h("div", { className: "kurs" },
-            h("span", { className: "lab" }, T("Aktueller Kurs", "Current price")),
-            h("span", { className: "v" + (chg ? (isNeg(chg) ? " dn" : " up") : "") }, deFmt(live)),
-            h("span", { className: "v" }, chg ? h("span", { style: { fontSize: 13 } }, "(" + chg + ")") : null),
-            t.origin ? h("span", { className: "t" }, "· " + T("seit ", "since ") + t.origin + T(" im Spiel", " in play")) : null),
-          (dSkim || dStop) ? h("div", { className: "dist" },
-            dSkim ? h("span", { className: "s" }, "▲ " + dSkim + " " + T("bis Skim", "to skim")) : null,
-            dStop ? h("span", { className: "x" }, "▼ " + dStop + " " + T("bis Stop", "to stop")) : null) : null,
+          h("div", { className: "setup" },
+            h("span", { className: "lab" }, T("Setup", "Setup")),
+            h("span", { className: "v" }, entryDisp ? entryDisp + " EUR" : "—"),
+            h("span", { className: "ar" }, "→"),
+            h("span", { className: "lab" }, T("Live", "Live")),
+            h("span", { className: "v " + trendCls }, liveDisp ? liveDisp + " EUR" : "—")),
+          h("div", { className: "dist" },
+            todayFmt ? h("span", { className: trendCls === "dn" ? "x" : (trendCls === "up" ? "s" : "f") }, arrow + " " + todayFmt + " " + T("heute", "today")) : null,
+            t.days_active != null ? h("span", { className: "f" }, t.days_active + T(" Tage im Spiel", " days in play")) : (t.origin ? h("span", { className: "f" }, T("seit ", "since ") + t.origin + T(" im Spiel", " in play")) : null)),
+          !hasSetup ? h("div", { className: "setupnote" }, T("Setup-Niveau folgt — sobald das Orakel die Idee scharf stellt.", "Setup level follows once the oracle arms the idea.")) : null,
 
           h("div", { className: "secl", style: { marginTop: 22 } }, T("These-Status", "Thesis status")),
           Barometer(t, true),
@@ -316,35 +338,31 @@
           t.chart_img ? h("div", { className: "secl", style: { marginTop: 24 } }, T("Kursverlauf · letzter Trading-Day", "Price action · last trading day")) : null,
           t.chart_img ? h("div", { className: "chartwrap" }, h("img", { src: t.chart_img, alt: T("Kursverlauf", "Price action"), loading: "lazy" })) : null,
 
-          h("div", { className: "detbody" },
-            h("div", null,
-              recap ? h("p", { className: "recap" }, recap) : null,
-              h("div", { className: "secl" }, T("Die These", "The thesis")),
-              h("p", { className: "these" }, thesis || T("— keine These hinterlegt.", "— no thesis on file.")),
-              kills.length ? h("div", { className: "killwrap" },
-                h("div", { className: "secl" }, T("Kippt bei", "Breaks on")),
-                h("div", { className: "chips" }, kills.map((k, i) => h("span", { key: i, className: "chip" }, k)))) : null),
-            h("div", { className: "side" },
-              h("div", { className: "lvgrid" },
-                h("div", { className: "lv" }, h("div", { className: "k" }, "Entry"), h("div", { className: "v" }, deFmt(entry))),
-                h("div", { className: "lv stop" }, h("div", { className: "k" }, T("Stop", "Stop")), h("div", { className: "v" }, deFmt(num(t.stop)))),
-                h("div", { className: "lv skim" }, h("div", { className: "k" }, "Skim"), h("div", { className: "v" }, skims.length ? skims.map(deFmt).join(" / ") : "—")),
-                h("div", { className: "lv tgt" }, h("div", { className: "k" }, T("Ziel", "Target")), h("div", { className: "v" }, deFmt(num(t.target))))),
-              h("div", { className: "acts" },
-                isPending
-                  ? h("div", null,
-                      h("button", { className: "badd", disabled: true }, T("In My Book", "Add to My Book")),
-                      h("div", { className: "baddhint watch" }, T("Watchlist — noch kein Entry. Sobald das Orakel scharf stellt, kannst du es übernehmen.", "Watchlist — no entry yet. Once the oracle arms it, you can add it.")))
-                  : !canAdd
-                    ? h("div", null,
-                        h("button", { className: "badd lock", disabled: true }, h("span", { className: "lk" }, "▲"), " ", T("In My Book — Syndicate", "In My Book — Syndicate")),
-                        h("a", { className: "baddhint up", href: "inner-circle.html" }, T("Im Syndicate übernimmst du Orakel-Trades mit einem Klick. → Syndicate", "In the Syndicate you copy oracle trades with one click. → Syndicate")))
-                    : added
-                      ? h("div", null,
-                          h("button", { className: "badd done", disabled: true }, T("✓ Im My Book", "✓ In My Book")),
-                          h("a", { className: "openbook", href: "mybook.html" }, T("→ In My Book öffnen", "→ open My Book")))
-                      : h("button", { className: "badd", disabled: addingId === t.id, onClick: () => addToBook(t) }, addingId === t.id ? T("übernehme…", "adding…") : T("In My Book übernehmen", "Add to My Book")),
-                h("button", { className: "bchart", disabled: chartBusy === t.id, onClick: () => chartMail(t) }, chartBusy === t.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")))))) : null);
+          h("div", { className: "detmain" },
+            recap ? h("p", { className: "recap" }, recap) : null,
+            h("div", { className: "secl" }, T("Die These", "The thesis")),
+            h("p", { className: "these" }, thesis || T("— keine These hinterlegt.", "— no thesis on file.")),
+            kills.length ? h("div", { className: "killwrap" },
+              h("div", { className: "secl" }, T("Kippt bei", "Breaks on")),
+              h("div", { className: "chips" }, kills.map((k, i) => h("span", { key: i, className: "chip" }, k)))) : null),
+
+          h("div", { className: "actrow" },
+            !hasSetup
+              ? h("div", { className: "actcol" },
+                  h("button", { className: "badd", disabled: true }, T("In My Book", "Add to My Book")),
+                  h("div", { className: "baddhint watch" }, T("Setup-Niveau folgt — dann übernehmbar.", "Setup level follows — then you can add it.")))
+              : !canAdd
+                ? h("div", { className: "actcol" },
+                    h("button", { className: "badd lock", disabled: true }, h("span", { className: "lk" }, "▲"), " ", T("In My Book — Syndicate", "In My Book — Syndicate")),
+                    h("a", { className: "baddhint up", href: "inner-circle.html" }, T("Im Syndicate übernimmst du Orakel-Ideen mit einem Klick. → Syndicate", "In the Syndicate you copy oracle ideas with one click. → Syndicate")))
+                : added
+                  ? h("div", { className: "actcol" },
+                      h("button", { className: "badd done", disabled: true }, T("✓ Im My Book", "✓ In My Book")),
+                      h("a", { className: "openbook", href: "mybook.html" }, T("→ In My Book öffnen", "→ open My Book")))
+                  : h("div", { className: "actcol" },
+                      h("button", { className: "badd", disabled: addingId === t.id, onClick: () => addToBook(t) }, addingId === t.id ? T("übernehme…", "adding…") : T("In My Book übernehmen", "Add to My Book")),
+                      h("div", { className: "baddhint" }, T("Übernimmt These & Setup als eigenes Topic — mit eigenen Marken & Alerts.", "Copies thesis & setup as your own topic — with your own levels & alerts."))),
+            h("button", { className: "bchart", disabled: chartBusy === t.id, onClick: () => chartMail(t) }, chartBusy === t.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")))) : null);
     };
 
     const Hero = (sub) => h("div", { className: "hero" },
