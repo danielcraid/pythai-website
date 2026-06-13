@@ -22,13 +22,14 @@
     ["The Reading", "reading.html"],
     ["Signals", "signals.html"],
     ["Pricing", "inner-circle.html"],
+    ["Shortlist", "shortlist.html"],
     ["Chartomat", "chartomat.html"],
     ["Playbook", "playbook.html"],
     ["Methodik", "methodik.html"],
     ["Rituals", "rituals.html"],
     ["My Book", "mybook.html"]
   ];
-  const MEMBER_AREA = ["chartomat.html", "playbook.html", "rituals.html", "methodik.html", "mybook.html"]; // hell-gold getoent wenn eingeloggt
+  const MEMBER_AREA = ["shortlist.html", "chartomat.html", "playbook.html", "rituals.html", "methodik.html", "mybook.html"]; // hell-gold getoent wenn eingeloggt
   const PRIV = ["inner-circle", "circle-of-trust", "syndicate", "admin"]; // Playbook + Rituals nur fuer diese Tiers
   const SYNDICATE = ["syndicate", "admin"]; // My Book nur fuer Syndicate
   const MEMBER_ONLY = []; // alle Seiten im Nav sichtbar; Voll-Content je Seite gegated (Teaser fuer Public/Observer)

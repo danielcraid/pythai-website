@@ -35,7 +35,7 @@
     return h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: m[1], border: "1px solid " + m[2], borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" } }, m[0]);
   }
 
-  function Bubble({ m, onSignin }) {
+  function Bubble({ m, onSignin, onReset }) {
     if (m.role === "user") {
       return h("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 12 } },
         h("div", { style: { maxWidth: "82%", background: "var(--grad-gold)", color: "var(--text-on-gold)", borderRadius: "12px 12px 4px 12px", padding: "9px 13px", fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" } }, m.text));
@@ -52,7 +52,7 @@
           h("img", { src: a.url, alt: a.alt || "", loading: "lazy", style: { width: "100%", borderRadius: 8, border: "1px solid var(--border-subtle)", display: "block", cursor: "zoom-in" }, onClick: () => window.open(a.url, "_blank", "noopener") }),
           a.alt ? h("figcaption", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginTop: 4 } }, a.alt) : null)),
         m.validatorOk === false ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", marginTop: 5 } }, T("Geprüft — diese Antwort wurde zur Sicherheit angepasst.", "Reviewed — this answer was adjusted for safety.")) : null,
-        m.button ? h("div", { style: { marginTop: 9 } }, h(Button, { variant: "oracle", size: "sm", onClick: () => { if (m.button.action === "reload") { window.location.reload(); } else if (m.button.action === "signin") { onSignin && onSignin(); } else { window.location.href = m.button.href; } } }, m.button.label)) : null));
+        m.button ? h("div", { style: { marginTop: 9 } }, h(Button, { variant: "oracle", size: "sm", onClick: () => { if (m.button.action === "reset") { onReset && onReset(); } else if (m.button.action === "reload") { window.location.reload(); } else if (m.button.action === "signin") { onSignin && onSignin(); } else { window.location.href = m.button.href; } } }, m.button.label)) : null));
   }
 
   function Typing() {
@@ -147,7 +147,7 @@
       try {
         const r = await api("/api/chat", { method: "POST", signal: ctrl.signal, body: JSON.stringify({ sid, message: text, lang: lang() }) });
         if (r.status === 429) { push({ role: "warren", text: T("Du hast viel auf einmal gefragt. Lass mir 30 Sekunden, dann gerne weiter.", "That was a lot at once. Give me 30 seconds, then go on.") }); const until = Date.now() + 30000; setCooldownTs(until); setTimeout(() => setCooldownTs(0), 30000); }
-        else if (r.status === 502) { push({ role: "warren", text: T("Warren ist gerade weg. Starte eine neue Sitzung.", "Warren is gone. Start a new session."), button: { label: T("Neue Sitzung", "New session"), action: "reload" } }); }
+        else if (r.status === 502) { push({ role: "warren", text: T("Warren ist gerade weg. Starte eine neue Sitzung.", "Warren is gone. Start a new session."), button: { label: T("Neue Sitzung", "New session"), action: "reset" } }); }
         else if (!r.ok) { const e = await r.json().catch(() => ({})); push({ role: "warren", text: e.error === "message_too_long" ? T("Die Nachricht ist zu lang (max. 4000 Zeichen).", "That message is too long (max 4000 chars).") : T("Da ging etwas schief. Versuch’s nochmal.", "Something went wrong. Try again.") }); }
         else {
           const d = await r.json();
@@ -236,7 +236,7 @@
         h("button", { onClick: () => setOpen(false), "aria-label": "Close", style: { background: "none", border: "none", color: "var(--text-muted)", fontSize: 22, cursor: "pointer", lineHeight: 1 } }, "×")),
       // body
       h("div", { ref: bodyRef, style: { flex: 1, overflowY: "auto", padding: "16px 14px" } },
-        msgs.map((m, i) => h(Bubble, { key: i, m, onSignin: () => setAuth({ phase: "email", email: "" }) })),
+        msgs.map((m, i) => h(Bubble, { key: i, m, onSignin: () => setAuth({ phase: "email", email: "" }), onReset: resetChat })),
         busy ? h(Typing, null) : null,
         busy && soft ? h("div", { style: { textAlign: "center", fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", marginTop: 2 } }, T("Warren denkt nach — Recherche dauert manchmal.", "Warren is thinking — research takes a moment.")) : null),
       // footer / auth

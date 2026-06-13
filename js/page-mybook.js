@@ -113,6 +113,9 @@
   #mb-root .hgrid{display:flex;flex-direction:column;gap:8px;margin:4px 0 10px;}
   #mb-root .hcard{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:12px 14px;cursor:pointer;}
   #mb-root .hcard:hover{border-color:var(--border-oracle);background:rgba(212,169,78,.05);}
+  #mb-root .hcard.disabled{cursor:not-allowed;opacity:.5;}
+  #mb-root .hcard.disabled:hover{border-color:var(--line);background:var(--card);}
+  #mb-root .hcard-hint{font-family:var(--font-mono);font-size:10px;color:var(--ox-b);margin-top:5px;letter-spacing:.03em;}
   #mb-root .hcard-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
   #mb-root .hcard-name{font-family:var(--font-oracle);font-size:18px;color:var(--parch);}
   #mb-root .hcard-row{display:flex;align-items:center;gap:14px;margin-top:6px;}
@@ -221,7 +224,6 @@
       }).then((d) => {
         if (d && d.ok && Array.isArray(d.topics)) {
           setRows(d.topics);
-          if (d.topics.length) setOpen(d.topics[0].id);
         }
         setLoaded(true);
       }).catch(() => setLoaded(true));
@@ -463,10 +465,15 @@
             h("button", { className: "mtab" + (addMode === "oracle" ? " on" : ""), onClick: () => goMode("oracle") }, T("Aus Orakel auswählen", "Pick from oracle"))) : null,
           (!editingId && addMode === "oracle") ? h("div", null,
             hunterBusy ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-secondary)", textAlign: "center", padding: "28px 0" } }, T("Lade Orakel-Trades…", "Loading oracle trades…"))
-              : ((hunter && hunter.length) ? h("div", { className: "hgrid" }, hunter.map((t, i) => h("div", { key: (t.id || i), className: "hcard", onClick: () => pickHunter(t) },
-                  h("div", { className: "hcard-top" }, h("span", { className: "hcard-name" }, t.asset), h("span", { className: "badge long" }, t.art)),
-                  h("div", { className: "hcard-row" }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: Z[ZONE.indexOf(t.waage_label)] || "var(--text-secondary)" } }, t.waage_label || ""), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-muted)" } }, (t.days_active != null ? (t.days_active + T(" Tage aktiv", "d active")) : ""))),
-                  h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginTop: 5, letterSpacing: "0.04em" } }, t.isin))))
+              : ((hunter && hunter.length) ? h("div", { className: "hgrid" }, hunter.map((t, i) => {
+                  var noEntry = (t.entry == null || t.entry === "" || t.state === "pending");
+                  return h("div", { key: (t.id || i), className: "hcard" + (noEntry ? " disabled" : ""), onClick: noEntry ? undefined : () => pickHunter(t) },
+                    h("div", { className: "hcard-top" }, h("span", { className: "hcard-name" }, t.asset), h("span", { className: "badge long" }, t.art)),
+                    h("div", { className: "hcard-row" }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: Z[ZONE.indexOf(t.waage_label)] || "var(--text-secondary)" } }, t.waage_label || ""), h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-muted)" } }, (t.days_active != null ? (t.days_active + T(" Tage aktiv", "d active")) : ""))),
+                    noEntry
+                      ? h("div", { className: "hcard-hint" }, T("noch kein Entry — Watchlist-Status", "no entry yet — watchlist"))
+                      : h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginTop: 5, letterSpacing: "0.04em" } }, t.isin));
+                }))
                 : h("div", { className: "empty", style: { padding: "30px 24px", marginTop: 6 } },
                     h("div", { className: "empty-s" }, T("Aktuell keine Orakel-Trades zum Picken. Du kannst dein Topic manuell anlegen.", "No oracle trades to pick right now. You can add your topic manually.")),
                     h("div", { style: { marginTop: 16 } }, h(Button, { variant: "oracle", size: "sm", onClick: () => goMode("manual") }, T("Manuell anlegen", "Add manually"))))),
