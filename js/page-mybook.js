@@ -10,6 +10,8 @@
   const Z = ["#C4524C", "#CF7A4E", "#C9A24E", "#6FB07A", "#6FCF9A"];
   const ZONE = ["GEBROCHEN", "WACKELT", "NEUTRAL", "INTAKT", "STARK"];
   const wpct = (s) => Math.max(3, Math.min(97, Math.round((s + 1) / 2 * 100)));
+  // deutsche Zahl-Strings ("1.218,80") → Number fürs Backend; leer → null
+  const deNum = (s) => { if (s == null || String(s).trim() === "") return null; const n = parseFloat(String(s).replace(/\s/g, "").replace(/\./g, "").replace(",", ".")); return isNaN(n) ? null : n; };
   const statusText = (p) => ZONE[p.zone - 1] + " " + (p.score >= 0 ? "+" : "−") + Math.abs(p.score).toFixed(1);
 
   // Mock-Daten (bis VPS die My-Book-DB liefert)
@@ -100,6 +102,15 @@
   #mb-root .disc .tlbl{margin:0 0 5px;} #mb-root .disc p{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--mist);margin:0;max-width:none;}
   #mb-root .ov2{position:fixed;inset:0;background:rgba(4,5,8,.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;z-index:200;}
   #mb-root .modal{max-width:440px;width:100%;background:var(--raised);border:1px solid var(--border-oracle);border-radius:12px;padding:26px;}
+  #mb-root .modal-wide{max-width:560px;max-height:88vh;overflow-y:auto;}
+  #mb-root .f-up{display:flex;align-items:center;justify-content:center;text-align:center;gap:8px;border:1px dashed var(--border-strong);border-radius:10px;background:rgba(212,169,78,.05);padding:18px 16px;cursor:pointer;font-family:var(--font-ui);font-size:13px;color:var(--oracle-b);margin:4px 0 8px;}
+  #mb-root .f-up.busy{opacity:.7;cursor:wait;}
+  #mb-root .f-note{font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--ash);margin:0 0 16px;}
+  #mb-root .f-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  #mb-root .f{display:flex;flex-direction:column;min-width:0;} #mb-root .f-full{grid-column:1 / -1;}
+  #mb-root .f-l{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);margin-bottom:5px;}
+  #mb-root .f-i{font-family:var(--font-ui);font-size:14px;background:var(--input);border:1px solid var(--border-strong);border-radius:6px;padding:9px 10px;color:var(--parch);outline:none;width:100%;box-sizing:border-box;}
+  #mb-root .f-i:focus{border-color:var(--border-oracle);} #mb-root select.f-i{cursor:pointer;}
   #mb-root .modal h3{font-family:var(--font-oracle);font-weight:400;font-size:24px;margin:0 0 10px;color:var(--oracle-b);} #mb-root .modal p{font-family:var(--font-ui);font-size:14px;line-height:1.6;color:var(--mist);margin:0 0 16px;}
   #mb-root .disc-note{font-family:var(--font-mono);font-size:10.5px;line-height:1.55;color:var(--ash);border-left:2px solid #8A6526;padding:8px 0 8px 11px;margin:0 0 18px;}
   #mb-root .chanrow{display:flex;gap:8px;margin:0 0 18px;} #mb-root .chip{flex:1;text-align:center;border:1px solid var(--line);border-radius:7px;padding:9px;font-family:var(--font-mono);font-size:11px;color:var(--mist);cursor:pointer;} #mb-root .chip.sel{border-color:rgba(212,169,78,.5);background:rgba(212,169,78,.1);color:var(--oracle-b);}
@@ -167,6 +178,9 @@
     const [delId, setDelId] = useState(null);
     const [summary, setSummary] = useState(true);
     const editOrig = useRef({});
+    const BLANK = { name: "", isin: "", idx: "", art: "Aktie · Long", currency: "EUR", entry: "", stop: "", skim: "", target: "", these: "", kill: "" };
+    const [addF, setAddF] = useState(null);
+    const [addBusy, setAddBusy] = useState(false);
 
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
@@ -195,6 +209,7 @@
 
     const api = (path, body, method) => fetch(API + path, { method: method || "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then((r) => { if (r && (r.status === 401 || r.status === 403) && window.PYsessionExpired) window.PYsessionExpired(); return r; }).catch(() => { });
     const patch = (id, body) => api("/api/mybook/" + id, body, "PATCH");
+    const reload = () => fetch(API + "/api/mybook", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => { if (d && d.ok && Array.isArray(d.topics)) setRows(d.topics); }).catch(() => { });
     const setField = (id, k, v) => setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { [k]: v }) : r));
     const setMon = (id, on, channel) => { setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { monitored: on, channel: on ? (channel === "both" ? "SMS + Mail" : channel === "sms" ? "SMS" : "Mail") : null }) : r)); api("/api/mybook/" + id + "/monitor", { on: on, channel: channel || "mail" }); };
     const toggleMon = (p) => { if (p.monitored) setMon(p.id, false); else { setMonCh("mail"); setMonModal(p.id); } };
@@ -205,9 +220,9 @@
       ["entry", "stop", "skim", "target"].forEach((k) => {
         const cur = (r && r[k] != null) ? String(r[k]) : "";
         const orig = (o[k] != null) ? String(o[k]) : "";
-        if (cur !== orig) body[k] = (cur === "" ? null : r[k]); // nur GEÄNDERTE Felder; geleert → explizit null
+        if (cur !== orig) body[k] = (cur === "" ? null : deNum(r[k])); // nur GEÄNDERTE Felder; als Number; geleert → explizit null
       });
-      if (Object.keys(body).length) patch(id, body);
+      if (Object.keys(body).length) patch(id, body).then(reload);
       setEditId(null);
     };
     const toggleEdit = (id) => { if (editId === id) saveEdit(id); else enterEdit(id); };
@@ -223,7 +238,39 @@
     };
     const count = rows.length;
     const delName = (rows.find((r) => r.id === delId) || {}).name || "Dieses Topic";
-    const addTopic = () => { const el = document.getElementById("mb-add"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); };
+    const addTopic = () => setAddF(Object.assign({}, BLANK));
+    const setAf = (k, v) => setAddF((o) => Object.assign({}, o, { [k]: v }));
+    const submitAdd = () => {
+      const f = addF; if (!f || !f.name.trim()) return;
+      api("/api/mybook", { name: f.name.trim(), isin: f.isin.trim(), market: f.idx.trim(), art: f.art, currency: f.currency, entry: deNum(f.entry), stop: deNum(f.stop), skim: deNum(f.skim), target: deNum(f.target), these: f.these, anti_these: f.kill }, "POST").then(reload);
+      setAddF(null);
+    };
+    const numStr = (n) => (n == null ? "" : String(n).replace(".", ","));
+    const onVision = (e) => {
+      const file = e.target.files && e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const b64 = String(reader.result).split(",")[1];
+        setAddBusy(true);
+        fetch(API + "/api/mybook/vision-extract", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: b64, mime_type: file.type }) })
+          .then((r) => { if (r && (r.status === 401 || r.status === 403) && window.PYsessionExpired) window.PYsessionExpired(); return r.ok ? r.json() : null; })
+          .then((d) => {
+            if (d && d.ok && d.suggestion) {
+              const s = d.suggestion;
+              setAddF((o) => Object.assign({}, o || BLANK, { name: s.name || (o && o.name) || "", isin: s.isin || (o && o.isin) || "", art: s.art || (o && o.art) || "Aktie · Long", currency: s.currency || "EUR", entry: numStr(s.entry), stop: numStr(s.stop), skim: numStr(s.skim), target: numStr(s.target), these: s.these_hint || (o && o.these) || "" }));
+            }
+            setAddBusy(false);
+          }).catch(() => setAddBusy(false));
+      };
+      reader.readAsDataURL(file);
+    };
+    const Fld = (o) => h("div", { key: o.k, className: "f" + (o.full ? " f-full" : "") },
+      h("label", { className: "f-l" }, o.label),
+      o.area ? h("textarea", { className: "f-i", rows: 2, value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) })
+             : h("input", { className: "f-i", value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) }));
+    const Sel = (o) => h("div", { key: o.k, className: "f" },
+      h("label", { className: "f-l" }, o.label),
+      h("select", { className: "f-i", value: addF[o.k], onChange: (e) => setAf(o.k, e.target.value) }, o.opts.map((op) => h("option", { key: op, value: op }, op))));
 
     const Topic = (p) => {
       const isOpen = open === p.id, isEdit = editId === p.id;
@@ -288,8 +335,8 @@
           h("div", { className: "addt" }, T("Neues Topic?", "New topic?")),
           h("div", { className: "adds" }, T("Lade einen Screenshot oder ein PDF hoch — Warren liest die Kurs-Marken aus und fragt nach deiner These. Die Datei wird nicht gespeichert: du bestätigst nur die ausgelesenen Marken. Oder trag alles selbst ein.", "Upload a screenshot or PDF — Warren reads the price levels and asks for your thesis. The file is not stored: you only confirm the extracted levels. Or enter everything yourself.")),
           h("div", { className: "addbtns", style: { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" } },
-            h(Button, { variant: "oracle" }, T("Datei hochladen", "Upload file")),
-            h(Button, { variant: "ghost" }, T("Manuell eintragen", "Enter manually"))),
+            h(Button, { variant: "oracle", onClick: addTopic }, T("Datei hochladen", "Upload file")),
+            h(Button, { variant: "ghost", onClick: addTopic }, T("Manuell eintragen", "Enter manually"))),
           h("div", { className: "addcnt" }, count + "/" + MAX + T(" Topics belegt", " topics used")),
           h("div", { className: "addfull" }, h("b", null, MAX + "/" + MAX + " — "), T("Buch voll. Lösche erst ein Topic, um ein neues anzulegen.", "Book full. Delete a topic first to add a new one."))),
         h("div", { className: "disc" },
@@ -311,6 +358,28 @@
           h("div", { className: "mrow" },
             h(Button, { variant: "ghost", size: "sm", onClick: () => setDelId(null) }, T("Abbrechen", "Cancel")),
             h("button", { className: "bdel", style: { padding: "9px 16px" }, onClick: doDelete }, T("Endgültig löschen", "Delete permanently"))))) : null,
+      addF ? h("div", { className: "ov2", onClick: () => setAddF(null) },
+        h("div", { className: "modal modal-wide", onClick: (e) => e.stopPropagation() },
+          h("h3", null, T("Neues Topic", "New topic")),
+          h("label", { className: "f-up" + (addBusy ? " busy" : "") },
+            h("span", null, addBusy ? T("Warren liest die Datei…", "Warren is reading the file…") : T("Screenshot oder PDF hochladen — Warren liest die Marken aus", "Upload a screenshot or PDF — Warren reads the levels")),
+            h("input", { type: "file", accept: ".png,.jpg,.jpeg,.webp,.pdf", style: { display: "none" }, disabled: addBusy, onChange: onVision })),
+          h("div", { className: "f-note" }, T("Die Datei wird nicht gespeichert — nur die ausgelesenen Marken. Du kannst alles korrigieren.", "The file is not stored — only the extracted levels. You can correct everything.")),
+          h("div", { className: "f-grid" },
+            Fld({ label: "Name", k: "name", full: true, ph: "Rheinmetall AG" }),
+            Fld({ label: "ISIN", k: "isin", ph: "DE0007030009" }),
+            Sel({ label: T("Art", "Type"), k: "art", opts: ["Aktie · Long", "Aktie · Short", "ETC · Long", "ETC · Short", "Knock-out · Long", "Knock-out · Short", "Optionsschein", "Krypto · Long", "Forex"] }),
+            Fld({ label: T("Markt / Index", "Market / index"), k: "idx", ph: "EURO STOXX 50" }),
+            Sel({ label: T("Währung", "Currency"), k: "currency", opts: ["EUR", "USD", "GBP", "CHF", "JPY"] }),
+            Fld({ label: "Entry", k: "entry", ph: "1.197" }),
+            Fld({ label: "Stop", k: "stop", ph: "1.150" }),
+            Fld({ label: "Skim", k: "skim", ph: "1.260" }),
+            Fld({ label: "Target", k: "target", ph: "1.320" }),
+            Fld({ label: T("Deine These", "Your thesis"), k: "these", full: true, area: true }),
+            Fld({ label: T("Anti-These (Kippt bei)", "Anti-thesis (breaks on)"), k: "kill", full: true, ph: "Iran-Ceasefire · EU-Budget-Cut" })),
+          h("div", { className: "mrow", style: { marginTop: 18 } },
+            h(Button, { variant: "ghost", size: "sm", onClick: () => setAddF(null) }, T("Abbrechen", "Cancel")),
+            h(Button, { variant: "oracle", size: "sm", disabled: !addF.name.trim(), onClick: submitAdd }, T("Topic anlegen", "Create topic"))))) : null,
       h(SiteFooter, null));
   }
 
