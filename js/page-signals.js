@@ -36,6 +36,64 @@
     ["Push Updates & Alerts", T("nahezu in Echtzeit*", "near real-time*"), "Syndicate"]
   ];
 
+  const ORACLE_SVG = `<svg viewBox="0 0 1000 660" xmlns="http://www.w3.org/2000/svg" role="img" style="width:100%;height:auto;display:block" font-family="'Hanken Grotesk', sans-serif">
+<title>Wie das PYTHAI-Orakel deine These bewacht</title>
+<desc>Viele Marktsignale fliessen zusammen; Warren verdichtet sie zu einem Thesen-Score; das Orakel beobachtet, ob die These haelt; bei einem Bruch wirst du gewarnt; du entscheidest. Dein Buch wird nie automatisch geschlossen.</desc>
+<defs>
+<radialGradient id="osg-top" cx="50%" cy="0%" r="75%"><stop offset="0" stop-color="#D4A94E" stop-opacity="0.16"/><stop offset="0.55" stop-color="#08090C" stop-opacity="0"/></radialGradient>
+<radialGradient id="osg-eye" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F2CE7A" stop-opacity="0.55"/><stop offset="1" stop-color="#F2CE7A" stop-opacity="0"/></radialGradient>
+<linearGradient id="osg-shaft" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2CE7A"/><stop offset="1" stop-color="#D4A94E" stop-opacity="0"/></linearGradient>
+<linearGradient id="osg-line" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8A6526"/><stop offset="0.5" stop-color="#F2CE7A"/><stop offset="1" stop-color="#8A6526"/></linearGradient>
+</defs>
+<rect x="0" y="0" width="1000" height="660" rx="20" fill="#08090C"/>
+<rect x="0" y="0" width="1000" height="660" rx="20" fill="url(#osg-top)"/>
+<rect x="0.7" y="0.7" width="998.6" height="658.6" rx="20" fill="none" stroke="#20242D" stroke-width="1.4"/>
+<text x="500" y="56" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="12.5" letter-spacing="5" fill="#D4A94E">D E R   P Y T H A I   ·   E D G E</text>
+<text x="500" y="104" text-anchor="middle" font-family="'Cormorant Garamond', Georgia, serif" font-size="40" fill="#F4F0E6">Wie das Orakel deine These bewacht.</text>
+<text x="500" y="140" text-anchor="middle" font-size="16" fill="#9BA3B2">Viele Signale. Ein Score. Staendige Beobachtung. Deine Entscheidung.</text>
+<line x1="120" y1="250" x2="880" y2="250" stroke="url(#osg-line)" stroke-width="11" stroke-opacity="0.13" stroke-linecap="round"/>
+<line x1="120" y1="250" x2="880" y2="250" stroke="url(#osg-line)" stroke-width="2" stroke-linecap="round"/>
+<g fill="#D4A94E"><circle cx="225" cy="250" r="3"/><circle cx="415" cy="250" r="3"/><circle cx="605" cy="250" r="3"/><circle cx="795" cy="250" r="3"/></g>
+<circle cx="120" cy="250" r="42" fill="#0E1014" stroke="#D4A94E" stroke-width="1.6"/>
+<g><circle cx="106" cy="238" r="3" fill="#F2CE7A"/><circle cx="120" cy="232" r="3" fill="#D4A94E"/><circle cx="134" cy="240" r="3" fill="#F2CE7A"/><path d="M106,238 L120,262 M120,232 L120,262 M134,240 L120,262" stroke="#F2CE7A" stroke-width="1.4" fill="none"/><circle cx="120" cy="262" r="3.5" fill="#F2CE7A"/></g>
+<text x="120" y="320" text-anchor="middle" font-size="17" font-weight="700" fill="#F4F0E6">Signale</text>
+<text x="120" y="342" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10.5" fill="#9BA3B2">viele Quellen, ein Strom</text>
+<circle cx="310" cy="250" r="62" fill="url(#osg-eye)"/>
+<circle cx="310" cy="250" r="46" fill="#0E1014" stroke="#F2CE7A" stroke-width="2"/>
+<path d="M300,224 L310,258 L320,224 Z" fill="url(#osg-shaft)"/>
+<circle cx="310" cy="258" r="5.5" fill="#F2CE7A"/>
+<text x="310" y="332" text-anchor="middle" font-size="17" font-weight="700" fill="#F4F0E6">Das Orakel</text>
+<text x="310" y="354" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10.5" fill="#D4A94E">zum Thesen-Score</text>
+<circle cx="500" cy="250" r="42" fill="#0E1014" stroke="#D4A94E" stroke-width="1.6"/>
+<path d="M514,242 a16,16 0 1 1 -5,-9" fill="none" stroke="#F2CE7A" stroke-width="2"/>
+<path d="M514,231 L514,243 L502,242 Z" fill="#F2CE7A"/>
+<text x="500" y="320" text-anchor="middle" font-size="17" font-weight="700" fill="#F4F0E6">Beobachten</text>
+<text x="500" y="342" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10.5" fill="#9BA3B2">haelt die These?</text>
+<circle cx="690" cy="250" r="42" fill="#0E1014" stroke="#E0726B" stroke-width="1.6"/>
+<path d="M690,234 L704,262 L676,262 Z" fill="none" stroke="#E0726B" stroke-width="2" stroke-linejoin="round"/>
+<line x1="690" y1="246" x2="690" y2="255" stroke="#E0726B" stroke-width="2" stroke-linecap="round"/><circle cx="690" cy="259" r="1.4" fill="#E0726B"/>
+<text x="690" y="320" text-anchor="middle" font-size="17" font-weight="700" fill="#F4F0E6">Warnung</text>
+<text x="690" y="342" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10.5" fill="#E0726B">du wirst gerufen</text>
+<circle cx="880" cy="250" r="42" fill="#0E1014" stroke="#6FCF9A" stroke-width="1.6"/>
+<path d="M866,250 L876,261 L896,237" fill="none" stroke="#6FCF9A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="880" y="320" text-anchor="middle" font-size="17" font-weight="700" fill="#F4F0E6">Du entscheidest</text>
+<text x="880" y="342" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10.5" fill="#9BA3B2">behalten · anpassen · schliessen</text>
+<text x="500" y="406" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="11" letter-spacing="3" fill="#D4A94E">T H E S E N - S T A T U S</text>
+<g transform="translate(220,420)">
+<polygon points="406,2 414,2 410,12" fill="#F2CE7A"/>
+<rect x="0" y="16" width="560" height="11" rx="5.5" fill="#C4524C"/>
+<rect x="112" y="16" width="448" height="11" fill="#CF7A4E"/>
+<rect x="224" y="16" width="336" height="11" fill="#C9A24E"/>
+<rect x="336" y="16" width="224" height="11" fill="#6FB07A"/>
+<rect x="448" y="16" width="112" height="11" rx="5.5" fill="#6FCF9A"/>
+<g font-family="'JetBrains Mono', monospace" font-size="10" fill="#7C8492"><text x="0" y="44">GEBROCHEN</text><text x="140" y="44" text-anchor="middle">WACKELT</text><text x="280" y="44" text-anchor="middle">NEUTRAL</text><text x="420" y="44" text-anchor="middle">INTAKT</text><text x="560" y="44" text-anchor="end">STARK</text></g>
+</g>
+<rect x="60" y="510" width="880" height="92" rx="14" fill="#0E1014" stroke="#8A6526" stroke-width="1.2"/>
+<rect x="60" y="510" width="5" height="92" rx="2.5" fill="#D4A94E"/>
+<text x="500" y="548" text-anchor="middle" font-family="'Cormorant Garamond', Georgia, serif" font-style="italic" font-size="23" fill="#F4F0E6">Das Orakel warnt. Aber es schliesst dein Buch nie von selbst.</text>
+<text x="500" y="582" text-anchor="middle" font-size="15" fill="#C3C9D4">Du entscheidest — immer. PYTHAI raet nie, sondern beobachtet und meldet.</text>
+</svg>`;
+
   function App() {
     const thS = { textAlign: "left", padding: "0 14px 10px 0", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 400, borderBottom: "1px solid var(--border-subtle)" };
     const tdS = { padding: "14px 14px 14px 0", borderBottom: "1px solid var(--border-subtle)", verticalAlign: "middle" };
@@ -69,30 +127,9 @@
               h("li", null, T("Danach: Beobachtung, ob die These hält.", "After that: watching whether the thesis holds."))))),
         h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6, marginTop: 22, maxWidth: "90ch" } }, T("PYTHAI erbringt keine Anlageberatung. Readings sind Markt-Beobachtung mit offengelegter Begründung — du entscheidest eigenverantwortlich.", "PYTHAI provides no investment advice. Readings are market observation with disclosed reasoning — you decide on your own responsibility."))),
 
-      // Engine
+      // Wie das Orakel deine These bewacht — cinematic SVG
       h(PySection, null,
-        h("div", { style: { marginBottom: 30 } }, h(PyEyebrow, null, T("Die Engine", "The engine")), h(PyH2, null, T("Vom Rauschen zum Ruf.", "From noise to call.")), h("p", { style: lead }, T("Drei Schritte, jeden Morgen — KI-native, aber für Menschen lesbar.", "Three steps, every morning — AI-native, but readable for humans."))),
-        h("div", { className: "pk-grid3" }, ENGINE.map((e) =>
-          h(Card, { key: e[0], variant: "raised", padding: "26px" },
-            h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 13, letterSpacing: "0.14em", color: "var(--text-oracle)", marginBottom: 12 } }, e[0]),
-            h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 25, color: "var(--text-primary)", marginBottom: 10 } }, e[1]),
-            h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: 0 } }, e[2]))))),
-
-      // Signals UND Beobachten — the USP
-      h(PySection, { alt: true },
-        h("div", { className: "pk-grid2", style: { alignItems: "center" } },
-          h("div", null,
-            h(PyEyebrow, null, T("Der Unterschied", "The difference")),
-            h(PyH2, null, T("Signale — und Beobachten.", "Signals — and watching.")),
-            h("p", { style: lead }, T("Ein Signal ist erst der Anfang. Warren beobachtet danach, ob die These trägt: Hält sie? Wackelt sie? Ist sie gebrochen? Du siehst den Thesen-Status auf einen Blick — und wirst gerufen, wenn er kippt.", "A signal is only the start. Warren then watches whether the thesis carries: Does it hold? Is it wavering? Is it broken? You see the thesis status at a glance — and get called when it tips.")),
-            h("p", { style: Object.assign({}, lead, { marginTop: 14 }) }, T("Das ist KI-native Markt-Beobachtung — für jeden lesbar, vom Einsteiger bis zum Syndicate.", "That's AI-native market observation — readable for everyone, from newcomer to Syndicate."))),
-          h("div", null,
-            h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-oracle)", marginBottom: 10 } }, T("Thesen-Status", "Thesis status")),
-            h("div", { style: { position: "relative", height: 14, marginBottom: 4 } }, h("span", { style: { position: "absolute", left: "78%", transform: "translateX(-50%)", color: "var(--oracle-bright)", fontSize: 13 } }, "▼")),
-            h("div", { style: { display: "flex", height: 10, borderRadius: 999, overflow: "hidden" } }, Z.map((c, i) => h("span", { key: i, style: { flex: 1, background: c } }))),
-            h("div", { style: { display: "flex", marginTop: 8 } }, ["GEBROCHEN", "WACKELT", "NEUTRAL", "INTAKT", "STARK"].map((zl, i) => h("span", { key: zl, style: { flex: 1, fontFamily: "var(--font-mono)", fontSize: 8.5, color: "var(--text-muted)", textAlign: i === 0 ? "left" : i === 4 ? "right" : "center" } }, zl))),
-            h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "#6FB07A", marginTop: 14 } }, "INTAKT +0.6"),
-            h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13, lineHeight: 1.6, color: "var(--text-muted)", margin: "6px 0 0" } }, T("Beispiel-Visualisierung. Die Waage zeigt, wie stark eine These gerade trägt.", "Example visualisation. The scale shows how strongly a thesis is currently carrying."))))),
+        h("div", { style: { maxWidth: 1000, margin: "0 auto" }, dangerouslySetInnerHTML: { __html: ORACLE_SVG } })),
 
       // Format example
       h(PySection, null,
