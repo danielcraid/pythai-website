@@ -33,7 +33,7 @@
     ["Im Spiel & EOD", T("Werktäglich", "Every weekday"), "Inner Circle"],
     ["Weekly Recap & Markt-Vibe", T("Wöchentlich", "Weekly"), T("Alle — auch Observer", "Everyone — incl. Observers")],
     ["Sunday Briefing", T("Sonntags", "Sundays"), "Inner Circle"],
-    ["Live-Updates & Trade-Alerts", T("In Echtzeit", "Real-time"), "Syndicate"]
+    ["Push Updates & Alerts", T("nahezu in Echtzeit*", "near real-time*"), "Syndicate"]
   ];
 
   function App() {
@@ -114,7 +114,8 @@
             h("td", { style: tdS }, h("span", { style: { fontFamily: "var(--font-oracle)", fontSize: 19, color: "var(--text-primary)" } }, r[0])),
             h("td", { style: tdS }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" } }, r[1])),
             h("td", { style: tdS }, h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, color: "var(--text-secondary)" } }, r[2]))))))),
-        h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6, marginTop: 24 } }, T("Observer starten mit dem Morning Compass — der täglichen Edukations-Mail. Der volle Rhythmus lebt im Mitgliederbereich.", "Observers start with the Morning Compass — the daily education email. The full rhythm lives in the member area."))),
+        h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6, marginTop: 24 } }, T("* nahezu in Echtzeit für EU & USA — sofern die API-Schnittstellen laufen. Vereinzelt kann es zu Verzögerungen kommen.", "* near real-time for EU & US — provided the API feeds are running. Occasional delays can occur.")),
+        h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6, marginTop: 8 } }, T("Observer starten mit dem Morning Compass — der täglichen Edukations-Mail. Der volle Rhythmus lebt im Mitgliederbereich.", "Observers start with the Morning Compass — the daily education email. The full rhythm lives in the member area."))),
 
       // CTA
       h(PySection, null, h("div", { style: { textAlign: "center", maxWidth: 680, margin: "0 auto" } },
