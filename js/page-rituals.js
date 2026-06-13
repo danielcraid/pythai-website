@@ -82,9 +82,15 @@
     const [gate, setGate] = useState("loading");
     const [me, setMe] = useState(null);
     const [prefs, setPrefs] = useState({});
+    const [smsV, setSmsV] = useState(false);
+    const [smsModal, setSmsModal] = useState(false);
+    const [smsPhone, setSmsPhone] = useState("");
+    const [smsCode, setSmsCode] = useState("");
+    const [smsSent, setSmsSent] = useState(false);
+    const [smsErr, setSmsErr] = useState("");
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((res) => res.ok ? res.json() : null).then((d) => {
-        if (d && d.ok) { setMe(d); setPrefs(d.mailReports || {}); }
+        if (d && d.ok) { setMe(d); setPrefs(d.mailReports || {}); setSmsV(!!(d.smsVerified || d.sms_verified)); if (d.phone) setSmsPhone(d.phone); }
         if (d && d.onboardingRequired) { window.location.href = "account.html"; return; }
         const member = d && d.ok && PRIV.indexOf(d.tier) !== -1 && d.approval === "approved";
         setGate(member ? "ok" : "locked");
@@ -118,15 +124,44 @@
 
     const uk = me ? (me.tier === "syndicate" || me.tier === "admin" ? "syndicate" : (me.tier === "inner-circle" || me.tier === "circle-of-trust" ? "inner" : "observer")) : "inner";
     const isEnabled = (key) => (key === "morning-compass" || key === "breaking-critical" || key === "morning-news-flash" || key === "daily-oracle" || key === "im-spiel") ? prefs[key] !== false : prefs[key] === true;
-    const onToggle = (key, v) => { setPrefs((p) => { const n = Object.assign({}, p); n[key] = v; return n; }); fetch(API + "/api/mail-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ report: key, on: v }) }).catch(() => { }); try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } fetch(API + "/api/setup-complete", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setupComplete: true }) }).catch(() => { }); };
+    const onToggleRaw = (key, v) => { setPrefs((p) => { const n = Object.assign({}, p); n[key] = v; return n; }); fetch(API + "/api/mail-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ report: key, on: v }) }).catch(() => { }); try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } fetch(API + "/api/setup-complete", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setupComplete: true }) }).catch(() => { }); };
+    const onToggle = (key, v) => { if (key === "trade-alerts" && v && !smsV) { setSmsErr(""); setSmsCode(""); setSmsSent(false); setSmsModal(true); return; } onToggleRaw(key, v); };
+    const smsSend = () => { if (!smsPhone) return; setSmsErr(""); fetch(API + "/api/mobile/start", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: smsPhone }) }).then((r) => r.ok ? r.json() : null).then(() => setSmsSent(true)).catch(() => setSmsErr(T("Senden fehlgeschlagen. Versuch es nochmal.", "Send failed. Try again."))); };
+    const smsVerify = () => { if (!smsCode) return; fetch(API + "/api/mobile/verify", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: smsCode }) }).then((r) => r.ok ? r.json() : null).then((d) => { if (d && (d.ok || d.verified)) { setSmsV(true); setSmsModal(false); onToggleRaw("trade-alerts", true); } else { setSmsErr(T("Code stimmt nicht. Prüf die SMS.", "Code doesn't match. Check the SMS.")); } }).catch(() => setSmsErr(T("Prüfung fehlgeschlagen.", "Verification failed."))); };
 
     return h("div", null, h(SiteNav, { active: "rituals.html" }),
       h(PyPageHead, { eyebrow: "Member rituals", title: "What arrives, and when.", sub: T("Der Wochen-Rhythmus aller Reports von Warren — was wann kommt, für wen, und wie du es liest.", "The weekly rhythm of all of Warren's reports — what arrives when, for whom, and how to read it.") }),
       h(TierSummary, null),
       h(Overview, { groups: GROUPS, uk: uk, isEnabled: isEnabled, onToggle: onToggle }),
+      (uk === "syndicate" && smsV) ? h(PySection, null,
+        h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", border: "1px solid var(--border-subtle)", borderRadius: 12, background: "var(--bg-surface)", padding: "16px 20px" } },
+          h("div", null,
+            h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 } }, T("SMS-Trade-Alerts gehen an", "SMS trade alerts go to")),
+            h("div", { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } },
+              h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 16, color: "var(--text-primary)" } }, smsPhone || T("deine Nummer", "your number")),
+              h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--bull-bright)", border: "1px solid rgba(111,207,154,0.4)", borderRadius: 999, padding: "3px 9px" } }, T("verifiziert", "verified")))),
+          h(Button, { variant: "ghost", size: "sm", onClick: () => { setSmsSent(false); setSmsCode(""); setSmsErr(""); setSmsModal(true); } }, T("Nummer ändern", "Change number"))))
+        : null,
       GROUPS.map(([gtitle, gtag, reports], gi) => h(PySection, { key: gi, alt: gi % 2 === 1 },
         h("div", { style: { marginBottom: 28 } }, h(PyEyebrow, null, T("Rhythmus", "Rhythm")), h(PyH2, null, gtitle), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-secondary)", margin: "6px 0 0" } }, gtag)),
         reports.map((r) => h(Report, { key: r.key, r: r })))),
+      smsModal ? h("div", { onClick: () => setSmsModal(false), style: { position: "fixed", inset: 0, zIndex: 200, background: "rgba(4,5,8,0.82)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } },
+        h("div", { onClick: (e) => e.stopPropagation(), style: { maxWidth: 440, width: "100%", boxSizing: "border-box", background: "var(--bg-raised)", border: "1px solid var(--border-oracle)", borderRadius: 14, padding: 28 } },
+          h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 25, margin: "0 0 10px", color: "var(--oracle-bright)" } }, T("Mobilnummer verifizieren", "Verify your mobile number")),
+          h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 18px" } }, T("SMS-Trade-Alerts gehen aufs Handy — dafür müssen wir deine Nummer einmal bestätigen. Wir schicken dir einen Code per SMS.", "SMS trade alerts go to your phone — we need to confirm your number once. We'll text you a code.")),
+          !smsSent
+            ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } },
+                h("input", { type: "tel", placeholder: "+49 151 …", value: smsPhone, onChange: (e) => setSmsPhone(e.target.value), style: { flex: 1, minWidth: 180, fontFamily: "var(--font-mono)", fontSize: 15, background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 7, padding: "11px 12px", color: "var(--text-primary)", outline: "none" } }),
+                h(Button, { variant: "oracle", onClick: smsSend, disabled: !smsPhone }, T("Code senden", "Send code")))
+            : h("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
+                h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)" } }, T("Code an ", "Code sent to ") + smsPhone),
+                h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } },
+                  h("input", { placeholder: T("6-stelliger Code", "6-digit code"), value: smsCode, onChange: (e) => setSmsCode(e.target.value), style: { flex: 1, minWidth: 140, fontFamily: "var(--font-mono)", fontSize: 16, letterSpacing: "0.2em", background: "var(--bg-input)", border: "1px solid var(--border-oracle)", borderRadius: 7, padding: "11px 12px", color: "var(--text-primary)", outline: "none" } }),
+                  h(Button, { variant: "oracle", onClick: smsVerify, disabled: !smsCode }, T("Bestätigen", "Verify"))),
+                h("button", { onClick: () => { setSmsSent(false); setSmsCode(""); setSmsErr(""); }, style: { alignSelf: "flex-start", background: "none", border: "none", color: "var(--text-oracle)", fontFamily: "var(--font-ui)", fontSize: 12.5, cursor: "pointer", padding: 0 } }, T("Andere Nummer / neu senden", "Other number / resend"))),
+          smsErr ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--oxblood-bright)", marginTop: 12 } }, smsErr) : null,
+          h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 10.5, lineHeight: 1.55, color: "var(--text-muted)", margin: "16px 0 0" } }, T("Nur für Service-Alerts, kein Marketing. Du kannst SMS jederzeit hier wieder abschalten.", "Service alerts only, no marketing. You can turn SMS off here anytime.")),
+          h("div", { style: { textAlign: "right", marginTop: 14 } }, h("button", { onClick: () => setSmsModal(false), style: { background: "none", border: "none", color: "var(--text-muted)", fontFamily: "var(--font-ui)", fontSize: 13, cursor: "pointer" } }, T("Abbrechen", "Cancel"))))) : null,
       h(SiteFooter, null));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(h(App, null));
