@@ -234,8 +234,14 @@
     const submitAdd = () => {
       const f = addF; if (!f || !f.name.trim()) return;
       const body = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, market: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: deNum(f.entry), stop: deNum(f.stop), skim: deNum(f.skim), target: deNum(f.target), these: f.these, anti_these: f.kill };
-      if (editingId) api("/api/mybook/" + editingId, body, "PATCH").then(reload);
-      else api("/api/mybook", body, "POST").then(reload);
+      if (editingId) {
+        const id = editingId;
+        // optimistisch sofort anzeigen (Notion-Write hat Latenz), dann verzögert abgleichen
+        setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, idx: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: f.entry, stop: f.stop, skim: f.skim, target: f.target, these: f.these, kill: f.kill }) : r));
+        api("/api/mybook/" + id, body, "PATCH").then(() => setTimeout(reload, 1200));
+      } else {
+        api("/api/mybook", body, "POST").then(() => setTimeout(reload, 1200));
+      }
       closeForm();
     };
     const isinLookup = () => {
