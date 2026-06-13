@@ -18,10 +18,10 @@
     };
   })();
   const NAV = [
-    ["The Reading", "reading.html"],
     ["Manifesto", "manifesto.html"],
+    ["The Reading", "reading.html"],
     ["Signals", "signals.html"],
-    ["Inner Circle", "inner-circle.html"],
+    ["Pricing", "inner-circle.html"],
     ["Chartomat", "chartomat.html"],
     ["Playbook", "playbook.html"],
     ["Methodik", "methodik.html"],
