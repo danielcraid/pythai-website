@@ -250,17 +250,21 @@
       };
       fetch(API + "/api/mybook", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
         .then((r) => {
-          if (r && (r.status === 401 || r.status === 403)) { if (window.PYsessionExpired) window.PYsessionExpired(); return null; }
-          if (r && r.status === 409) return { dup: true };
-          if (r && r.ok) return r.json();
-          return { err: true };
+          if (r && r.status === 401) { if (window.PYsessionExpired) window.PYsessionExpired(); return null; }
+          return r.json().then((j) => ({ status: r.status, ok: r.ok, j: j || {} })).catch(() => ({ status: r && r.status, ok: r && r.ok, j: {} }));
         })
         .then((res) => {
           setAddingId(null);
           if (!res) return;
-          if (res.dup) { setAddedIds((a) => a.concat(t.id)); showFlash(T("Steht schon in deinem My Book.", "Already in your My Book.")); return; }
-          if (res.err) { showFlash(T("Konnte nicht übernehmen — evtl. ist dein My Book voll (12/12) oder das Topic existiert schon.", "Couldn't add — your My Book may be full (12/12) or the topic already exists.")); return; }
-          if (res.ok) { setAddedIds((a) => a.concat(t.id)); showFlash(T("In My Book übernommen — als Orakel-Mirror. Du kannst es dort anpassen.", "Added to My Book — as oracle mirror. You can adjust it there.")); }
+          const j = res.j || {};
+          if (res.ok && j.ok !== false) { setAddedIds((a) => a.concat(t.id)); showFlash(T("In My Book übernommen — als Orakel-Mirror. Du kannst es dort anpassen.", "Added to My Book — as oracle mirror. You can adjust it there.")); return; }
+          const code = String(j.error || j.code || "").toLowerCase();
+          if (code.indexOf("full") !== -1) { showFlash(T("Dein My Book ist voll (12/12). Erst Platz schaffen, dann übernehmen.", "Your My Book is full (12/12). Make room first, then add.")); return; }
+          if (code.indexOf("exist") !== -1 || code.indexOf("dup") !== -1 || res.status === 409) { setAddedIds((a) => a.concat(t.id)); showFlash(T("Steht schon in deinem My Book.", "Already in your My Book.")); return; }
+          if (code.indexOf("entry") !== -1) { showFlash(T("Dieses Setup hat noch kein Entry-Niveau — noch nicht übernehmbar.", "This setup has no entry level yet — not addable yet.")); return; }
+          if (code.indexOf("these") !== -1 || code.indexOf("thesis") !== -1) { showFlash(T("These oder Anti-These fehlt/zu kurz — öffne es in My Book und ergänze es.", "Thesis or anti-thesis missing/too short — open it in My Book and complete it.")); return; }
+          if (res.status === 403) { showFlash(T("Übernehmen ist Syndicate-only.", "Adding is Syndicate-only.")); return; }
+          showFlash((j.hint || j.message || j.error || T("Konnte nicht übernehmen", "Couldn't add")) + " (HTTP " + (res.status || "?") + ")");
         })
         .catch(() => { setAddingId(null); showFlash(T("Netzwerkfehler — versuch es erneut.", "Network error — try again.")); });
     };
