@@ -102,15 +102,19 @@
   #mb-root .disc .tlbl{margin:0 0 5px;} #mb-root .disc p{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--mist);margin:0;max-width:none;}
   #mb-root .ov2{position:fixed;inset:0;background:rgba(4,5,8,.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;z-index:200;}
   #mb-root .modal{max-width:440px;width:100%;background:var(--raised);border:1px solid var(--border-oracle);border-radius:12px;padding:26px;}
-  #mb-root .modal-wide{max-width:560px;max-height:88vh;overflow-y:auto;}
-  #mb-root .f-up{display:flex;align-items:center;justify-content:center;text-align:center;gap:8px;border:1px dashed var(--border-strong);border-radius:10px;background:rgba(212,169,78,.05);padding:18px 16px;cursor:pointer;font-family:var(--font-ui);font-size:13px;color:var(--oracle-b);margin:4px 0 8px;}
+  #mb-root .modal-wide{max-width:560px;max-height:90vh;overflow-y:auto;padding:22px 22px 0;}
+  #mb-root .modal-wide h3{margin:0 0 12px;}
+  #mb-root .f-foot{position:sticky;bottom:0;background:var(--raised);border-top:1px solid var(--border-subtle);padding:12px 0;margin-top:14px;display:flex;gap:10px;justify-content:flex-end;}
+  #mb-root .f-up{display:flex;align-items:center;justify-content:center;text-align:center;gap:8px;border:1px dashed var(--border-strong);border-radius:9px;background:rgba(212,169,78,.05);padding:11px 14px;cursor:pointer;font-family:var(--font-ui);font-size:12.5px;color:var(--oracle-b);margin:2px 0 7px;}
   #mb-root .f-up.busy{opacity:.7;cursor:wait;}
   #mb-root .f-note{font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--ash);margin:0 0 16px;}
-  #mb-root .f-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  #mb-root .f-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px;}
   #mb-root .f{display:flex;flex-direction:column;min-width:0;} #mb-root .f-full{grid-column:1 / -1;}
   #mb-root .f-l{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);margin-bottom:5px;}
-  #mb-root .f-i{font-family:var(--font-ui);font-size:14px;background:var(--input);border:1px solid var(--border-strong);border-radius:6px;padding:9px 10px;color:var(--parch);outline:none;width:100%;box-sizing:border-box;}
+  #mb-root .f-i{font-family:var(--font-ui);font-size:14px;background:var(--input);border:1px solid var(--border-strong);border-radius:6px;padding:7px 9px;color:var(--parch);outline:none;width:100%;box-sizing:border-box;}
   #mb-root .f-i:focus{border-color:var(--border-oracle);} #mb-root select.f-i{cursor:pointer;}
+  #mb-root .f-i.gold{border-color:var(--border-oracle);box-shadow:0 0 0 1px rgba(212,169,78,.25);}
+  #mb-root .f-i::placeholder,#mb-root textarea.f-i::placeholder{color:var(--steel);}
   #mb-root .modal h3{font-family:var(--font-oracle);font-weight:400;font-size:24px;margin:0 0 10px;color:var(--oracle-b);} #mb-root .modal p{font-family:var(--font-ui);font-size:14px;line-height:1.6;color:var(--mist);margin:0 0 16px;}
   #mb-root .disc-note{font-family:var(--font-mono);font-size:10.5px;line-height:1.55;color:var(--ash);border-left:2px solid #8A6526;padding:8px 0 8px 11px;margin:0 0 18px;}
   #mb-root .chanrow{display:flex;gap:8px;margin:0 0 18px;} #mb-root .chip{flex:1;text-align:center;border:1px solid var(--line);border-radius:7px;padding:9px;font-family:var(--font-mono);font-size:11px;color:var(--mist);cursor:pointer;} #mb-root .chip.sel{border-color:rgba(212,169,78,.5);background:rgba(212,169,78,.1);color:var(--oracle-b);}
@@ -365,23 +369,23 @@
           h("div", { className: "f-grid" },
             Fld({ label: "Name", k: "name", full: true, ph: "Rheinmetall AG" }),
             h("div", { key: "isin", className: "f f-full" },
-              h("label", { className: "f-l" }, T("ISIN — automatische Befüllung", "ISIN — auto-fill")),
+              h("label", { className: "f-l" }, T("ISIN — automatisch laden", "ISIN — auto-fill")),
               h("div", { style: { display: "flex", gap: 8 } },
-                h("input", { className: "f-i", value: addF.isin, placeholder: "DE0007030009", onChange: (e) => setAf("isin", e.target.value) }),
-                h(Button, { variant: "ghost", size: "sm", disabled: addBusy || !(addF.isin && addF.isin.trim()), onClick: isinLookup }, T("Laden", "Load")))),
+                h("input", { className: "f-i gold", value: addF.isin, placeholder: "DE0007030009", onChange: (e) => setAf("isin", e.target.value) }),
+                h(Button, { variant: "oracle", size: "sm", disabled: addBusy || !(addF.isin && addF.isin.trim()), onClick: isinLookup }, addBusy ? T("lädt…", "loading…") : T("Laden", "Load")))),
             Fld({ label: T("Emittent", "Issuer"), k: "issuer", ph: T("z. B. Société Générale", "e.g. Société Générale") }),
-            Sel({ label: T("Art", "Type"), k: "art", opts: ["Aktie · Long", "Aktie · Short", "ETC · Long", "ETC · Short", "Knock-Out · Long", "Knock-Out · Short", "Optionsschein", "Krypto · Long", "Forex"] }),
+            Sel({ label: T("Art", "Type"), k: "art", opts: ["Aktie · Long", "Aktie · Short", "ETF · Long", "ETF · Short", "ETC · Long", "ETC · Short", "Knock-Out · Long", "Knock-Out · Short", "Optionsschein", "Krypto · Long", "Forex"] }),
             Fld({ label: T("Markt / Index", "Market / index"), k: "idx", ph: "EURO STOXX 50" }),
             Sel({ label: T("Handelsplatz", "Trading venue"), k: "venue", opts: ["Tradegate", "Lang & Schwarz", "Gettex", "Xetra", "Stuttgart", "Frankfurt", "NYSE", "NASDAQ", "Sonstige"] }),
             Sel({ label: T("Währung", "Currency"), k: "currency", opts: ["EUR", "USD", "GBP", "CHF", "JPY"] }),
-            Fld({ label: "Entry", k: "entry" }),
-            Fld({ label: "Stop", k: "stop" }),
-            Fld({ label: "Skim", k: "skim" }),
-            Fld({ label: "Target", k: "target" }),
-            Fld({ label: T("Deine These", "Your thesis"), k: "these", full: true, area: true }),
-            Fld({ label: T("Anti-These (Kippt bei)", "Anti-thesis (breaks on)"), k: "kill", full: true, ph: "Iran-Ceasefire · EU-Budget-Cut" })),
-          h("div", { className: "f-note", style: { marginTop: 12 } }, T("Handelsplatz = wo du handelst. Standard Tradegate (EUR) — bestimmt, woher der Live-Kurs kommt. Kurs-Felder leer lassen, wenn unbekannt.", "Trading venue = where you trade. Default Tradegate (EUR) — sets where the live price comes from. Leave price fields empty if unknown.")),
-          h("div", { className: "mrow", style: { marginTop: 16 } },
+            Fld({ label: "Entry", k: "entry", ph: "0,00" }),
+            Fld({ label: "Stop", k: "stop", ph: "0,00" }),
+            Fld({ label: "Skim", k: "skim", ph: "0,00" }),
+            Fld({ label: "Target", k: "target", ph: "0,00" }),
+            Fld({ label: T("Deine These", "Your thesis"), k: "these", full: true, area: true, ph: T("Schreibe deine These …", "Write your thesis …") }),
+            Fld({ label: T("Anti-These (Kippt bei)", "Anti-thesis (breaks on)"), k: "kill", full: true, ph: T("Schreibe deine Anti-These …", "Write your anti-thesis …") })),
+          h("div", { className: "f-note", style: { marginTop: 10 } }, T("Handelsplatz = wo du handelst. Standard Tradegate (EUR). Kurs-Felder leer lassen, wenn unbekannt.", "Trading venue = where you trade. Default Tradegate (EUR). Leave price fields empty if unknown.")),
+          h("div", { className: "f-foot" },
             h(Button, { variant: "ghost", size: "sm", onClick: closeForm }, T("Abbrechen", "Cancel")),
             h(Button, { variant: "oracle", size: "sm", disabled: !addF.name.trim(), onClick: submitAdd }, editingId ? T("Speichern", "Save") : T("Topic anlegen", "Create topic"))))) : null,
       h(SiteFooter, null));
