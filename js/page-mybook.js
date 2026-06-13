@@ -3,7 +3,7 @@
   const { SiteNav, SiteFooter, PySection, PyEyebrow } = window;
   const T = (de, en) => window.PYi18n.t(de, en);
   const API = "https://api.pythai.ch";
-  const { useState, useEffect } = React;
+  const { useState, useEffect, useRef } = React;
   const h = React.createElement;
   const PRIV = ["syndicate", "admin"];
   const MAX = 12;
@@ -65,6 +65,7 @@
   #mb-root .arb:hover{border-color:var(--border-oracle);color:var(--text-primary);}
   #mb-root .arb.keep{border-color:rgba(111,176,122,.5);color:var(--bull);} #mb-root .arb.close{border-color:rgba(224,114,107,.5);color:var(--ox-b);}
   #mb-root .arb.warren{border-color:rgba(212,169,78,.5);background:rgba(212,169,78,.1);color:var(--oracle-b);}
+  #mb-root .cur{display:inline-block;margin-top:7px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;color:var(--ash);border:1px solid var(--line);border-radius:4px;padding:2px 7px;}
   #mb-root .mks{display:flex;gap:12px;flex-wrap:wrap;}
   #mb-root .mk{display:flex;flex-direction:column;gap:3px;flex:0 0 72px;}
   #mb-root .mk .k{font-family:var(--font-mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);}
@@ -165,6 +166,7 @@
     const [monCh, setMonCh] = useState("mail");
     const [delId, setDelId] = useState(null);
     const [summary, setSummary] = useState(true);
+    const editOrig = useRef({});
 
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
@@ -197,11 +199,22 @@
     const setMon = (id, on, channel) => { setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { monitored: on, channel: on ? (channel === "both" ? "SMS + Mail" : channel === "sms" ? "SMS" : "Mail") : null }) : r)); api("/api/mybook/" + id + "/monitor", { on: on, channel: channel || "mail" }); };
     const toggleMon = (p) => { if (p.monitored) setMon(p.id, false); else { setMonCh("mail"); setMonModal(p.id); } };
     const confirmMon = () => { setMon(monModal, true, monCh); setMonModal(null); };
-    const toggleEdit = (id) => setEditId((e) => { if (e === id) { const r = rows.find((x) => x.id === id); if (r) patch(id, { entry: r.entry, stop: r.stop, skim: r.skim, target: r.target, these: r.these }); return null; } return id; });
+    const enterEdit = (id) => { const r = rows.find((x) => x.id === id) || {}; editOrig.current = { entry: r.entry, stop: r.stop, skim: r.skim, target: r.target }; setEditId(id); };
+    const saveEdit = (id) => {
+      const r = rows.find((x) => x.id === id); const o = editOrig.current || {}; const body = {};
+      ["entry", "stop", "skim", "target"].forEach((k) => {
+        const cur = (r && r[k] != null) ? String(r[k]) : "";
+        const orig = (o[k] != null) ? String(o[k]) : "";
+        if (cur !== orig) body[k] = (cur === "" ? null : r[k]); // nur GEÄNDERTE Felder; geleert → explizit null
+      });
+      if (Object.keys(body).length) patch(id, body);
+      setEditId(null);
+    };
+    const toggleEdit = (id) => { if (editId === id) saveEdit(id); else enterEdit(id); };
     const doDelete = () => { api("/api/mybook/" + delId, null, "DELETE"); setRows((rs) => rs.filter((r) => r.id !== delId)); setDelId(null); };
     // Action-Required-Buttons (Soll-Mapping → PATCH; VC bestätigt Feld-Namen)
     const doAction = (p, act) => {
-      if (act === "edit") { setEditId(p.id); return; }
+      if (act === "edit") { enterEdit(p.id); return; }
       if (act === "ask_warren") { if (typeof window.PYchatOpen === "function") window.PYchatOpen("Zu meinem Topic „" + p.name + "“: " + (p.action_reason || "Was meinst du?")); return; }
       if (act === "close") { api("/api/mybook/" + p.id, { state: "closed" }, "PATCH"); setRows((rs) => rs.filter((r) => r.id !== p.id)); return; }
       if (act === "member_only") { patch(p.id, { tracking_source: "member_only", action_required: false }); setRows((rs) => rs.map((r) => r.id === p.id ? Object.assign({}, r, { tracking_source: "member_only", action_required: false }) : r)); return; }
@@ -222,9 +235,9 @@
             h("span", { className: "badge long" }, p.art),
             h("span", { className: "badge " + (p.tracking_source === "member_only" ? "src-self" : "src-oracle") }, p.tracking_source === "member_only" ? T("Du trackst", "You track") : T("Orakel", "Oracle")),
             p.action_required ? h("span", { className: "ar-pill" }, T("Schau hin", "Look")) : null,
-            h("span", { className: "isin" }, p.isin + " · " + p.live))),
+            h("span", { className: "isin" }, p.isin + " · Live " + p.live + (p.currency ? " " + p.currency : "")))),
           h("div", { className: "c-stat" }, h(Mini, { p })),
-          h("div", { className: "c-trig" }, h(Marks, { p, editing: isEdit, onField: setField })),
+          h("div", { className: "c-trig" }, h(Marks, { p, editing: isEdit, onField: setField }), p.currency ? h("div", { className: "cur" }, p.currency) : null),
           h("div", { className: "c-act" },
             h("span", { className: "det" }, isOpen ? T("Schließen ▴", "Close ▴") : T("Details ▾", "Details ▾")),
             h("button", { className: "bedit" + (isEdit ? " saving" : ""), onClick: (e) => { e.stopPropagation(); toggleEdit(p.id); } }, isEdit ? T("Speichern ✓", "Save ✓") : T("Bearbeiten ✎", "Edit ✎")))),
