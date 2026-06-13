@@ -87,6 +87,15 @@
     // Globaler Hook: andere Seiten (z.B. My Book „Frag Warren") öffnen den Chat vorbefüllt
     useEffect(() => {
       window.PYchatOpen = (q) => { setOpen(true); boot(); if (q) setInput(q); };
+      // Mail-„Frag Warren"-Redirect: ?py_chat_q=… → Chat vorbefüllt öffnen, URL säubern
+      try {
+        const qp = new URLSearchParams(window.location.search).get("py_chat_q");
+        if (qp) {
+          setOpen(true); boot(); setInput(qp);
+          const u = new URL(window.location.href); u.searchParams.delete("py_chat_q");
+          window.history.replaceState({}, "", u.pathname + u.search + u.hash);
+        }
+      } catch (e) { }
       return () => { try { delete window.PYchatOpen; } catch (e) { window.PYchatOpen = undefined; } };
     }, []);
 
