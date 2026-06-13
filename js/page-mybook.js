@@ -254,7 +254,7 @@
           .then((d) => {
             if (d && d.ok && d.suggestion) {
               const s = d.suggestion;
-              setAddF((o) => Object.assign({}, o || BLANK, { name: s.name || (o && o.name) || "", isin: s.isin || (o && o.isin) || "", art: s.art || (o && o.art) || "Aktie · Long", currency: s.currency || "EUR", entry: numStr(s.entry), stop: numStr(s.stop), skim: numStr(s.skim), target: numStr(s.target), these: s.these_hint || (o && o.these) || "" }));
+              setAddF((o) => Object.assign({}, o || BLANK, { name: s.name || (o && o.name) || "", isin: s.isin || (o && o.isin) || "", issuer: s.issuer || (o && o.issuer) || "", art: s.art || (o && o.art) || "Aktie · Long", venue: s.venue || (o && o.venue) || "Tradegate", currency: s.currency || "EUR", entry: numStr(s.entry), stop: numStr(s.stop), skim: numStr(s.skim), target: numStr(s.target), these: s.these_hint || (o && o.these) || "" }));
             }
             setAddBusy(false);
           }).catch(() => setAddBusy(false));
@@ -370,7 +370,7 @@
                 h("input", { className: "f-i", value: addF.isin, placeholder: "DE0007030009", onChange: (e) => setAf("isin", e.target.value) }),
                 h(Button, { variant: "ghost", size: "sm", disabled: addBusy || !(addF.isin && addF.isin.trim()), onClick: isinLookup }, T("Laden", "Load")))),
             Fld({ label: T("Emittent", "Issuer"), k: "issuer", ph: T("z. B. Société Générale", "e.g. Société Générale") }),
-            Sel({ label: T("Art", "Type"), k: "art", opts: ["Aktie · Long", "Aktie · Short", "ETC · Long", "ETC · Short", "Knock-out · Long", "Knock-out · Short", "Optionsschein", "Krypto · Long", "Forex"] }),
+            Sel({ label: T("Art", "Type"), k: "art", opts: ["Aktie · Long", "Aktie · Short", "ETC · Long", "ETC · Short", "Knock-Out · Long", "Knock-Out · Short", "Optionsschein", "Krypto · Long", "Forex"] }),
             Fld({ label: T("Markt / Index", "Market / index"), k: "idx", ph: "EURO STOXX 50" }),
             Sel({ label: T("Handelsplatz", "Trading venue"), k: "venue", opts: ["Tradegate", "Lang & Schwarz", "Gettex", "Xetra", "Stuttgart", "Frankfurt", "NYSE", "NASDAQ", "Sonstige"] }),
             Sel({ label: T("Währung", "Currency"), k: "currency", opts: ["EUR", "USD", "GBP", "CHF", "JPY"] }),

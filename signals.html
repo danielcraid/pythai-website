@@ -22,6 +22,29 @@
   .pk-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
   .pk-grid2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; }
   @media (max-width: 860px) { .pk-grid3, .pk-grid2 { grid-template-columns: 1fr; } }
+  /* Orakel-Flow (responsiv) */
+  .osv { background:#0A0B0F; border:1px solid #20242D; border-radius:16px; padding:30px 26px; }
+  .osv-flow { display:flex; align-items:flex-start; gap:6px; margin:8px 0 4px; }
+  .osv-step { flex:1 1 0; display:flex; flex-direction:column; align-items:center; text-align:center; gap:9px; min-width:0; }
+  .osv-arrow { flex:0 0 auto; align-self:center; margin-top:26px; color:var(--oracle); font-size:20px; line-height:1; }
+  .osv-node { width:58px; height:58px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--bg-surface); border:1.6px solid var(--border-oracle); flex:0 0 auto; }
+  .osv-node.eye { border-color:var(--oracle-bright); box-shadow:0 0 24px -4px var(--glow-oracle); }
+  .osv-node.warn { border-color:var(--oxblood-bright); } .osv-node.go { border-color:var(--bull-bright); }
+  .osv-l { font-family:var(--font-ui); font-weight:700; font-size:clamp(14px,1.5vw,17px); color:var(--parchment); }
+  .osv-s { font-family:var(--font-mono); font-size:clamp(10.5px,1.1vw,11.5px); color:var(--text-secondary); line-height:1.45; }
+  @media (max-width:760px) {
+    .osv-flow { flex-direction:column; align-items:stretch; gap:2px; }
+    .osv-step { flex-direction:row; text-align:left; align-items:center; gap:15px; padding:8px 0; }
+    .osv-step .osv-txt { flex:1; }
+    .osv-arrow { transform:rotate(90deg); align-self:flex-start; margin:0 0 0 28px; }
+    .osv-l { font-size:17px; } .osv-s { font-size:12.5px; }
+  }
+  /* Thesen-Barometer (Waage) */
+  .swg-mk { position:relative; height:12px; }
+  .swg-arrow { position:absolute; transform:translateX(-50%); color:var(--oracle-bright); font-size:11px; line-height:1; }
+  .swg-bar { display:flex; height:8px; border-radius:999px; overflow:hidden; } .swg-bar span { flex:1; }
+  .swg-zones { display:flex; margin-top:6px; } .swg-zones span { flex:1; font-family:var(--font-mono); font-size:8px; color:var(--text-muted); }
+  .swg-lab { font-family:var(--font-mono); font-size:11px; font-weight:700; margin-top:7px; }
 </style>
 </head>
 <body>
@@ -36,7 +59,7 @@
 <script src="js/site.js?v=5"></script>
 <script src="js/chat.js?v=5"></script>
 <script src="js/pagekit.js?v=2"></script>
-<script src="js/page-signals.js?v=6"></script>
+<script src="js/page-signals.js?v=7"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
