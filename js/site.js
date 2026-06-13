@@ -43,7 +43,7 @@
     });
   }
   const NAV_CSS = `
-.pynav-desktop{display:flex;align-items:center;gap:28px;}
+.pynav-desktop{display:flex;align-items:center;gap:17px;}
 .pynav-burger{display:none;align-items:center;justify-content:center;background:none;border:1px solid var(--border-strong);border-radius:6px;cursor:pointer;color:var(--text-primary);width:42px;height:38px;}
 .pynav-menu{position:fixed;top:var(--nav-h);left:0;right:0;z-index:99;background:rgba(8,9,12,0.97);backdrop-filter:blur(14px);border-bottom:1px solid var(--border-subtle);padding:8px 40px 26px;display:flex;flex-direction:column;}
 .pynav-menu a{font-family:var(--font-mono);font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-secondary);text-decoration:none;padding:16px 0;border-bottom:1px solid var(--border-subtle);}
@@ -99,7 +99,13 @@
     };
     if (me) {
       const goAccount = () => { window.PYsfx("menue-account", () => { window.location.href = "account.html"; }); };
-      return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, me.nickname || me.name || me.email), /* @__PURE__ */ React.createElement(Button, { variant: "oracle", size: "sm", full, onClick: goAccount, style: { fontSize: "1rem" } }, T("Account", "Account")), /* @__PURE__ */ React.createElement(Button, { variant: "chrome", size: "sm", full, onClick: logout, style: { fontSize: "1rem" } }, T("Abmelden", "Log out")));
+      const nameEl = /* @__PURE__ */ React.createElement("span", { key: "n", style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, me.nickname || me.name || me.email);
+      const accBtn = /* @__PURE__ */ React.createElement(Button, { key: "a", variant: "oracle", size: "sm", full, onClick: goAccount, style: { fontSize: "1rem" } }, T("Account", "Account"));
+      const outBtn = /* @__PURE__ */ React.createElement(Button, { key: "o", variant: "chrome", size: "sm", full, onClick: logout, style: { fontSize: "1rem" } }, T("Abmelden", "Log out"));
+      // Desktop: Name + Account + Abmelden eng gruppiert; Mobil (full): gestapelt wie bisher
+      return full
+        ? /* @__PURE__ */ React.createElement(React.Fragment, null, nameEl, accBtn, outBtn)
+        : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, nameEl, accBtn, outBtn);
     }
     return /* @__PURE__ */ React.createElement(Button, { variant: "oracle", size: "sm", full, onClick: signin, style: { fontSize: "1rem" } }, "Enter the Sanctum");
   }
