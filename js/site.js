@@ -203,4 +203,26 @@
     }
     if (document.body) boot(); else document.addEventListener("DOMContentLoaded", boot);
   })();
+
+  // Global: Session-Expired-Overlay — von jeder Seite bei 401/403 aufrufbar
+  window.PYsessionExpired = function () {
+    if (document.getElementById("py-sx")) return;
+    var en = !!(window.PYi18n && window.PYi18n.lang === "en");
+    var ov = document.createElement("div");
+    ov.id = "py-sx";
+    ov.setAttribute("style", "position:fixed;inset:0;z-index:9999;background:rgba(4,5,8,0.82);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;");
+    var card = document.createElement("div");
+    card.setAttribute("style", "max-width:440px;width:100%;box-sizing:border-box;background:var(--bg-raised);border:1px solid var(--border-oracle);border-radius:14px;padding:28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6);");
+    card.innerHTML =
+      '<div style="font-family:var(--font-oracle);font-weight:400;font-size:26px;color:var(--oracle-bright);margin:0 0 10px">' + (en ? "Session expired." : "Sitzung abgelaufen.") + "</div>" +
+      '<p style="font-family:var(--font-ui);font-size:15px;line-height:1.6;color:var(--text-secondary);margin:0 0 22px">' + (en ? "Sign in once more to continue — your data is safe." : "Melde dich einmal kurz neu an, um weiterzumachen — deine Daten sind sicher.") + "</p>" +
+      '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
+      '<button id="py-sx-go" style="font-family:var(--font-ui);font-weight:600;font-size:14px;border:none;border-radius:8px;padding:11px 20px;cursor:pointer;color:var(--text-on-gold);background:var(--grad-gold)">' + (en ? "Sign in" : "Neu anmelden") + "</button>" +
+      '<button id="py-sx-x" style="font-family:var(--font-ui);font-size:14px;border:1px solid var(--border-strong);background:transparent;color:var(--text-secondary);border-radius:8px;padding:11px 20px;cursor:pointer">' + (en ? "Later" : "Später") + "</button>" +
+      "</div>";
+    ov.appendChild(card);
+    document.body.appendChild(ov);
+    document.getElementById("py-sx-go").onclick = function () { window.location.href = "register.html"; };
+    document.getElementById("py-sx-x").onclick = function () { ov.remove(); };
+  };
 })();

@@ -86,6 +86,9 @@
   #mb-root .kill{font-family:var(--font-mono);font-size:13.5px;line-height:1.55;color:var(--ox-b);margin:0;} #mb-root .kill b{color:#F0A39C;font-weight:700;}
   #mb-root .bline{font-family:var(--font-ui);font-size:12.5px;font-weight:600;border:1px solid rgba(212,169,78,.5);border-radius:8px;padding:11px 14px;cursor:pointer;background:rgba(212,169,78,.08);color:var(--oracle-b);text-align:center;white-space:nowrap;}
   #mb-root .bdel{font-family:var(--font-ui);font-size:12.5px;font-weight:600;border:1px solid rgba(224,114,107,.45);border-radius:8px;padding:11px 14px;cursor:pointer;background:transparent;color:var(--ox-b);text-align:center;white-space:nowrap;} #mb-root .bdel:hover{background:rgba(224,114,107,.1);}
+  #mb-root .empty{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:48px 30px;text-align:center;}
+  #mb-root .empty-t{font-family:var(--font-oracle);font-size:26px;color:var(--parch);}
+  #mb-root .empty-s{font-family:var(--font-ui);font-size:14.5px;line-height:1.6;color:var(--mist);margin:10px auto 0;max-width:54ch;}
   #mb-root .add{border:1px dashed var(--border-strong);border-radius:12px;background:rgba(212,169,78,.03);padding:30px;margin-top:26px;text-align:center;}
   #mb-root .addt{font-family:var(--font-oracle);font-style:italic;font-size:21px;color:var(--parch);}
   #mb-root .adds{font-family:var(--font-ui);font-size:13px;line-height:1.6;color:var(--mist);margin:8px auto 16px;max-width:64ch;}
@@ -154,8 +157,9 @@
 
   function App() {
     const [gate, setGate] = useState("loading");
-    const [rows, setRows] = useState(SEED);
-    const [open, setOpen] = useState("rhm");
+    const [rows, setRows] = useState([]);
+    const [loaded, setLoaded] = useState(false);
+    const [open, setOpen] = useState(null);
     const [editId, setEditId] = useState(null);
     const [monModal, setMonModal] = useState(null);
     const [monCh, setMonCh] = useState("mail");
@@ -172,18 +176,22 @@
     useEffect(() => {
       if (gate !== "ok") return;
       injectCSS();
-      fetch(API + "/api/mybook", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
+      fetch(API + "/api/mybook", { credentials: "include" }).then((r) => {
+        if (r.status === 401 || r.status === 403) { if (window.PYsessionExpired) window.PYsessionExpired(); setLoaded(true); return null; }
+        return r.ok ? r.json() : null;
+      }).then((d) => {
         if (d && d.ok && Array.isArray(d.topics)) {
           setRows(d.topics);
           if (d.topics.length) setOpen(d.topics[0].id);
         }
-      }).catch(() => { });
+        setLoaded(true);
+      }).catch(() => setLoaded(true));
     }, [gate]);
 
     if (gate === "loading") return h("div", null, h(SiteNav, { active: "" }), h("div", { style: { minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 22, color: "var(--text-oracle)" } }, T("Das Orakel prüft deinen Zugang…", "The oracle checks your access…")), h(SiteFooter, null));
     if (gate === "locked") return h("div", null, h(SiteNav, { active: "" }), h("section", { style: { minHeight: "calc(100vh - var(--nav-h))", display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" } }, h("div", { style: { maxWidth: 480 } }, h(PyEyebrow, null, "Syndicate"), h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 44, margin: "8px 0 0", color: "var(--text-primary)" } }, T("My Book lebt im Syndicate.", "My Book lives in the Syndicate.")), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", margin: "16px 0 28px" } }, T("Dein persönliches Thesen-Buch — Trades tracken, These beobachten, Alerts setzen — ist dem Syndicate vorbehalten.", "Your personal thesis book — track trades, watch the thesis, set alerts — is reserved for the Syndicate.")), h(Button, { variant: "oracle", onClick: () => { window.location.href = "account.html"; } }, T("Zum Account", "Go to account")))), h(SiteFooter, null));
 
-    const api = (path, body, method) => fetch(API + path, { method: method || "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).catch(() => { });
+    const api = (path, body, method) => fetch(API + path, { method: method || "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then((r) => { if (r && (r.status === 401 || r.status === 403) && window.PYsessionExpired) window.PYsessionExpired(); return r; }).catch(() => { });
     const patch = (id, body) => api("/api/mybook/" + id, body, "PATCH");
     const setField = (id, k, v) => setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { [k]: v }) : r));
     const setMon = (id, on, channel) => { setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { monitored: on, channel: on ? (channel === "both" ? "SMS + Mail" : channel === "sms" ? "SMS" : "Mail") : null }) : r)); api("/api/mybook/" + id + "/monitor", { on: on, channel: channel || "mail" }); };
@@ -212,7 +220,7 @@
             h("span", { className: "badge idx" }, p.idx),
             h("span", { className: "badge long" }, p.art),
             h("span", { className: "badge " + (p.tracking_source === "member_only" ? "src-self" : "src-oracle") }, p.tracking_source === "member_only" ? T("Du trackst", "You track") : T("Orakel", "Oracle")),
-            p.action_required ? h("span", { className: "ar-pill" }, "⚠ ", T("Schau hin", "Look")) : null,
+            p.action_required ? h("span", { className: "ar-pill" }, T("Schau hin", "Look")) : null,
             h("span", { className: "isin" }, p.isin + " · " + p.live))),
           h("div", { className: "c-stat" }, h(Mini, { p })),
           h("div", { className: "c-trig" }, h(Marks, { p, editing: isEdit, onField: setField })),
@@ -221,7 +229,7 @@
             h("button", { className: "bedit" + (isEdit ? " saving" : ""), onClick: (e) => { e.stopPropagation(); toggleEdit(p.id); } }, isEdit ? T("Speichern ✓", "Save ✓") : T("Bearbeiten ✎", "Edit ✎")))),
         isOpen ? h("div", { className: "dpanel" }, h("div", { className: "dwrap" },
           p.action_required ? h("div", { className: "ar-banner" },
-            h("div", { className: "ar-head" }, "⚠ ", T("Das Orakel meldet einen Bruch", "The oracle reports a break")),
+            h("div", { className: "ar-head" }, T("Das Orakel meldet einen Bruch", "The oracle reports a break")),
             h("div", { className: "ar-reason" }, p.action_reason || T("Eine Kurs-Marke oder ein Kill-Trigger wurde berührt.", "A price level or kill-trigger was hit.")),
             h("div", { className: "ar-btns" },
               h("button", { className: "arb keep", onClick: () => doAction(p, "keep") }, T("Behalten", "Keep")),
@@ -248,14 +256,17 @@
           h(PyEyebrow, null, T("Überblick · ", "Overview · ") + count + "/" + MAX + " Topics"),
           h("label", { className: "rep" }, h("button", { className: "sw " + (summary ? "on" : "off"), onClick: () => setSummary(!summary) }, h("span", { className: "knob" })), T("Tägliche My-Book-Summary", "Daily My-Book summary"))),
         h("h2", { className: "mb" }, T("Deine Topics auf einen Blick.", "Your topics at a glance.")),
-        h("div", { className: "list" },
+        rows.length ? h("div", { className: "list" },
           h("div", { className: "hdr" },
             h("span", { className: "hc c-mon" }, T("Beobachten", "Monitor")),
             h("span", { className: "hc c-topic" }, "Topic"),
             h("span", { className: "hc c-stat" }, T("These-Status", "Thesis status")),
             h("span", { className: "hc c-trig" }, "My Trigger"),
             h("span", { className: "hc c-act" })),
-          rows.map(Topic)),
+          rows.map(Topic))
+        : (loaded ? h("div", { className: "empty" },
+            h("div", { className: "empty-t" }, T("Dein Buch ist noch leer.", "Your book is still empty.")),
+            h("div", { className: "empty-s" }, T("Leg dein erstes Topic an — per Upload oder von Hand. Warren beobachtet ab dann, ob deine These hält.", "Add your first topic — by upload or by hand. Warren then watches whether your thesis holds."))) : null),
         h("div", { className: "add" + (count >= MAX ? " full" : "") },
           h("div", { className: "addt" }, T("Neues Topic?", "New topic?")),
           h("div", { className: "adds" }, T("Lade einen Screenshot oder ein PDF hoch — Warren liest die Kurs-Marken aus und fragt nach deiner These. Die Datei wird nicht gespeichert: du bestätigst nur die ausgelesenen Marken. Oder trag alles selbst ein.", "Upload a screenshot or PDF — Warren reads the price levels and asks for your thesis. The file is not stored: you only confirm the extracted levels. Or enter everything yourself.")),
