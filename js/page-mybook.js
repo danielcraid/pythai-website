@@ -81,6 +81,7 @@
   #mb-root .mini .bar{display:flex;height:7px;border-radius:999px;overflow:hidden;} #mb-root .mini .bar span{flex:1;}
   #mb-root .mini .lab{font-family:var(--font-mono);font-size:11px;font-weight:700;margin-top:6px;}
   #mb-root .dwrap{padding:6px 0 28px;}
+  #mb-root .mirror-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:20px;}
   #mb-root .dgrid{display:grid;grid-template-columns:var(--cols);gap:var(--cgap);align-items:start;}
   #mb-root .dcol-these{grid-column:3 / 5;grid-row:1;min-width:0;}
   #mb-root .dcol-act{grid-column:5 / 6;grid-row:1;justify-self:end;align-self:start;display:flex;flex-direction:column;gap:12px;width:100%;}
@@ -179,6 +180,7 @@
     const [open, setOpen] = useState(null);
     const [monModal, setMonModal] = useState(null);
     const [monCh, setMonCh] = useState("mail");
+    const [mirrorModal, setMirrorModal] = useState(null);
     const [delId, setDelId] = useState(null);
     const [summary, setSummary] = useState(true);
     const BLANK = { name: "", isin: "", issuer: "", idx: "", art: "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: "", stop: "", skim: "", target: "", these: "", kill: "" };
@@ -239,6 +241,13 @@
         })
         .catch(() => setCheckId(null));
     };
+    const setSource = (id, src) => {
+      setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { tracking_source: src }) : r));
+      patch(id, { tracking_source: src });
+      setTimeout(() => checkThesis({ id: id }), 250); // Score sofort auf neue Source aktualisieren
+    };
+    const toggleMirror = (p) => { if (p.tracking_source !== "member_only") setMirrorModal(p.id); else setSource(p.id, "oracle"); };
+    const confirmMirrorOff = () => { if (mirrorModal) setSource(mirrorModal, "member_only"); setMirrorModal(null); };
     const doDelete = () => { api("/api/mybook/" + delId, null, "DELETE"); setRows((rs) => rs.filter((r) => r.id !== delId)); setDelId(null); };
     // Action-Required-Buttons (Soll-Mapping → PATCH; VC bestätigt Feld-Namen)
     const doAction = (p, act) => {
@@ -329,6 +338,11 @@
             h("span", { className: "det" }, isOpen ? T("Schließen ▴", "Close ▴") : T("Details ▾", "Details ▾")),
             h("button", { className: "bedit", onClick: (e) => { e.stopPropagation(); openEdit(p); } }, T("Bearbeiten", "Edit")))),
         isOpen ? h("div", { className: "dpanel" }, h("div", { className: "dwrap" },
+          h("div", { className: "mirror-row" },
+            h("button", { className: "sw " + (p.tracking_source !== "member_only" ? "on" : "off"), onClick: () => toggleMirror(p) }, h("span", { className: "knob" })),
+            h("div", null,
+              h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" } }, T("Orakel-Mirror", "Oracle mirror")),
+              h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)" } }, p.tracking_source !== "member_only" ? T("spiegelt den Orakel-Score", "mirrors the oracle score") : T("du trackst selbst — gegen deine Marken", "you track yourself — against your levels")))),
           p.action_required ? h("div", { className: "ar-banner" },
             h("div", { className: "ar-head" }, T("Das Orakel meldet einen Bruch", "The oracle reports a break")),
             h("div", { className: "ar-reason" }, p.action_reason || T("Eine Kurs-Marke oder ein Kill-Trigger wurde berührt.", "A price level or kill-trigger was hit.")),
@@ -396,6 +410,19 @@
           h("div", { className: "mrow" },
             h(Button, { variant: "ghost", size: "sm", onClick: () => setMonModal(null) }, T("Abbrechen", "Cancel")),
             h(Button, { variant: "oracle", size: "sm", onClick: confirmMon }, T("Trotzdem beobachten", "Monitor anyway"))))) : null,
+      mirrorModal ? h("div", { className: "ov2", onClick: () => setMirrorModal(null) },
+        h("div", { className: "modal", onClick: (e) => e.stopPropagation() },
+          h("h3", null, T("Orakel-Mirror ausschalten", "Turn off oracle mirror")),
+          h("p", null, T("Du übernimmst die Bewertung selbst — dein Score kann vom Orakel-Score abweichen. Bei jeder „These prüfen\"-Aktion rechnen wir gegen DEINE Marken und DEINE These, nicht gegen die Orakel-Werte.", "You take over the assessment — your score can differ from the oracle score. On every \"check thesis\" we compute against YOUR levels and YOUR thesis, not the oracle's.")),
+          h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 8px" } }, T("Sinnvoll, wenn du:", "Useful if you:")),
+          h("ul", { style: { margin: "0 0 16px", paddingLeft: 18, fontFamily: "var(--font-ui)", fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)" } },
+            h("li", null, T("einen eigenen Entry hast (anders als der Orakel-Trade)", "have your own entry (different from the oracle trade)")),
+            h("li", null, T("deine eigene These hast (anders als die offizielle)", "have your own thesis (different from the official one)")),
+            h("li", null, T("das Topic weiter tracken willst, nachdem der Orakel-Trade geschlossen wurde", "want to keep tracking after the oracle trade has closed"))),
+          h("p", { className: "disc-note" }, T("Du kannst jederzeit zurückwechseln.", "You can switch back anytime.")),
+          h("div", { className: "mrow" },
+            h(Button, { variant: "ghost", size: "sm", onClick: () => setMirrorModal(null) }, T("Abbrechen", "Cancel")),
+            h(Button, { variant: "oracle", size: "sm", onClick: confirmMirrorOff }, T("Selbst tracken", "Track myself"))))) : null,
       delId ? h("div", { className: "ov2", onClick: () => setDelId(null) },
         h("div", { className: "modal", style: { borderColor: "rgba(224,114,107,.45)" }, onClick: (e) => e.stopPropagation() },
           h("h3", { style: { color: "var(--ox-b)" } }, T("Topic löschen?", "Delete topic?")),
