@@ -90,6 +90,7 @@
   #mb-root .kill{font-family:var(--font-mono);font-size:13.5px;line-height:1.55;color:var(--ox-b);margin:0;} #mb-root .kill b{color:#F0A39C;font-weight:700;}
   #mb-root .bline{font-family:var(--font-ui);font-size:12.5px;font-weight:600;border:1px solid rgba(212,169,78,.5);border-radius:8px;padding:11px 14px;cursor:pointer;background:rgba(212,169,78,.08);color:var(--oracle-b);text-align:center;white-space:nowrap;}
   #mb-root .bline.chk{background:var(--grad-gold);color:var(--text-on-gold);border-color:transparent;} #mb-root .bline.chk:disabled{opacity:.7;cursor:wait;}
+  #mb-root .bline.saving{opacity:.7;cursor:wait;}
   #mb-root .bdel{font-family:var(--font-ui);font-size:12.5px;font-weight:600;border:1px solid rgba(224,114,107,.45);border-radius:8px;padding:11px 14px;cursor:pointer;background:transparent;color:var(--ox-b);text-align:center;white-space:nowrap;} #mb-root .bdel:hover{background:rgba(224,114,107,.1);}
   #mb-root .empty{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:48px 30px;text-align:center;}
   #mb-root .empty-t{font-family:var(--font-oracle);font-size:26px;color:var(--parch);}
@@ -205,6 +206,7 @@
     const [hunterBusy, setHunterBusy] = useState(false);
     const [checkId, setCheckId] = useState(null);
     const [checkMsg, setCheckMsg] = useState({});
+    const [chartBusy, setChartBusy] = useState(null);
     const [flash, setFlash] = useState("");
     const showFlash = (msg) => { setFlash(msg); setTimeout(() => setFlash(""), 4500); };
 
@@ -255,6 +257,24 @@
           if (res.ok) setRows((rs) => rs.map((r) => r.id === p.id ? Object.assign({}, r, { score: res.score, zone: res.zone, waage_pct: (typeof res.score === "number" ? wpct(res.score) : r.waage_pct), einschaetzung: res.einschaetzung, last_checked_at: res.last_checked_at }) : r));
         })
         .catch(() => setCheckId(null));
+    };
+    const chartMail = (p) => {
+      if (chartBusy) return;
+      setChartBusy(p.id);
+      fetch(API + "/api/mybook/" + p.id + "/chart", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ deliver: "mail" }) })
+        .then((r) => {
+          if (r && (r.status === 401 || r.status === 403)) { if (window.PYsessionExpired) window.PYsessionExpired(); return null; }
+          if (r && r.status === 429) return { cooldown: true };
+          return r && r.ok ? (r.json().catch(() => ({ ok: true }))) : { err: true };
+        })
+        .then((res) => {
+          setChartBusy(null);
+          if (!res) return;
+          if (res.cooldown) { showFlash(T("Chart-Analyse läuft gerade schon — gleich kommt die Mail.", "Chart analysis already running — the mail is on its way.")); return; }
+          if (res.err) { showFlash(T("Chart-Analyse konnte nicht ausgelöst werden — versuch es gleich nochmal.", "Couldn't trigger the chart analysis — try again shortly.")); return; }
+          showFlash(T("Warren schickt dir die Chart-Analyse per Mail.", "Warren is sending the chart analysis by mail."));
+        })
+        .catch(() => { setChartBusy(null); showFlash(T("Netzwerkfehler — versuch es gleich nochmal.", "Network error — try again shortly.")); });
     };
     const setSource = (id, src) => {
       setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { tracking_source: src }) : r));
@@ -382,7 +402,7 @@
           h("div", { className: "dgrid" },
           h("div", { className: "dcol-act" },
             h("button", { className: "bline chk", disabled: checkId === p.id, onClick: () => checkThesis(p) }, checkId === p.id ? T("Prüfe…", "Checking…") : T("These prüfen", "Check thesis")),
-            h("button", { className: "bline" }, T("Chart-Analyse per Mail", "Chart analysis by mail")),
+            h("button", { className: "bline" + (chartBusy === p.id ? " saving" : ""), disabled: chartBusy === p.id, onClick: () => chartMail(p) }, chartBusy === p.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")),
             h("button", { className: "bdel", onClick: () => setDelId(p.id) }, T("Topic löschen", "Delete topic"))),
           h("div", { className: "dcol-these" },
             h("div", { className: "tlbl", style: { color: "var(--ox-b)" } }, T("Anti-These", "Anti-thesis")),
