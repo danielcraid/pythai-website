@@ -401,7 +401,7 @@
           h("div", { className: "ghosts" }, [0, 1, 2, 3].map((i) => h("div", { key: i, className: "gcard" }))),
           h("div", { className: "lockpanel" }, h("div", { className: "lockbox" },
             h(PyEyebrow, null, "Syndicate"),
-            h("h2", { className: "lockt" }, T("Die volle Jagd — im Syndicate.", "The full hunt — in the Syndicate.")),
+            h("h2", { className: "lockt" }, T("Die volle Shortlist — im Syndicate.", "The full shortlist — in the Syndicate.")),
             h("p", { className: "locks" }, T("Die aktive Shortlist mit Thesen, Marken, live-Score und „In My Book“ ist dem Syndicate vorbehalten.", "The active shortlist with theses, levels, live score and “add to My Book” is reserved for the Syndicate.")),
             h(Button, { variant: "oracle", onClick: () => { window.location.href = loggedIn ? "inner-circle.html" : "register.html"; } }, loggedIn ? T("Syndicate freischalten", "Unlock Syndicate") : T("Enter the Sanctum", "Enter the Sanctum")))))));
     }
@@ -414,8 +414,8 @@
     if (!visible.length) return page(h("div", null,
       Hero(null),
       h("div", { className: "empty" },
-        h("div", { className: "empty-t" }, T("Gerade ist die Jagd ruhig.", "The hunt is quiet right now.")),
-        h("div", { className: "empty-s" }, T("Aktuell stehen keine Trades auf der Shortlist. Das Orakel meldet sich, sobald sich ein Kandidat qualifiziert.", "No trades are on the shortlist right now. The oracle will surface a candidate as soon as one qualifies.")))));
+        h("div", { className: "empty-t" }, T("Gerade ist es still.", "All quiet right now.")),
+        h("div", { className: "empty-s" }, T("Aktuell steht keine Idee auf der Shortlist. Das Orakel meldet sich, sobald sich eine qualifiziert.", "No idea is on the shortlist right now. The oracle will surface one as soon as it qualifies.")))));
 
     const cad = meta && meta.check_cadence;
     const cadText = cad
