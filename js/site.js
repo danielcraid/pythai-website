@@ -45,10 +45,11 @@
   const NAV_CSS = `
 .pynav-desktop{display:flex;align-items:center;gap:17px;}
 .pynav-burger{display:none;align-items:center;justify-content:center;background:none;border:1px solid var(--border-strong);border-radius:6px;cursor:pointer;color:var(--text-primary);width:42px;height:38px;}
-.pynav-menu{position:fixed;top:var(--nav-h);left:0;right:0;z-index:99;background:rgba(8,9,12,0.97);backdrop-filter:blur(14px);border-bottom:1px solid var(--border-subtle);padding:8px 40px 26px;display:flex;flex-direction:column;}
-.pynav-menu a{font-family:var(--font-mono);font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-secondary);text-decoration:none;padding:16px 0;border-bottom:1px solid var(--border-subtle);}
+.pynav-menu{position:fixed;top:var(--nav-h);left:0;right:0;bottom:0;z-index:250;background:rgba(8,9,12,0.98);backdrop-filter:blur(14px);display:flex;flex-direction:column;}
+.pynav-menu-links{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 40px 14px;display:flex;flex-direction:column;}
+.pynav-menu a{font-family:var(--font-mono);font-size:15px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-secondary);text-decoration:none;padding:15px 0;border-bottom:1px solid var(--border-subtle);}
 .pynav-menu a:hover{color:var(--text-oracle);}
-.pynav-mfoot{display:flex;flex-direction:column;gap:12px;margin-top:22px;}
+.pynav-mfoot{flex:0 0 auto;border-top:1px solid var(--border-subtle);background:rgba(8,9,12,0.98);padding:14px 40px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;}
 @media(max-width:1200px){.pynav-desktop{display:none;}.pynav-burger{display:flex;}}
 @media(min-width:1201px){.pynav-menu{display:none;}}
 `;
@@ -139,7 +140,7 @@
       textDecoration: "none",
       whiteSpace: "nowrap",
       color: linkColor(href)
-    } }, l)), /* @__PURE__ */ React.createElement(LangToggle, null), /* @__PURE__ */ React.createElement(AuthArea, { me, ready })), /* @__PURE__ */ React.createElement("button", { className: "pynav-burger", "aria-label": "Menu", "aria-expanded": open, onClick: () => setOpen(!open) }, /* @__PURE__ */ React.createElement(BurgerIcon, { open }))), open && /* @__PURE__ */ React.createElement("div", { className: "pynav-menu" }, items.map(([l, href]) => /* @__PURE__ */ React.createElement("a", { key: l, href, style: { color: linkColor(href) } }, l)), /* @__PURE__ */ React.createElement("div", { className: "pynav-mfoot" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "center", padding: "4px 0" } }, /* @__PURE__ */ React.createElement(LangToggle, null)), /* @__PURE__ */ React.createElement(AuthArea, { me, ready, full: true }))));
+    } }, l)), /* @__PURE__ */ React.createElement(LangToggle, null), /* @__PURE__ */ React.createElement(AuthArea, { me, ready })), /* @__PURE__ */ React.createElement("button", { className: "pynav-burger", "aria-label": "Menu", "aria-expanded": open, onClick: () => setOpen(!open) }, /* @__PURE__ */ React.createElement(BurgerIcon, { open }))), open && /* @__PURE__ */ React.createElement("div", { className: "pynav-menu" }, /* @__PURE__ */ React.createElement("div", { className: "pynav-menu-links" }, items.map(([l, href]) => /* @__PURE__ */ React.createElement("a", { key: l, href, style: { color: linkColor(href) } }, l))), /* @__PURE__ */ React.createElement("div", { className: "pynav-mfoot" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "center", padding: "4px 0" } }, /* @__PURE__ */ React.createElement(LangToggle, null)), /* @__PURE__ */ React.createElement(AuthArea, { me, ready, full: true }))));
   }
   function SiteFooter() {
     const FCOLS = [
