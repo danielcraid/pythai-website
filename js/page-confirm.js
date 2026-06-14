@@ -10,18 +10,23 @@
       login: [T("E-Mail best\xE4tigt.", "Email confirmed."), T("Stark — deine E-Mail ist best\xE4tigt. Jetzt einmal einloggen, um die Anmeldung abzuschlie\xDFen und dein Onboarding zu starten. Das ist der letzte Schritt.", "Nice — your email is confirmed. Now sign in once to complete your registration and start onboarding. This is the final step.")],
       expired: [T("Link abgelaufen.", "Link expired."), T("Der Best\xE4tigungslink war \xE4lter als 24 Stunden. Trag dich einfach erneut ein.", "The confirmation link was over 24 hours old. Just sign up again.")],
       invalid: [T("Link ung\xFCltig.", "Invalid link."), T("Dieser Link ist ung\xFCltig oder wurde bereits benutzt.", "This link is invalid or was already used.")],
-      error: [T("Etwas ging schief.", "Something went wrong."), T("Versuch es gleich noch einmal.", "Try again in a moment.")]
+      error: [T("Etwas ging schief.", "Something went wrong."), T("Versuch es gleich noch einmal.", "Try again in a moment.")],
+      "email-changed": [T("E-Mail ge\xE4ndert.", "Email changed."), T("Deine neue E-Mail-Adresse ist best\xE4tigt. Bitte melde dich einmal neu an — dein Login l\xE4uft ab jetzt \xFCber die neue Adresse.", "Your new email address is confirmed. Please sign in once more — your login now uses the new address.")],
+      "email-change-failed": [T("\xC4nderung fehlgeschlagen.", "Change failed."), T("Der Best\xE4tigungslink ist ung\xFCltig oder abgelaufen. Starte die E-Mail-\xC4nderung im Account einfach neu.", "The confirmation link is invalid or expired. Just restart the email change from your account.")],
+      "email-change-cancelled": [T("\xC4nderung abgebrochen.", "Change cancelled."), T("Die angeforderte E-Mail-\xC4nderung wurde abgebrochen. Deine bisherige Adresse bleibt aktiv.", "The requested email change was cancelled. Your existing address stays active.")]
     };
     const [head, body] = M[status] || M.ok;
     const loginState = status === "login";
-    const success = status === "ok" || loginState;
-    const errorState = !success;
+    const isEmail = status.indexOf("email-change") === 0; // email-changed / -failed / -cancelled
+    const success = status === "ok" || loginState || status === "email-changed";
 
     const actions = [];
-    if (loginState) {
+    if (loginState || status === "email-changed") {
       actions.push(h(Button, { key: "login", variant: "oracle", onClick: () => { window.location.href = "register.html"; } }, T("Jetzt einloggen", "Sign in now")));
     } else if (status === "ok") {
       actions.push(h(Button, { key: "home", variant: "oracle", onClick: () => { window.location.href = "index.html"; } }, T("Zur Startseite", "Back home")));
+    } else if (isEmail) {
+      actions.push(h(Button, { key: "acc", variant: "oracle", onClick: () => { window.location.href = "account.html"; } }, T("Zum Account", "To account")));
     } else {
       actions.push(h(Button, { key: "home", variant: "oracle", onClick: () => { window.location.href = "index.html"; } }, T("Zur Startseite", "Back home")));
       actions.push(h(Button, { key: "again", variant: "ghost", onClick: () => { window.location.href = "inner-circle.html#waitlist"; } }, T("Erneut eintragen", "Sign up again")));
@@ -29,7 +34,7 @@
 
     return h("div", { style: { maxWidth: 480, margin: "0 auto", textAlign: "center" } },
       h("img", { src: "assets/logo/pythai-oculus.svg", alt: "", style: { width: 64, height: 64, margin: "0 auto 22px", filter: success ? "drop-shadow(0 0 24px var(--glow-oracle))" : "none", opacity: success ? 1 : 0.7 } }),
-      h(PyEyebrow, null, loginState ? "Login" : "Waitlist"),
+      h(PyEyebrow, null, loginState ? "Login" : (isEmail ? "Account" : "Waitlist")),
       h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, letterSpacing: "-0.02em", fontSize: "clamp(38px,6vw,60px)", lineHeight: 1.04, margin: 0, color: "var(--text-primary)" } }, head),
       h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 17, lineHeight: 1.6, color: "var(--text-secondary)", margin: "18px 0 30px" } }, body),
       h("div", { style: { display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" } }, actions),

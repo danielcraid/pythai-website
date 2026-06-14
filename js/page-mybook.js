@@ -212,7 +212,7 @@
     const [delId, setDelId] = useState(null);
     const [summary, setSummary] = useState(true);
     const BLANK = { name: "", isin: "", issuer: "", idx: "", art: "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: "", stop: "", skim: "", target: "", these: "", anti_these: "", kill_triggers: [] };
-    const KILL_SUGGEST = ["iran_ceasefire", "hormus_resumed", "recession_eu", "capex_cut", "fed_hawkish_shock", "usd_crash", "china_export_ban", "earnings_miss", "esma_ban", "oil_supply_shock"];
+    const KILL_SUGGEST = ["iran_ceasefire", "hormus_resumed", "recession_eu", "capex_cut", "sektor_drift_down", "fed_hawkish_shock", "usd_crash", "china_export_ban", "earnings_miss", "esma_ban", "oil_supply_shock"];
     const normTag = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
     const killTagsOf = (p) => Array.isArray(p && p.kill_triggers) ? p.kill_triggers : (p && p.kill ? String(p.kill).split(/\s*·\s*/).map((x) => x.trim()).filter(Boolean) : []);
     const [addF, setAddF] = useState(null);
@@ -291,7 +291,7 @@
           if (!res) return;
           if (res.cooldown) { showFlash(T("Chart-Analyse läuft gerade schon — gleich kommt die Mail.", "Chart analysis already running — the mail is on its way.")); return; }
           if (res.err) { showFlash(T("Chart-Analyse konnte nicht ausgelöst werden — versuch es gleich nochmal.", "Couldn't trigger the chart analysis — try again shortly.")); return; }
-          showFlash(T("Warren schickt dir die Chart-Analyse per Mail.", "Warren is sending the chart analysis by mail."));
+          showFlash(T("Warren rendert deine Chart-Analyse — kommt in 1–2 Min per Mail.", "Warren is rendering your chart analysis — arrives by mail in 1–2 min."));
         })
         .catch(() => { setChartBusy(null); showFlash(T("Netzwerkfehler — versuch es gleich nochmal.", "Network error — try again shortly.")); });
     };

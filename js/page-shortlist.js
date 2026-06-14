@@ -289,7 +289,7 @@
           if (!res) return;
           if (res.cooldown) { showFlash(T("Chart-Analyse läuft schon — gleich kommt die Mail.", "Chart analysis already running — the mail is on its way.")); return; }
           if (res.err) { showFlash(T("Chart-Analyse konnte nicht ausgelöst werden — versuch es gleich nochmal.", "Couldn't trigger the chart analysis — try again shortly.")); return; }
-          showFlash(T("Warren schickt dir die Chart-Analyse per Mail.", "Warren is sending the chart analysis by mail."));
+          showFlash(T("Warren rendert deine Chart-Analyse — kommt in 1–2 Min per Mail.", "Warren is rendering your chart analysis — arrives by mail in 1–2 min."));
         })
         .catch(() => { setChartBusy(null); showFlash(T("Netzwerkfehler — versuch es gleich nochmal.", "Network error — try again shortly.")); });
     };
