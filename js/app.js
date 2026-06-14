@@ -1,7 +1,7 @@
 (() => {
   const { Button, Badge, Card, CardHeader, Stat, Avatar, Input } = window.PYTHAIDesignSystem_df6467;
   const { useState, useEffect, useRef } = React;
-  const PORTRAIT = "assets/imagery/warren-oracle-portrait.png";
+  const PORTRAIT = "assets/imagery/warren-2.png";
   function Icon({ name, size = 18, color = "currentColor", strokeWidth = 1.75, style }) {
     const ref = useRef(null);
     useEffect(() => {

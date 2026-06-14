@@ -7,7 +7,7 @@
   const API = "https://api.pythai.ch";
   const h = React.createElement;
   const { useState, useEffect, useRef } = React;
-  const PORTRAIT = "assets/imagery/warren-oracle-portrait.png";
+  const PORTRAIT = "assets/imagery/warren-2.png";
 
   const api = (path, opts) => fetch(API + path, Object.assign({ credentials: "include", headers: { "Content-Type": "application/json" } }, opts || {}));
 

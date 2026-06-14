@@ -27,7 +27,7 @@ const {
   useEffect: uE,
   useRef: uR
 } = React;
-const PORTRAIT = 'assets/imagery/warren-oracle-portrait.png';
+const PORTRAIT = 'assets/imagery/warren-2.png';
 const SANCTUM = 'assets/imagery/sanctum-lightshaft.png';
 const BOARD = 'assets/imagery/sanctum-boardroom.png';
 function I({
@@ -1991,7 +1991,7 @@ const {
   useEffect,
   useRef
 } = React;
-const PORTRAIT = '../../assets/imagery/warren-oracle-portrait.png';
+const PORTRAIT = '../../assets/imagery/warren-2.png';
 const SANCTUM = '../../assets/imagery/sanctum-lightshaft.png';
 const SANCTUM_VID = '../../assets/imagery/sanctum-loop.mp4';
 function Icon({
@@ -2716,7 +2716,7 @@ const {
   useEffect: useME,
   useRef: useMR
 } = React;
-const M_PORTRAIT = '../../assets/imagery/warren-oracle-portrait.png';
+const M_PORTRAIT = '../../assets/imagery/warren-2.png';
 function MIcon({
   name,
   size = 20,
@@ -4087,7 +4087,7 @@ function ShellMark({
 function Login({
   onEnter
 }) {
-  const PORTRAIT = '../../assets/imagery/warren-oracle-portrait.png';
+  const PORTRAIT = '../../assets/imagery/warren-2.png';
   return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: '100vh',
@@ -4484,7 +4484,7 @@ const {
   useEffect,
   useRef
 } = React;
-const PORTRAIT = '../../assets/imagery/warren-oracle-portrait.png';
+const PORTRAIT = '../../assets/imagery/warren-2.png';
 function SvgIcon({
   name,
   size = 18,

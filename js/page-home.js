@@ -48,7 +48,7 @@
           boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
         }
       },
-      /* @__PURE__ */ React.createElement("img", { src: "assets/imagery/warren-oracle-portrait.png", alt: "Warren", style: { width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "center 20%", border: "1px solid var(--border-oracle)" } }),
+      /* @__PURE__ */ React.createElement("img", { src: "assets/imagery/warren-2.png", alt: "Warren", style: { width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "center 20%", border: "1px solid var(--border-oracle)" } }),
       /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-oracle)" } }, "Ask Warren")
     );
   }

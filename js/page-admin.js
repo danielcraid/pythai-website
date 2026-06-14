@@ -15,7 +15,7 @@
     const IMAGES = [
       ["Sanctum · Boardroom", "https://www.pythai.ch/assets/imagery/sanctum-boardroom.png"],
       ["Sanctum · Lichtschacht", "https://www.pythai.ch/assets/imagery/sanctum-lightshaft.png"],
-      ["Warren · Porträt", "https://www.pythai.ch/assets/imagery/warren-oracle-portrait.png"],
+      ["Warren · Porträt", "https://www.pythai.ch/assets/imagery/warren-2.png"],
       ["Buch", "https://www.pythai.ch/assets/imagery/pythai-book.png"],
       ["Computer", "https://www.pythai.ch/assets/imagery/pythai-computer.png"]
     ];
