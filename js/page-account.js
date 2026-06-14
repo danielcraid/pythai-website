@@ -256,13 +256,25 @@
     const [verified, setVerified] = useState(!!a.smsVerified);
     const [confirming, setConfirming] = useState(null);
     const [note, setNote] = useState(null);
+    const [editingEmail, setEditingEmail] = useState(false);
+    const [newEmail, setNewEmail] = useState("");
+    const [emailNote, setEmailNote] = useState(null);
+    const [editingMobile, setEditingMobile] = useState(false);
+    const validEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || "").trim());
     const post = (path, body) => fetch(API + path, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).catch(() => ({ ok: false }));
+    function startEmailChange() {
+      const e = newEmail.trim();
+      if (!validEmail(e) || e.toLowerCase() === String(a.email || "").toLowerCase()) return;
+      post("/api/account/email-change/start", { newEmail: e });
+      setEditingEmail(false); setNewEmail("");
+      setEmailNote(T("Bestätigungslink an die neue Adresse geschickt — und eine Info an die alte. Die Änderung wird erst nach dem Klick wirksam.", "Confirmation link sent to the new address — and a notice to the old one. The change takes effect only after you click it."));
+    }
     const saveNick = () => post("/api/account/nickname", { nickname: nick.trim() });
     function toggleMails(v) { setMails(v); post("/api/mail-prefs", { mailsActive: v }); }
     function toggleCompass(v) { setCompass(v); post("/api/mail-prefs", { report: "morning-compass", on: v }); post("/api/mail-prefs", { report: "markt-vibe", on: v }); }
     function toggleMobile(v) { setMobileOn(v); if (!v) { setSent(false); setVerified(false); post("/api/mobile/disable", {}); } }
     function sendCode() { if (!phone) return; post("/api/mobile/start", { phone }); setSent(true); }
-    function verify() { post("/api/mobile/verify", { code }); setVerified(true); setSent(false); }
+    function verify() { post("/api/mobile/verify", { code }); setVerified(true); setSent(false); setEditingMobile(false); }
     function doDowngrade() { post("/api/account/downgrade", {}); setConfirming(null); setNote(T("Wir haben dir eine Best\xE4tigungs-Mail geschickt — best\xE4tige den Downgrade \xFCber den Link.", "We’ve emailed you a confirmation link to complete the downgrade.")); }
     function doDelete() { post("/api/account/delete", {}); setConfirming(null); setNote(T("Wir haben dir eine Best\xE4tigungs-Mail geschickt — best\xE4tige die L\xF6schung \xFCber den Link.", "We’ve emailed you a confirmation link to complete the deletion.")); }
     return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
@@ -270,12 +282,24 @@
       h("div", { style: { marginTop: 8 } },
         h(SetRow, { title: T("Wie Warren dich nennt", "What Warren calls you"), sub: T("Dein Nickname — erscheint oben im Men\xFC und in Warrens Begr\xFC\xDFung.", "Your nickname — shown in the top menu and in Warren's greeting."), control: h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" } }, h("input", { value: nick, onChange: (e) => { setNick(e.target.value); if (nickSaved) setNickSaved(false); }, onKeyDown: (e) => { if (e.key === "Enter") { saveNick().then(() => window.location.reload()); } }, placeholder: a.name || T("Dein Name", "Your name"), maxLength: 24, style: { width: 130, background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 6, padding: "8px 11px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 14, outline: "none" } }), h(Button, { variant: "chrome", size: "sm", onClick: () => { saveNick().then(() => window.location.reload()); }, disabled: nick.trim() === (a.nickname || "").trim() }, T("\xC4ndern", "Change"))) }),
         h(Divider),
+        h(SetRow, { title: T("E-Mail-Adresse", "Email address"), sub: T("Login & alle Mails. Änderung nur per Bestätigungslink an die neue Adresse.", "Login & all emails. Change only via a confirmation link sent to the new address."), control: editingEmail
+          ? h(Button, { variant: "ghost", size: "sm", onClick: () => { setEditingEmail(false); setNewEmail(""); } }, T("Abbrechen", "Cancel"))
+          : h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, a.email || ""), h(Button, { variant: "chrome", size: "sm", onClick: () => { setEditingEmail(true); setEmailNote(null); setNewEmail(""); } }, T("Ändern", "Change"))) }),
+        editingEmail && h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", padding: "0 0 14px" } },
+          h(Input, { type: "email", placeholder: T("neue@adresse.de", "new@address.com"), value: newEmail, onChange: (e) => setNewEmail(e.target.value), style: { flex: 1, minWidth: 200 } }),
+          h(Button, { variant: "oracle", onClick: startEmailChange, disabled: !validEmail(newEmail) || newEmail.trim().toLowerCase() === String(a.email || "").toLowerCase() }, T("Bestätigung senden", "Send confirmation"))),
+        emailNote && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--text-oracle)", margin: "-4px 0 14px", lineHeight: 1.5 } }, emailNote),
+        h(Divider),
         h(SetRow, { title: T("Mails erhalten", "Receive emails"), sub: T("Der Hauptschalter. System-Mails (Login) kommen immer.", "The master switch. System mails (login) always arrive."), control: h(Switch, { checked: mails, onChange: toggleMails }) }),
         h(Divider),
         h(SetRow, { title: T("Standard Rituals", "Standard rituals"), sub: T("Morning Compass & Market Vibe. Die t\xE4gliche Edukations-Mail — wo der Tag startet, News erkl\xE4rt, eine Beobachtung zum Nachpr\xFCfen. 1\xD7 die Woche der Market Vibe. (Weitere Reports ab Inner Circle in den Rituals.)", "Morning Compass & Market Vibe. The daily education email — where the day starts, news explained, one observation to verify. Plus the weekly Market Vibe. (Further reports from Inner Circle in Rituals.)"), control: h("div", { style: { opacity: mails ? 1 : 0.4, pointerEvents: mails ? "auto" : "none" } }, h(Switch, { checked: compass, onChange: toggleCompass })) }),
         h(Divider),
-        h(SetRow, { title: T("Mobilnummer nutzen", "Use mobile number"), sub: T("F\xFCr Verify-Codes & Service-Alerts. Kein Marketing.", "For verify codes & service alerts. No marketing."), control: verified ? h(Badge, { tone: "oracle", variant: "outline" }, T("verifiziert ✓", "verified ✓")) : h(Switch, { checked: mobileOn, onChange: toggleMobile }) }),
-        mobileOn && !verified && h("div", { style: { display: "flex", flexDirection: "column", gap: 10, padding: "4px 0 14px" } },
+        h(SetRow, { title: T("Mobilnummer", "Mobile number"), sub: T("F\xFCr Verify-Codes & Service-Alerts. Kein Marketing. Neue Nummer wird per SMS-Code best\xE4tigt.", "For verify codes & service alerts. No marketing. A new number is confirmed via SMS code."), control: (verified && !editingMobile)
+          ? h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)" } }, phone || a.phone || ""), h(Badge, { tone: "oracle", variant: "outline" }, T("verifiziert ✓", "verified ✓")), h(Button, { variant: "chrome", size: "sm", onClick: () => { setEditingMobile(true); setSent(false); setCode(""); } }, T("\xC4ndern", "Change")))
+          : (editingMobile
+            ? h(Button, { variant: "ghost", size: "sm", onClick: () => { setEditingMobile(false); setSent(false); setCode(""); setPhone(a.phone || ""); } }, T("Abbrechen", "Cancel"))
+            : h(Switch, { checked: mobileOn, onChange: toggleMobile })) }),
+        ((mobileOn && !verified) || editingMobile) && h("div", { style: { display: "flex", flexDirection: "column", gap: 10, padding: "4px 0 14px" } },
           !sent ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, h(Input, { type: "tel", placeholder: "+41 7…", value: phone, onChange: (e) => setPhone(e.target.value), style: { flex: 1, minWidth: 180 } }), h(Button, { variant: "chrome", onClick: sendCode, disabled: !phone }, T("Code senden", "Send code")))
             : h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, h(Input, { placeholder: T("SMS-Code", "SMS code"), value: code, onChange: (e) => setCode(e.target.value), style: { flex: 1, minWidth: 140 } }), h(Button, { variant: "oracle", onClick: verify, disabled: !code }, T("Best\xE4tigen", "Verify")))),
         paying && h(React.Fragment, null, h(Divider), h(SetRow, { title: T("Subscription downgraden", "Downgrade subscription"), sub: T("L\xE4uft bis zum Periodenende weiter.", "Stays active until the end of the period."), control: confirming === "downgrade" ? h("div", { style: { display: "flex", gap: 8 } }, h(Button, { variant: "oxblood", size: "sm", onClick: doDowngrade }, T("Sicher?", "Sure?")), h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming(null) }, T("Abbrechen", "Cancel"))) : h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming("downgrade") }, T("Downgrade", "Downgrade")) })),
