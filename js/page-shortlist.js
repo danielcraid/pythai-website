@@ -98,6 +98,8 @@
   #sl-root .stbadge.pend{color:var(--ash);border:1px solid #2A2F39;}
   #sl-root .newshit{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#CF7A4E;border:1px solid rgba(207,122,78,.5);background:rgba(207,122,78,.12);border-radius:4px;padding:3px 8px;cursor:help;}
   #sl-root .newshit .nh-dot{width:5px;height:5px;border-radius:50%;background:#CF7A4E;}
+  #sl-root .newshit.broken{color:#E0726B;border-color:rgba(224,114,107,.5);background:rgba(224,114,107,.12);}
+  #sl-root .newshit.broken .nh-dot{background:#E0726B;}
   #sl-root .chg.flat{color:var(--steel);background:rgba(124,132,146,.1);border:1px solid rgba(124,132,146,.3);}
   #sl-root .setup{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
   #sl-root .setup .lab{font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel);}
@@ -320,6 +322,12 @@
       const overdue = dol != null && dol >= 7;
       const newsHit = !!t.recent_news_hit;
       const newsHitAt = t.news_hit_at_de || "";
+      const tstat = String(t.thesis_status || "").toLowerCase();
+      const statusPill = tstat === "gebrochen"
+        ? { cls: "broken", txt: T("Gebrochen seit ", "Broken since "), tip: T("These gebrochen — eine validierte News widerlegt sie. Einschätzung lesen.", "Thesis broken — a validated news item refutes it. Read the assessment.") }
+        : tstat === "wackelt"
+          ? { cls: "wobble", txt: T("Wackelt seit ", "Wobbling since "), tip: T("These wackelt — eine aktuelle News stellt sie in Frage, aber kein finaler Kill. Einschätzung lesen.", "Thesis wobbling — recent news challenges it, but not a final kill. Read the assessment.") }
+          : null;
 
       return h("div", { key: t.id, className: "card" + (isOpen ? " open" : "") },
         h("div", { className: "head", onClick: () => setOpen(isOpen ? null : t.id) },
@@ -329,7 +337,9 @@
             h("div", { className: "sub" },
               h("span", { className: "isin" }, t.isin || ""),
               h("span", { className: "stbadge " + (isPending ? "pend" : "act") }, isPending ? T("Watchlist", "Watchlist") : T("Aktiv", "Active")),
-              newsHit ? h("span", { className: "newshit", title: T("Validierter Tag-Match auf einer aktuellen News. Schau hin — Einschätzung lesen.", "Validated tag match on a recent news item. Look — read the assessment.") }, h("span", { className: "nh-dot" }), T("News-Alert", "News alert") + (newsHitAt ? " " + newsHitAt : "")) : null),
+              statusPill
+                ? h("span", { className: "newshit " + statusPill.cls, title: statusPill.tip }, h("span", { className: "nh-dot" }), statusPill.txt + (newsHitAt || ""))
+                : (tstat === "intakt" ? null : (newsHit ? h("span", { className: "newshit", title: T("Validierter Tag-Match auf einer aktuellen News. Schau hin — Einschätzung lesen.", "Validated tag match on a recent news item. Look — read the assessment.") }, h("span", { className: "nh-dot" }), T("News-Alert", "News alert") + (newsHitAt ? " " + newsHitAt : "")) : null))),
             (dol != null || t.last_checked_at_de) ? h("div", { className: "listmeta" + (overdue ? " over" : "") },
               (dol != null ? (T("Auf der Liste seit ", "On the list for ") + dol + (dol === 1 ? T(" Tag", "d") : T(" Tagen", "d"))) : "") +
               (t.last_checked_at_de ? (" · " + T("zuletzt gepflegt ", "last updated ") + t.last_checked_at_de) : "") +
