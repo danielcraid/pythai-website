@@ -133,6 +133,13 @@
   #mb-root .tagsug{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   #mb-root .sugchip{font-family:var(--font-mono);font-size:10px;color:var(--mist);border:1px dashed var(--border-strong);background:none;border-radius:999px;padding:3px 9px;cursor:pointer;}
   #mb-root .sugchip:hover{border-color:var(--border-oracle);color:var(--oracle-b);}
+  #mb-root .askwarren{font-family:var(--font-ui);font-size:11.5px;font-weight:600;border:1px solid rgba(212,169,78,.5);background:rgba(212,169,78,.1);color:var(--oracle-b);border-radius:6px;padding:5px 11px;cursor:pointer;white-space:nowrap;}
+  #mb-root .askwarren:hover{background:rgba(212,169,78,.2);} #mb-root .askwarren:disabled{opacity:.5;cursor:not-allowed;}
+  #mb-root .wsug{margin-top:9px;border:1px solid rgba(212,169,78,.3);border-radius:8px;background:rgba(212,169,78,.04);padding:10px 11px;}
+  #mb-root .wsug-lbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--oracle-b);margin-bottom:7px;}
+  #mb-root .wsug-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  #mb-root .wsugchip{font-family:var(--font-mono);font-size:10.5px;color:var(--oracle-b);border:1px solid rgba(212,169,78,.5);background:rgba(212,169,78,.12);border-radius:999px;padding:4px 10px;cursor:pointer;}
+  #mb-root .wsugchip:hover{background:rgba(212,169,78,.22);}
   #mb-root .isindup{flex-direction:row !important;align-items:center;gap:8px;font-family:var(--font-ui);font-size:12.5px;color:var(--ox-b);border:1px solid rgba(224,114,107,.4);background:rgba(224,114,107,.08);border-radius:7px;padding:9px 12px;} #mb-root .isindup b{color:#F0A39C;}
   #mb-root .isindup-open{font-family:var(--font-ui);font-size:12px;font-weight:600;border:1px solid rgba(212,169,78,.5);background:rgba(212,169,78,.1);color:var(--oracle-b);border-radius:6px;padding:5px 11px;cursor:pointer;margin-left:auto;}
   #mb-root .antit{font-family:var(--font-oracle);font-style:italic;font-size:15.5px;line-height:1.5;color:var(--ox-b);margin:0;max-width:64ch;}
@@ -226,6 +233,9 @@
     const [checkMsg, setCheckMsg] = useState({});
     const [chartBusy, setChartBusy] = useState(null);
     const [tagInput, setTagInput] = useState("");
+    const [suggestBusy, setSuggestBusy] = useState(false);
+    const [suggestions, setSuggestions] = useState([]);
+    const [suggestErr, setSuggestErr] = useState("");
     const [flash, setFlash] = useState("");
     const showFlash = (msg) => { setFlash(msg); setTimeout(() => setFlash(""), 4500); };
 
@@ -259,7 +269,7 @@
     const setMon = (id, on, channel) => { setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { monitored: on, channel: on ? (channel === "both" ? "SMS + Mail" : channel === "sms" ? "SMS" : "Mail") : null }) : r)); api("/api/mybook/" + id + "/monitor", { on: on, channel: channel || "mail" }); };
     const toggleMon = (p) => { if (p.monitored) setMon(p.id, false); else { setMonCh("mail"); setMonModal(p.id); } };
     const confirmMon = () => { setMon(monModal, true, monCh); setMonModal(null); };
-    const openEdit = (p) => { setEditingId(p.id); setTagInput(""); setAddF({ name: p.name || "", isin: p.isin || "", issuer: p.issuer || "", idx: p.idx || "", art: p.art || "Aktie · Long", venue: p.venue || "Tradegate", currency: p.currency || "EUR", entry: p.entry || "", stop: p.stop || "", skim: p.skim || "", target: p.target || "", these: p.these || "", anti_these: p.anti_these || "", kill_triggers: killTagsOf(p) }); };
+    const openEdit = (p) => { setEditingId(p.id); setTagInput(""); resetSuggest(); setAddF({ name: p.name || "", isin: p.isin || "", issuer: p.issuer || "", idx: p.idx || "", art: p.art || "Aktie · Long", venue: p.venue || "Tradegate", currency: p.currency || "EUR", entry: p.entry || "", stop: p.stop || "", skim: p.skim || "", target: p.target || "", these: p.these || "", anti_these: p.anti_these || "", kill_triggers: killTagsOf(p) }); };
     const checkedTime = (iso) => { try { return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
     const checkThesis = (p) => {
       setCheckId(p.id); setCheckMsg((m) => Object.assign({}, m, { [p.id]: "" }));
@@ -314,19 +324,50 @@
     };
     const count = rows.length;
     const delName = (rows.find((r) => r.id === delId) || {}).name || "Dieses Topic";
-    const addTopic = () => { setEditingId(null); setAddMode("manual"); setAddSrc(null); setAddF(Object.assign({}, BLANK)); };
-    const closeForm = () => { setAddF(null); setEditingId(null); setAddSrc(null); };
+    const addTopic = () => { setEditingId(null); setAddMode("manual"); setAddSrc(null); setTagInput(""); resetSuggest(); setAddF(Object.assign({}, BLANK)); };
+    const closeForm = () => { setAddF(null); setEditingId(null); setAddSrc(null); resetSuggest(); };
     const loadHunter = () => { setHunterBusy(true); fetch(API + "/api/mybook/hunter-shortlist", { credentials: "include" }).then((r) => { if (r && (r.status === 401 || r.status === 403) && window.PYsessionExpired) window.PYsessionExpired(); return r && r.ok ? r.json() : null; }).then((d) => { setHunter(d && d.ok && Array.isArray(d.trades) ? d.trades : []); setHunterBusy(false); }).catch(() => { setHunter([]); setHunterBusy(false); }); };
     const goMode = (m) => { setAddMode(m); if (m === "oracle" && hunter === null && !hunterBusy) loadHunter(); };
     const pickHunter = (t) => {
       const firstSkim = (t.skim_levels || "").split(",")[0].trim();
       setAddF({ name: t.asset || "", isin: t.isin || "", issuer: "", idx: "", art: t.art || "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: numStr(t.entry), stop: numStr(t.stop), skim: firstSkim ? numStr(parseFloat(firstSkim)) : "", target: numStr(t.target), these: t.thesis || "", anti_these: "", kill_triggers: (t.thesis_kill_triggers || []).slice(0, 12) });
-      setTagInput(""); setAddSrc("oracle"); setAddMode("manual");
+      setTagInput(""); resetSuggest(); setAddSrc("oracle"); setAddMode("manual");
     };
     const setAf = (k, v) => setAddF((o) => Object.assign({}, o, { [k]: v }));
     const tags = () => (addF && Array.isArray(addF.kill_triggers)) ? addF.kill_triggers : [];
     const addTag = (raw) => { const t = normTag(raw); setTagInput(""); if (!t) return; const cur = tags(); if (cur.indexOf(t) !== -1 || cur.length >= 12) return; setAf("kill_triggers", cur.concat([t])); };
     const removeTag = (t) => setAf("kill_triggers", tags().filter((x) => x !== t));
+    const resetSuggest = () => { setSuggestions([]); setSuggestErr(""); setSuggestBusy(false); };
+    const acceptSuggestion = (s) => { addTag(s.tag); setSuggestions((ss) => ss.filter((x) => x.tag !== s.tag)); };
+    const askWarrenTags = () => {
+      if (suggestBusy || !addF) return;
+      const theseTxt = (addF.these || "").trim();
+      if (!addF.name || !addF.name.trim()) { setSuggestErr(T("Gib zuerst den Namen ein.", "Enter the name first.")); return; }
+      if (theseTxt.length < 30) { setSuggestErr(T("Schreib zuerst deine These (mind. 30 Zeichen).", "Write your thesis first (at least 30 chars).")); return; }
+      setSuggestErr(""); setSuggestBusy(true);
+      fetch(API + "/api/mybook/suggest-kill-triggers", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: addF.name.trim(), isin: (addF.isin || "").trim(), these: theseTxt, anti_these: addF.anti_these || "", art: addF.art || "" }) })
+        .then((r) => {
+          if (!r) return { err: true };
+          if (r.status === 401) { if (window.PYsessionExpired) window.PYsessionExpired(); return null; }
+          if (r.status === 403) return { forbidden: true };
+          if (r.status === 429) return r.json().catch(() => ({})).then((j) => ({ cooldown: true, sec: (j && j.cooldown_seconds_remaining) || 60 }));
+          if (r.status === 400) return r.json().catch(() => ({})).then((j) => ({ badreq: true, code: (j && j.error) || "" }));
+          return r.ok ? r.json() : { err: true };
+        })
+        .then((res) => {
+          setSuggestBusy(false);
+          if (!res) return;
+          if (res.forbidden) { setSuggestErr(T("Tag-Vorschläge sind dem Syndicate vorbehalten.", "Tag suggestions are reserved for the Syndicate.")); return; }
+          if (res.cooldown) { setSuggestErr(T("Warren hat gerade nachgedacht — in ", "Warren just thought — try again in ") + res.sec + T(" s nochmal.", " s.")); return; }
+          if (res.badreq) { setSuggestErr(res.code === "these_too_short" ? T("Schreib zuerst deine These (mind. 30 Zeichen).", "Write your thesis first (at least 30 chars).") : T("Bitte Name + These ausfüllen.", "Please fill in name + thesis.")); return; }
+          if (res.err || !res.ok) { setSuggestErr(T("Warren ist gerade nicht erreichbar — gleich nochmal.", "Warren is unavailable right now — try again shortly.")); return; }
+          const cur = tags();
+          const sug = (res.suggestions || []).filter((s) => s && s.tag && cur.indexOf(normTag(s.tag)) === -1);
+          setSuggestions(sug);
+          if (!sug.length) setSuggestErr(T("Keine neuen Vorschläge — deine Tags decken es schon ab.", "No new suggestions — your tags already cover it."));
+        })
+        .catch(() => { setSuggestBusy(false); setSuggestErr(T("Netzwerkfehler — gleich nochmal.", "Network error — try again shortly.")); });
+    };
     // ISIN-Dedup: gegen bereits geladene Topics (kein extra Fetch nötig)
     const isinDup = (function () { const iv = ((addF && addF.isin) || "").trim().toUpperCase(); if (iv.length < 12) return null; const hit = rows.find((r) => String(r.isin || "").trim().toUpperCase() === iv && String(r.state || "").toLowerCase().indexOf("closed") === -1 && (!editingId || r.id !== editingId)); return hit || null; })();
     const _en = addF ? deNum(addF.entry) : null, _st = addF ? deNum(addF.stop) : null, _short = !!(addF && /Short/i.test(addF.art || ""));
@@ -574,11 +615,18 @@
             Fld({ label: T("Was würde diese These widerlegen? (Story)", "What would disprove this thesis? (story)"), k: "anti_these", full: true, area: true, rows: 2, req: true, min: 30, ph: T("Wenn die EZB die Zinsen wieder anhebt und der Euro Richtung 1.20 läuft, ist die These tot.", "If the ECB hikes rates again and the euro runs toward 1.20, the thesis is dead."), hint: T("Wird vom Orakel als Kontext für die Lesart genutzt. Mindestens 30 Zeichen.", "Used by the oracle as context for its read. At least 30 characters.") }),
             (function () {
               var cur = tags();
+              var theseLen = ((addF && addF.these) || "").trim().length;
               return h("div", { key: "killtags", className: "f f-full" },
-                h("label", { className: "f-l" }, T("Tags fürs News-Monitoring (mind. 1)", "Tags for news monitoring (min. 1)"), h("span", { style: { color: "var(--ox-b)" } }, " *")),
+                h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 } },
+                  h("label", { className: "f-l" }, T("Tags fürs News-Monitoring (mind. 1)", "Tags for news monitoring (min. 1)"), h("span", { style: { color: "var(--ox-b)" } }, " *")),
+                  h("button", { className: "askwarren", disabled: suggestBusy || theseLen < 30, title: theseLen < 30 ? T("Erst These schreiben (≥ 30 Zeichen)", "Write the thesis first (≥ 30 chars)") : "", onClick: askWarrenTags }, suggestBusy ? T("Warren überlegt…", "Warren is thinking…") : T("Warren fragen", "Ask Warren"))),
                 h("div", { className: "tagbox" },
                   cur.map((tg) => h("span", { key: tg, className: "tagchip" }, tg, h("button", { className: "tagx", onClick: () => removeTag(tg) }, "×"))),
                   h("input", { className: "taginput", value: tagInput, placeholder: cur.length ? "" : T("z. B. earnings_miss", "e.g. earnings_miss"), onChange: (e) => setTagInput(e.target.value), onKeyDown: (e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(tagInput); } else if (e.key === "Backspace" && !tagInput && cur.length) { removeTag(cur[cur.length - 1]); } } })),
+                suggestErr ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--ox-b)", marginTop: 5 } }, suggestErr) : null,
+                suggestions.length ? h("div", { className: "wsug" },
+                  h("div", { className: "wsug-lbl" }, T("Warrens Vorschläge — klick zum Übernehmen", "Warren's suggestions — click to add")),
+                  h("div", { className: "wsug-chips" }, suggestions.map((s) => h("button", { key: s.tag, className: "wsugchip", title: s.reason || "", onClick: () => acceptSuggestion(s) }, "+ " + s.tag)))) : null,
                 h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--text-muted)", marginTop: 5 } }, T("Diese Tags entscheiden, ob News-Alerts kommen. snake_case · max 12.", "These tags decide whether news alerts fire. snake_case · max 12.")),
                 h("div", { className: "tagsug" }, KILL_SUGGEST.filter((s) => cur.indexOf(s) === -1).slice(0, 8).map((s) => h("button", { key: s, className: "sugchip", onClick: () => addTag(s) }, "+ " + s))));
             })()),
