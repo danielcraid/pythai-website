@@ -916,7 +916,7 @@ function VoiceSection() {
       color: 'var(--text-primary)',
       margin: 0
     }
-  }, "\"Markets transfer wealth from the impatient to the patient. I am very patient.\""), /*#__PURE__*/React.createElement("div", {
+  }, "\"Markets reward the patient and starve the rest. I am very patient.\""), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'column',
@@ -4134,7 +4134,7 @@ function Login({
       color: 'var(--text-primary)',
       margin: 0
     }
-  }, "\"Markets transfer wealth from the impatient to the patient. I am very patient.\""), /*#__PURE__*/React.createElement("p", {
+  }, "\"Markets reward the patient and starve the rest. I am very patient.\""), /*#__PURE__*/React.createElement("p", {
     style: {
       fontFamily: 'var(--font-mono)',
       fontSize: 11,

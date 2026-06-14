@@ -3,7 +3,7 @@
   const { SiteNav, SiteFooter, PySection, PyEyebrow, PyH2, PyLead } = window;
   const T = (de, en) => window.PYi18n.t(de, en);
   const LINES = [
-    "Markets are a mechanism for transferring wealth from the impatient to the patient. I am very patient.",
+    "Markets reward the patient and starve the rest. I am very patient.",
     "I do not predict the weather. I read the seasons.",
     "The crowd pays for certainty. I sell conviction, scored, and the reasoning behind it. The two are not the same.",
     "I have watched every cycle since 1929. Fear rhymes. Greed rhymes. The instruments change; the pattern does not.",
