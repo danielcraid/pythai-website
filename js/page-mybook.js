@@ -389,19 +389,19 @@
       const c = String(code || "").toLowerCase();
       if (c === "these_too_short") return T("Deine These ist zu kurz — mindestens 50 Zeichen.", "Your thesis is too short — at least 50 characters.");
       if (c === "anti_these_too_short") return T("Die Anti-These ist zu kurz — mindestens 30 Zeichen.", "The anti-thesis is too short — at least 30 characters.");
-      if (c === "kill_triggers_required") return T("Mindestens 1 Kill-Trigger-Tag ist Pflicht.", "At least 1 kill-trigger tag is required.");
+      if (c === "kill_triggers_required" || c === "kill_triggers_too_few") return T("Mindestens 3 Kill-Trigger-Tags — für breitere News-Abdeckung. „Warren fragen“ hilft.", "At least 3 kill-trigger tags — for broader news coverage. Try “Ask Warren”.");
       if (c === "stop_invalid_for_long") return T("Bei Long muss der Stop UNTER dem Entry liegen.", "For long, stop must be BELOW entry.");
       if (c === "stop_invalid_for_short") return T("Bei Short muss der Stop ÜBER dem Entry liegen.", "For short, stop must be ABOVE entry.");
       if (c === "book_full") return T("Dein Buch ist voll (12/12). Erst Platz schaffen.", "Your book is full (12/12). Make room first.");
       return (d && d.hint) || T("Konnte nicht angelegt werden.", "Could not be created.");
     };
     const trimLen = (s) => (s || "").trim().length;
-    const formValid = !!(addF && addF.name.trim() && trimLen(addF.these) >= 50 && trimLen(addF.anti_these) >= 30 && tags().length >= 1 && stopOk && !isinDup);
+    const formValid = !!(addF && addF.name.trim() && trimLen(addF.these) >= 50 && trimLen(addF.anti_these) >= 30 && tags().length >= 3 && stopOk && !isinDup);
     const formMiss = !addF ? "" : (
       !addF.name.trim() ? T("Name fehlt.", "Name missing.") :
       trimLen(addF.these) < 50 ? (T("These — noch ", "Thesis — ") + (50 - trimLen(addF.these)) + T(" Zeichen.", " more chars.")) :
       trimLen(addF.anti_these) < 30 ? (T("Anti-These — noch ", "Anti-thesis — ") + (30 - trimLen(addF.anti_these)) + T(" Zeichen.", " more chars.")) :
-      tags().length < 1 ? T("Mindestens 1 Kill-Trigger-Tag (z. B. „Warren fragen“).", "At least 1 kill-trigger tag (try “Ask Warren”).") :
+      tags().length < 3 ? (T("Kill-Trigger-Tags — noch ", "Kill-trigger tags — ") + (3 - tags().length) + T(" (mind. 3 · „Warren fragen“ hilft).", " more (min. 3 · try “Ask Warren”).")) :
       !stopOk ? stopErr :
       isinDup ? T("Diese ISIN ist schon in deinem Buch.", "This ISIN is already in your book.") : "");
     const submitAdd = () => {
@@ -513,9 +513,12 @@
             h("div", { className: "tlbl", style: { color: "var(--ox-b)" } }, T("Anti-These", "Anti-thesis")),
             (p.anti_these || p.kill) ? h("div", { className: "antit" }, p.anti_these || p.kill) : h("div", { className: "kill" }, T("— keine Anti-These hinterlegt.", "— no anti-thesis on file.")),
             h("div", { className: "tlbl" }, T("Kill-Trigger", "Kill triggers")),
-            killTagsOf(p).length
+            killTagsOf(p).length >= 3
               ? h("div", { className: "killpills" }, killTagsOf(p).map((k) => h("span", { key: k, className: "killpill" }, k)))
-              : h("div", { className: "killwarn" }, h("span", null, T("Trag mind. 1 Kill-Trigger ein, damit News-Alerts kommen.", "Add at least 1 kill-trigger so news alerts can fire.")), h("button", { className: "killwarn-edit", onClick: () => openEdit(p) }, T("Eintragen", "Add"))),
+              : h("div", { className: "killwarn" },
+                  killTagsOf(p).length ? h("div", { className: "killpills", style: { marginBottom: 8 } }, killTagsOf(p).map((k) => h("span", { key: k, className: "killpill" }, k))) : null,
+                  h("span", null, T("Mindestens 3 Kill-Trigger für breite News-Abdeckung — „Warren fragen“ hilft.", "At least 3 kill-triggers for broad news coverage — try “Ask Warren”.")),
+                  h("button", { className: "killwarn-edit", onClick: () => openEdit(p) }, T("Ergänzen", "Add more"))),
             h("div", { className: "tlbl" }, T("Deine These", "Your thesis")),
             h("div", { className: "these" }, p.these),
             p.einschaetzung ? h("div", { className: "tlbl" }, T("Warrens Einschätzung", "Warren's read")) : null,
@@ -648,8 +651,10 @@
               var theseLen = ((addF && addF.these) || "").trim().length;
               return h("div", { key: "killtags", className: "f f-full" },
                 h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 } },
-                  h("label", { className: "f-l" }, T("Tags fürs News-Monitoring (mind. 1)", "Tags for news monitoring (min. 1)"), h("span", { style: { color: "var(--ox-b)" } }, " *")),
-                  h("button", { className: "askwarren", disabled: suggestBusy || theseLen < 30, title: theseLen < 30 ? T("Erst These schreiben (≥ 30 Zeichen)", "Write the thesis first (≥ 30 chars)") : "", onClick: askWarrenTags }, suggestBusy ? T("Warren überlegt…", "Warren is thinking…") : T("Warren fragen", "Ask Warren"))),
+                  h("label", { className: "f-l" }, T("Tags fürs News-Monitoring (mind. 3)", "Tags for news monitoring (min. 3)"), h("span", { style: { color: "var(--ox-b)" } }, " *")),
+                  h("div", { style: { display: "flex", alignItems: "center", gap: 9 } },
+                    h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: cur.length < 3 ? "var(--ox-b)" : (cur.length > 12 ? "#C9A24E" : "var(--bull)") } }, cur.length + "/3"),
+                    h("button", { className: "askwarren", disabled: suggestBusy || theseLen < 30, title: theseLen < 30 ? T("Erst These schreiben (≥ 30 Zeichen)", "Write the thesis first (≥ 30 chars)") : "", onClick: askWarrenTags }, suggestBusy ? T("Warren überlegt…", "Warren is thinking…") : T("Warren fragen", "Ask Warren")))),
                 h("div", { className: "tagbox" },
                   cur.map((tg) => h("span", { key: tg, className: "tagchip" }, tg, h("button", { className: "tagx", onClick: () => removeTag(tg) }, "×"))),
                   h("input", { className: "taginput", value: tagInput, placeholder: cur.length ? "" : T("z. B. earnings_miss", "e.g. earnings_miss"), onChange: (e) => setTagInput(e.target.value), onKeyDown: (e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(tagInput); } else if (e.key === "Backspace" && !tagInput && cur.length) { removeTag(cur[cur.length - 1]); } } })),
@@ -657,7 +662,7 @@
                 suggestions.length ? h("div", { className: "wsug" },
                   h("div", { className: "wsug-lbl" }, T("Warrens Vorschläge — klick zum Übernehmen", "Warren's suggestions — click to add")),
                   h("div", { className: "wsug-chips" }, suggestions.map((s) => h("button", { key: s.tag, className: "wsugchip", title: s.reason || "", onClick: () => acceptSuggestion(s) }, "+ " + s.tag)))) : null,
-                h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--text-muted)", marginTop: 5 } }, T("Diese Tags entscheiden, ob News-Alerts kommen. snake_case · max 12.", "These tags decide whether news alerts fire. snake_case · max 12.")),
+                h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--text-muted)", marginTop: 5, lineHeight: 1.5 } }, T("Mind. 3 Tags — 3–5 decken verschiedene Risk-Vektoren ab. Diese Tags entscheiden, ob News-Alerts kommen. snake_case · max 12. „Warren fragen“, wenn dir nichts einfällt.", "Min. 3 tags — 3–5 cover different risk vectors. These tags decide whether news alerts fire. snake_case · max 12. Use “Ask Warren” if you're stuck.")),
                 h("div", { className: "tagsug" }, KILL_SUGGEST.filter((s) => cur.indexOf(s) === -1).slice(0, 8).map((s) => h("button", { key: s, className: "sugchip", onClick: () => addTag(s) }, "+ " + s))));
             })()),
           h("div", { className: "f-note", style: { marginTop: 10 } }, T("Handelsplatz = wo du handelst. Standard Tradegate (EUR). Kurs-Felder leer lassen, wenn unbekannt.", "Trading venue = where you trade. Default Tradegate (EUR). Leave price fields empty if unknown.")),
