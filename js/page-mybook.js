@@ -40,6 +40,17 @@
   #mb-root .sw.on{background:rgba(212,169,78,.18);border:1px solid var(--oracle);box-shadow:0 0 14px -5px rgba(212,169,78,.7),inset 0 1px 2px rgba(0,0,0,.4);}
   #mb-root .sw.off{background:var(--input);border:1px solid var(--steel);}
   #mb-root .knob{width:18px;height:18px;border-radius:50%;position:absolute;top:3px;} #mb-root .sw.on .knob{left:25px;background:var(--oracle-b);} #mb-root .sw.off .knob{left:3px;background:var(--steel);}
+  #mb-root .grp{border-left:3px solid var(--line);padding-left:18px;margin-bottom:34px;}
+  #mb-root .grp.oracle{border-left-color:var(--oracle);}
+  #mb-root .grp.self{border-left-color:#9F7BCB;}
+  #mb-root .grp-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;}
+  #mb-root .grp-title{font-family:var(--font-oracle);font-size:23px;line-height:1.1;}
+  #mb-root .grp.oracle .grp-title{color:var(--oracle-b);}
+  #mb-root .grp.self .grp-title{color:#C4A2E8;}
+  #mb-root .grp-sub{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .grp-desc{font-family:var(--font-ui);font-size:13px;line-height:1.5;color:var(--mist);margin:0 0 14px;max-width:70ch;}
+  #mb-root .grp.oracle .orow:hover,#mb-root .grp.oracle .topic.open>.orow{background:rgba(212,169,78,.06);}
+  #mb-root .grp.self .orow:hover,#mb-root .grp.self .topic.open>.orow{background:rgba(159,123,203,.08);}
   #mb-root .list{--cols:64px minmax(0,1fr) 196px 330px 220px;--cgap:20px;}
   #mb-root .hdr{display:grid;grid-template-columns:var(--cols);gap:var(--cgap);align-items:end;padding:0 10px 12px 0;border-bottom:1px solid var(--line);}
   #mb-root .hdr .hc{font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);white-space:nowrap;overflow:hidden;}
@@ -523,14 +534,25 @@
             h("label", { className: "rep" }, h("button", { className: "sw " + (summary ? "on" : "off"), onClick: () => setSummary(!summary) }, h("span", { className: "knob" })), T("Tägliche My-Book-Summary", "Daily My-Book summary")),
             h(Button, { variant: "oracle", size: "sm", disabled: count >= MAX, onClick: addTopic }, T("+ Topic hinzufügen", "+ Add topic")))),
         h("h2", { className: "mb" }, T("Deine Topics auf einen Blick.", "Your topics at a glance.")),
-        rows.length ? h("div", { className: "list" },
-          h("div", { className: "hdr" },
+        rows.length ? (function () {
+          const mkHdr = () => h("div", { className: "hdr" },
             h("span", { className: "hc c-mon" }, T("Beobachten", "Monitor")),
             h("span", { className: "hc c-topic" }, "Topic"),
             h("span", { className: "hc c-stat" }, T("These-Status", "Thesis status")),
             h("span", { className: "hc c-trig" }, "My Trigger"),
-            h("span", { className: "hc c-act" })),
-          rows.map(Topic))
+            h("span", { className: "hc c-act" }));
+          const oracleRows = rows.filter((r) => r.tracking_source === "oracle");
+          const selfRows = rows.filter((r) => r.tracking_source !== "oracle");
+          const group = (kind, title, desc, items) => items.length ? h("div", { className: "grp " + kind, key: kind },
+            h("div", { className: "grp-head" },
+              h("span", { className: "grp-title" }, title),
+              h("span", { className: "grp-sub" }, items.length + (items.length === 1 ? T(" Topic", " topic") : T(" Topics", " topics")))),
+            h("div", { className: "grp-desc" }, desc),
+            h("div", { className: "list" }, mkHdr(), items.map(Topic))) : null;
+          return h("div", null,
+            group("oracle", T("Orakel-Shortlist", "Oracle shortlist"), T("Aus dem Orakel übernommen — der Score spiegelt den Hunter-Pool.", "Taken from the oracle — the score mirrors the hunter pool."), oracleRows),
+            group("self", T("Meine Thesen", "My theses"), T("Du trackst selbst — bewertet gegen deine eigenen Marken.", "You track yourself — scored against your own levels."), selfRows));
+        })()
         : (loaded ? h("div", { className: "empty" },
             h("div", { className: "empty-t" }, T("Dein Buch ist noch leer.", "Your book is still empty.")),
             h("div", { className: "empty-s" }, T("Leg ein Topic an, wenn eine These stark genug ist — per Upload oder von Hand. Warren beobachtet ab dann, ob sie hält.", "Add a topic when a thesis is strong enough — by upload or by hand. Warren then watches whether it holds.")),
