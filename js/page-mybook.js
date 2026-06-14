@@ -125,6 +125,21 @@
   #mb-root .f-up.busy{opacity:.7;cursor:wait;}
   #mb-root .f-note{font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--ash);margin:0 0 16px;}
   #mb-root .f-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px;}
+  #mb-root .f-cnt{font-family:var(--font-mono);font-size:9px;color:var(--ox-b);} #mb-root .f-cnt.ok{color:var(--bull);}
+  #mb-root .tagbox{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--input);border:1px solid var(--border-strong);border-radius:6px;padding:7px 8px;min-height:38px;box-sizing:border-box;}
+  #mb-root .tagchip{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--oracle-b);border:1px solid rgba(212,169,78,.5);background:rgba(212,169,78,.1);border-radius:5px;padding:3px 4px 3px 8px;}
+  #mb-root .tagx{border:none;background:none;color:var(--oracle-b);cursor:pointer;font-size:13px;line-height:1;padding:0 2px;}
+  #mb-root .taginput{flex:1;min-width:120px;border:none;background:none;outline:none;color:var(--parch);font-family:var(--font-ui);font-size:14px;}
+  #mb-root .tagsug{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  #mb-root .sugchip{font-family:var(--font-mono);font-size:10px;color:var(--mist);border:1px dashed var(--border-strong);background:none;border-radius:999px;padding:3px 9px;cursor:pointer;}
+  #mb-root .sugchip:hover{border-color:var(--border-oracle);color:var(--oracle-b);}
+  #mb-root .isindup{flex-direction:row !important;align-items:center;gap:8px;font-family:var(--font-ui);font-size:12.5px;color:var(--ox-b);border:1px solid rgba(224,114,107,.4);background:rgba(224,114,107,.08);border-radius:7px;padding:9px 12px;} #mb-root .isindup b{color:#F0A39C;}
+  #mb-root .isindup-open{font-family:var(--font-ui);font-size:12px;font-weight:600;border:1px solid rgba(212,169,78,.5);background:rgba(212,169,78,.1);color:var(--oracle-b);border-radius:6px;padding:5px 11px;cursor:pointer;margin-left:auto;}
+  #mb-root .antit{font-family:var(--font-oracle);font-style:italic;font-size:15.5px;line-height:1.5;color:var(--ox-b);margin:0;max-width:64ch;}
+  #mb-root .killpills{display:flex;flex-wrap:wrap;gap:7px;}
+  #mb-root .killpill{font-family:var(--font-mono);font-size:11px;color:var(--oracle-b);border:1px solid rgba(212,169,78,.5);background:rgba(212,169,78,.08);border-radius:5px;padding:3px 9px;}
+  #mb-root .killwarn{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--font-ui);font-size:13px;color:var(--oracle-b);border:1px solid rgba(212,169,78,.35);background:rgba(212,169,78,.05);border-radius:8px;padding:10px 13px;}
+  #mb-root .killwarn-edit{font-family:var(--font-ui);font-size:12px;font-weight:600;border:1px solid rgba(212,169,78,.5);background:rgba(212,169,78,.1);color:var(--oracle-b);border-radius:6px;padding:5px 11px;cursor:pointer;white-space:nowrap;}
   #mb-root .f{display:flex;flex-direction:column;min-width:0;} #mb-root .f-full{grid-column:1 / -1;}
   #mb-root .f-l{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);margin-bottom:5px;}
   #mb-root .f-i{font-family:var(--font-ui);font-size:14px;background:var(--input);border:1px solid var(--border-strong);border-radius:6px;padding:7px 9px;color:var(--parch);outline:none;width:100%;box-sizing:border-box;}
@@ -196,7 +211,10 @@
     const [mirrorModal, setMirrorModal] = useState(null);
     const [delId, setDelId] = useState(null);
     const [summary, setSummary] = useState(true);
-    const BLANK = { name: "", isin: "", issuer: "", idx: "", art: "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: "", stop: "", skim: "", target: "", these: "", kill: "" };
+    const BLANK = { name: "", isin: "", issuer: "", idx: "", art: "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: "", stop: "", skim: "", target: "", these: "", anti_these: "", kill_triggers: [] };
+    const KILL_SUGGEST = ["iran_ceasefire", "hormus_resumed", "recession_eu", "capex_cut", "fed_hawkish_shock", "usd_crash", "china_export_ban", "earnings_miss", "esma_ban", "oil_supply_shock"];
+    const normTag = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
+    const killTagsOf = (p) => Array.isArray(p && p.kill_triggers) ? p.kill_triggers : (p && p.kill ? String(p.kill).split(/\s*·\s*/).map((x) => x.trim()).filter(Boolean) : []);
     const [addF, setAddF] = useState(null);
     const [editingId, setEditingId] = useState(null);
     const [addBusy, setAddBusy] = useState(false);
@@ -207,6 +225,7 @@
     const [checkId, setCheckId] = useState(null);
     const [checkMsg, setCheckMsg] = useState({});
     const [chartBusy, setChartBusy] = useState(null);
+    const [tagInput, setTagInput] = useState("");
     const [flash, setFlash] = useState("");
     const showFlash = (msg) => { setFlash(msg); setTimeout(() => setFlash(""), 4500); };
 
@@ -240,7 +259,7 @@
     const setMon = (id, on, channel) => { setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { monitored: on, channel: on ? (channel === "both" ? "SMS + Mail" : channel === "sms" ? "SMS" : "Mail") : null }) : r)); api("/api/mybook/" + id + "/monitor", { on: on, channel: channel || "mail" }); };
     const toggleMon = (p) => { if (p.monitored) setMon(p.id, false); else { setMonCh("mail"); setMonModal(p.id); } };
     const confirmMon = () => { setMon(monModal, true, monCh); setMonModal(null); };
-    const openEdit = (p) => { setEditingId(p.id); setAddF({ name: p.name || "", isin: p.isin || "", issuer: p.issuer || "", idx: p.idx || "", art: p.art || "Aktie · Long", venue: p.venue || "Tradegate", currency: p.currency || "EUR", entry: p.entry || "", stop: p.stop || "", skim: p.skim || "", target: p.target || "", these: p.these || "", kill: p.kill || "" }); };
+    const openEdit = (p) => { setEditingId(p.id); setTagInput(""); setAddF({ name: p.name || "", isin: p.isin || "", issuer: p.issuer || "", idx: p.idx || "", art: p.art || "Aktie · Long", venue: p.venue || "Tradegate", currency: p.currency || "EUR", entry: p.entry || "", stop: p.stop || "", skim: p.skim || "", target: p.target || "", these: p.these || "", anti_these: p.anti_these || "", kill_triggers: killTagsOf(p) }); };
     const checkedTime = (iso) => { try { return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
     const checkThesis = (p) => {
       setCheckId(p.id); setCheckMsg((m) => Object.assign({}, m, { [p.id]: "" }));
@@ -301,32 +320,56 @@
     const goMode = (m) => { setAddMode(m); if (m === "oracle" && hunter === null && !hunterBusy) loadHunter(); };
     const pickHunter = (t) => {
       const firstSkim = (t.skim_levels || "").split(",")[0].trim();
-      setAddF({ name: t.asset || "", isin: t.isin || "", issuer: "", idx: "", art: t.art || "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: numStr(t.entry), stop: numStr(t.stop), skim: firstSkim ? numStr(parseFloat(firstSkim)) : "", target: numStr(t.target), these: t.thesis || "", kill: (t.thesis_kill_triggers || []).join(" · ") });
-      setAddSrc("oracle"); setAddMode("manual");
+      setAddF({ name: t.asset || "", isin: t.isin || "", issuer: "", idx: "", art: t.art || "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: numStr(t.entry), stop: numStr(t.stop), skim: firstSkim ? numStr(parseFloat(firstSkim)) : "", target: numStr(t.target), these: t.thesis || "", anti_these: "", kill_triggers: (t.thesis_kill_triggers || []).slice(0, 12) });
+      setTagInput(""); setAddSrc("oracle"); setAddMode("manual");
     };
     const setAf = (k, v) => setAddF((o) => Object.assign({}, o, { [k]: v }));
+    const tags = () => (addF && Array.isArray(addF.kill_triggers)) ? addF.kill_triggers : [];
+    const addTag = (raw) => { const t = normTag(raw); setTagInput(""); if (!t) return; const cur = tags(); if (cur.indexOf(t) !== -1 || cur.length >= 12) return; setAf("kill_triggers", cur.concat([t])); };
+    const removeTag = (t) => setAf("kill_triggers", tags().filter((x) => x !== t));
+    // ISIN-Dedup: gegen bereits geladene Topics (kein extra Fetch nötig)
+    const isinDup = (function () { const iv = ((addF && addF.isin) || "").trim().toUpperCase(); if (iv.length < 12) return null; const hit = rows.find((r) => String(r.isin || "").trim().toUpperCase() === iv && String(r.state || "").toLowerCase().indexOf("closed") === -1 && (!editingId || r.id !== editingId)); return hit || null; })();
     const _en = addF ? deNum(addF.entry) : null, _st = addF ? deNum(addF.stop) : null, _short = !!(addF && /Short/i.test(addF.art || ""));
     const stopOk = (!addF || _en == null || _st == null) ? true : (_short ? _st > _en : _st < _en);
     const stopErr = stopOk ? "" : (_short ? T("Bei Short muss der Stop ÜBER dem Entry liegen.", "For short, stop must be ABOVE entry.") : T("Bei Long muss der Stop UNTER dem Entry liegen.", "For long, stop must be BELOW entry."));
-    const formValid = !!(addF && addF.name.trim() && (addF.these || "").trim().length >= 10 && (addF.kill || "").trim() && stopOk);
+    const ERRMAP = (code, d) => {
+      const c = String(code || "").toLowerCase();
+      if (c === "these_too_short") return T("Deine These ist zu kurz — mindestens 50 Zeichen.", "Your thesis is too short — at least 50 characters.");
+      if (c === "anti_these_too_short") return T("Die Anti-These ist zu kurz — mindestens 30 Zeichen.", "The anti-thesis is too short — at least 30 characters.");
+      if (c === "kill_triggers_required") return T("Mindestens 1 Kill-Trigger-Tag ist Pflicht.", "At least 1 kill-trigger tag is required.");
+      if (c === "stop_invalid_for_long") return T("Bei Long muss der Stop UNTER dem Entry liegen.", "For long, stop must be BELOW entry.");
+      if (c === "stop_invalid_for_short") return T("Bei Short muss der Stop ÜBER dem Entry liegen.", "For short, stop must be ABOVE entry.");
+      if (c === "book_full") return T("Dein Buch ist voll (12/12). Erst Platz schaffen.", "Your book is full (12/12). Make room first.");
+      return (d && d.hint) || T("Konnte nicht angelegt werden.", "Could not be created.");
+    };
+    const trimLen = (s) => (s || "").trim().length;
+    const formValid = !!(addF && addF.name.trim() && trimLen(addF.these) >= 50 && trimLen(addF.anti_these) >= 30 && tags().length >= 1 && stopOk && !isinDup);
     const submitAdd = () => {
       const f = addF; if (!formValid) return;
-      const body = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, market: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: deNum(f.entry), stop: deNum(f.stop), skim: deNum(f.skim), target: deNum(f.target), these: f.these, anti_these: f.kill };
+      const body = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, market: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: deNum(f.entry), stop: deNum(f.stop), skim: deNum(f.skim), target: deNum(f.target), these: f.these, anti_these: f.anti_these, kill_triggers: tags() };
       if (!editingId && addSrc) body.tracking_source = addSrc; // aus Orakel gepickt → oracle; sonst nicht senden (Backend default member_only)
       // optimistische Anzeige (gilt sofort); KEIN blindes Reload (Notion-Latenz würde zurückspringen)
-      const opt = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, idx: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: f.entry, stop: f.stop, skim: f.skim, target: f.target, these: f.these, kill: f.kill };
+      const opt = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, idx: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: f.entry, stop: f.stop, skim: f.skim, target: f.target, these: f.these, anti_these: f.anti_these, kill_triggers: tags() };
       const readJson = (res) => (res && res.json) ? res.json().then((d) => ({ status: res.status, d })).catch(() => ({ status: res.status, d: null })) : { status: 0, d: null };
       if (editingId) {
         const id = editingId;
         setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, opt) : r));
-        api("/api/mybook/" + id, body, "PATCH").then(readJson).then(({ d }) => { if (d && d.ok && d.topic) setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, d.topic) : r)); else if (d && d.ok === false) showFlash(d.hint || T("Speichern fehlgeschlagen.", "Save failed.")); });
+        api("/api/mybook/" + id, body, "PATCH").then(readJson).then(({ d }) => { if (d && d.ok && d.topic) setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, d.topic) : r)); else if (d && d.ok === false) showFlash(ERRMAP(d.error, d)); });
       } else {
         const tempId = "tmp-" + Date.now();
         setRows((rs) => rs.concat([Object.assign({ id: tempId, live: "", score: 0, zone: 3, waage_pct: 50, monitored: false, channel: null, state: "active", tracking_source: "member_only", action_required: false }, opt)]));
         setOpen(tempId);
-        api("/api/mybook", body, "POST").then(readJson).then(({ d }) => {
-          if (d && d.topic) setRows((rs) => rs.map((r) => r.id === tempId ? Object.assign({}, r, d.topic) : r));
-          else { setRows((rs) => rs.filter((r) => r.id !== tempId)); showFlash((d && d.hint) || T("Konnte nicht angelegt werden.", "Could not be created.")); } // Fehler → optimistische Zeile zurück
+        api("/api/mybook", body, "POST").then(readJson).then(({ status, d }) => {
+          if (d && d.topic) { setRows((rs) => rs.map((r) => r.id === tempId ? Object.assign({}, r, d.topic) : r)); return; }
+          setRows((rs) => rs.filter((r) => r.id !== tempId)); // Fehler → optimistische Zeile zurück
+          const code = String((d && d.error) || "").toLowerCase();
+          if (status === 409 || code.indexOf("isin_already") !== -1) {
+            const ex = rows.find((r) => String(r.isin || "").trim().toUpperCase() === (body.isin || "").toUpperCase()) || (d && d.existing_topic_id ? { id: d.existing_topic_id, name: d.existing_topic_name } : null);
+            if (ex) { setOpen(ex.id); showFlash(T("Diese ISIN steckt schon in deinem Buch (", "This ISIN is already in your book (") + (ex.name || d.existing_topic_name || "") + T(") — geöffnet.", ") — opened.")); }
+            else showFlash(T("Diese ISIN steckt schon in deinem Buch.", "This ISIN is already in your book."));
+            return;
+          }
+          showFlash(ERRMAP(code, d));
         });
       }
       closeForm();
@@ -358,12 +401,14 @@
       };
       reader.readAsDataURL(file);
     };
-    const Fld = (o) => h("div", { key: o.k, className: "f" + (o.full ? " f-full" : "") },
-      h("label", { className: "f-l" }, o.label, o.req ? h("span", { style: { color: "var(--ox-b)" } }, " *") : null),
-      o.area ? h("textarea", { className: "f-i", rows: 2, value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) })
+    const Fld = (o) => { const len = ((addF && addF[o.k]) || "").trim().length; const ok = o.min ? len >= o.min : true; return h("div", { key: o.k, className: "f" + (o.full ? " f-full" : "") },
+      h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } },
+        h("label", { className: "f-l" }, o.label, o.req ? h("span", { style: { color: "var(--ox-b)" } }, " *") : null),
+        o.min ? h("span", { className: "f-cnt" + (ok ? " ok" : "") }, len + "/" + o.min) : null),
+      o.area ? h("textarea", { className: "f-i", rows: o.rows || 2, value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) })
              : h("input", { className: "f-i", value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) }),
       o.hint ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--text-muted)", marginTop: 4 } }, o.hint) : null,
-      o.err ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--ox-b)", marginTop: 4 } }, o.err) : null);
+      o.err ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--ox-b)", marginTop: 4 } }, o.err) : null); };
     const Sel = (o) => h("div", { key: o.k, className: "f" },
       h("label", { className: "f-l" }, o.label),
       h("select", { className: "f-i", value: addF[o.k], onChange: (e) => setAf(o.k, e.target.value) }, o.opts.map((op) => h("option", { key: op, value: op }, op))));
@@ -406,7 +451,11 @@
             h("button", { className: "bdel", onClick: () => setDelId(p.id) }, T("Topic löschen", "Delete topic"))),
           h("div", { className: "dcol-these" },
             h("div", { className: "tlbl", style: { color: "var(--ox-b)" } }, T("Anti-These", "Anti-thesis")),
-            h("div", { className: "kill" }, h("b", null, T("Kippt bei: ", "Breaks on: ")), p.kill),
+            (p.anti_these || p.kill) ? h("div", { className: "antit" }, p.anti_these || p.kill) : h("div", { className: "kill" }, T("— keine Anti-These hinterlegt.", "— no anti-thesis on file.")),
+            h("div", { className: "tlbl" }, T("Kill-Trigger", "Kill triggers")),
+            killTagsOf(p).length
+              ? h("div", { className: "killpills" }, killTagsOf(p).map((k) => h("span", { key: k, className: "killpill" }, k)))
+              : h("div", { className: "killwarn" }, h("span", null, T("Trag mind. 1 Kill-Trigger ein, damit News-Alerts kommen.", "Add at least 1 kill-trigger so news alerts can fire.")), h("button", { className: "killwarn-edit", onClick: () => openEdit(p) }, T("Eintragen", "Add"))),
             h("div", { className: "tlbl" }, T("Deine These", "Your thesis")),
             h("div", { className: "these" }, p.these),
             p.einschaetzung ? h("div", { className: "tlbl" }, T("Warrens Einschätzung", "Warren's read")) : null,
@@ -511,6 +560,7 @@
               h("div", { style: { display: "flex", gap: 8 } },
                 h("input", { className: "f-i gold", value: addF.isin, placeholder: "DE0007030009", onChange: (e) => setAf("isin", e.target.value) }),
                 h(Button, { variant: "oracle", size: "sm", disabled: addBusy || !(addF.isin && addF.isin.trim()), onClick: isinLookup }, addBusy ? T("lädt…", "loading…") : T("Laden", "Load")))),
+            isinDup ? h("div", { key: "isindup", className: "f f-full isindup" }, T("Du hast diese ISIN schon im Buch — ", "This ISIN is already in your book — "), h("b", null, isinDup.name), ". ", h("button", { className: "isindup-open", onClick: () => { setOpen(isinDup.id); closeForm(); } }, T("Öffnen", "Open"))) : null,
             Fld({ label: T("Emittent", "Issuer"), k: "issuer", ph: T("z. B. Société Générale", "e.g. Société Générale") }),
             Sel({ label: T("Art", "Type"), k: "art", opts: ["Aktie · Long", "Aktie · Short", "ETF · Long", "ETF · Short", "ETC · Long", "ETC · Short", "Knock-Out · Long", "Knock-Out · Short", "Optionsschein", "Krypto · Long", "Forex"] }),
             Fld({ label: T("Markt / Index", "Market / index"), k: "idx", ph: "EURO STOXX 50" }),
@@ -520,8 +570,18 @@
             Fld({ label: "Stop", k: "stop", ph: "0,00", err: stopErr }),
             Fld({ label: "Skim", k: "skim", ph: "0,00" }),
             Fld({ label: "Target", k: "target", ph: "0,00" }),
-            Fld({ label: T("Deine These", "Your thesis"), k: "these", full: true, area: true, req: true, ph: T("Warum hältst du das? Mindestens 1 Satz.", "Why do you hold this? At least one sentence."), hint: T("Pflicht · mindestens 1 Satz (10+ Zeichen)", "Required · at least one sentence (10+ chars)") }),
-            Fld({ label: T("Anti-These (Kippt bei)", "Anti-thesis (breaks on)"), k: "kill", full: true, req: true, ph: T("Wann kippt die These? z. B. Ceasefire · Earnings-Miss", "When does it break? e.g. ceasefire · earnings miss") })),
+            Fld({ label: T("Was erwartest du? Warum?", "What do you expect? Why?"), k: "these", full: true, area: true, rows: 3, req: true, min: 50, ph: T("Ein klarer Satz — z. B. „Iran-Eskalation + EU-Aufrüstung stützen den Defense-Sektor strukturell für Quartale.“", "One clear sentence — e.g. “Iran escalation + EU rearmament structurally support the defense sector for quarters.”"), hint: T("Wird vom Orakel wörtlich zitiert. Mindestens 50 Zeichen.", "Quoted verbatim by the oracle. At least 50 characters.") }),
+            Fld({ label: T("Was würde diese These widerlegen? (Story)", "What would disprove this thesis? (story)"), k: "anti_these", full: true, area: true, rows: 2, req: true, min: 30, ph: T("Wenn die EZB die Zinsen wieder anhebt und der Euro Richtung 1.20 läuft, ist die These tot.", "If the ECB hikes rates again and the euro runs toward 1.20, the thesis is dead."), hint: T("Wird vom Orakel als Kontext für die Lesart genutzt. Mindestens 30 Zeichen.", "Used by the oracle as context for its read. At least 30 characters.") }),
+            (function () {
+              var cur = tags();
+              return h("div", { key: "killtags", className: "f f-full" },
+                h("label", { className: "f-l" }, T("Tags fürs News-Monitoring (mind. 1)", "Tags for news monitoring (min. 1)"), h("span", { style: { color: "var(--ox-b)" } }, " *")),
+                h("div", { className: "tagbox" },
+                  cur.map((tg) => h("span", { key: tg, className: "tagchip" }, tg, h("button", { className: "tagx", onClick: () => removeTag(tg) }, "×"))),
+                  h("input", { className: "taginput", value: tagInput, placeholder: cur.length ? "" : T("z. B. earnings_miss", "e.g. earnings_miss"), onChange: (e) => setTagInput(e.target.value), onKeyDown: (e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(tagInput); } else if (e.key === "Backspace" && !tagInput && cur.length) { removeTag(cur[cur.length - 1]); } } })),
+                h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--text-muted)", marginTop: 5 } }, T("Diese Tags entscheiden, ob News-Alerts kommen. snake_case · max 12.", "These tags decide whether news alerts fire. snake_case · max 12.")),
+                h("div", { className: "tagsug" }, KILL_SUGGEST.filter((s) => cur.indexOf(s) === -1).slice(0, 8).map((s) => h("button", { key: s, className: "sugchip", onClick: () => addTag(s) }, "+ " + s))));
+            })()),
           h("div", { className: "f-note", style: { marginTop: 10 } }, T("Handelsplatz = wo du handelst. Standard Tradegate (EUR). Kurs-Felder leer lassen, wenn unbekannt.", "Trading venue = where you trade. Default Tradegate (EUR). Leave price fields empty if unknown.")),
           h("div", { className: "f-foot" },
             h(Button, { variant: "ghost", size: "sm", onClick: closeForm }, T("Abbrechen", "Cancel")),

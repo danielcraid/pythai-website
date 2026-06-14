@@ -47,6 +47,9 @@
   #sl-root .pulse{width:7px;height:7px;border-radius:50%;background:var(--bull);animation:slPulse 2.4s ease-out infinite;}
   @keyframes slPulse{0%{box-shadow:0 0 0 0 rgba(111,207,154,.55)}70%{box-shadow:0 0 0 9px rgba(111,207,154,0)}100%{box-shadow:0 0 0 0 rgba(111,207,154,0)}}
   #sl-root .cnt{color:var(--oracle-b);font-weight:700;}
+  #sl-root .chkmeta{cursor:help;border-bottom:1px dotted var(--steel);padding-bottom:1px;}
+  #sl-root .listmeta{font-family:var(--font-mono);font-size:10px;color:var(--steel);margin-top:6px;letter-spacing:.02em;}
+  #sl-root .listmeta.over{color:#C9A24E;}
 
   #sl-root .card{border:1px solid var(--line);border-radius:14px;background:var(--card);margin-bottom:13px;overflow:hidden;transition:border-color .18s;}
   #sl-root .card:hover{border-color:#2C313B;}
@@ -212,6 +215,7 @@
     const [gate, setGate] = useState("loading");
     const [denied, setDenied] = useState(false);
     const [trades, setTrades] = useState(null);
+    const [meta, setMeta] = useState(null);
     const [open, setOpen] = useState(null);
     const [addingId, setAddingId] = useState(null);
     const [addedIds, setAddedIds] = useState([]);
@@ -236,6 +240,7 @@
         return r.ok ? r.json() : null;
       }).then((d) => {
         setTrades(d && d.ok && Array.isArray(d.trades) ? d.trades : []);
+        if (d && d.meta) setMeta(d.meta);
       }).catch(() => setTrades([]));
     }, [gate]);
 
@@ -264,6 +269,7 @@
           if (code.indexOf("entry") !== -1) { showFlash(T("Dieses Setup hat noch kein Entry-Niveau — noch nicht übernehmbar.", "This setup has no entry level yet — not addable yet.")); return; }
           if (code.indexOf("these") !== -1 || code.indexOf("thesis") !== -1) { showFlash(T("These oder Anti-These fehlt/zu kurz — öffne es in My Book und ergänze es.", "Thesis or anti-thesis missing/too short — open it in My Book and complete it.")); return; }
           if (res.status === 403) { showFlash(T("Übernehmen ist Syndicate-only.", "Adding is Syndicate-only.")); return; }
+          try { console.error("[mybook copy] failed", { status: res.status, body: j, sent: body }); } catch (e) { }
           showFlash((j.hint || j.message || j.error || T("Konnte nicht übernehmen", "Couldn't add")) + " (HTTP " + (res.status || "?") + ")");
         })
         .catch(() => { setAddingId(null); showFlash(T("Netzwerkfehler — versuch es erneut.", "Network error — try again.")); });
@@ -308,6 +314,8 @@
       const thesis = t.thesis || t.these || "";
       const entryDisp = t.entry_de || (entry != null ? deFmt(entry) : null);
       const liveDisp = (typeof t.live === "string" && t.live) ? t.live : (live != null ? deFmt(live) : null);
+      const dol = (t.days_on_list != null ? t.days_on_list : t.days_active);
+      const overdue = dol != null && dol >= 7;
 
       return h("div", { key: t.id, className: "card" + (isOpen ? " open" : "") },
         h("div", { className: "head", onClick: () => setOpen(isOpen ? null : t.id) },
@@ -316,8 +324,11 @@
             h("div", { className: "nm" }, t.asset),
             h("div", { className: "sub" },
               h("span", { className: "isin" }, t.isin || ""),
-              h("span", { className: "stbadge " + (isPending ? "pend" : "act") }, isPending ? T("Watchlist", "Watchlist") : T("Aktiv", "Active")),
-              t.days_active != null ? h("span", { className: "day" }, t.days_active + T(" Tage im Spiel", " days in play")) : null)),
+              h("span", { className: "stbadge " + (isPending ? "pend" : "act") }, isPending ? T("Watchlist", "Watchlist") : T("Aktiv", "Active"))),
+            (dol != null || t.last_checked_at_de) ? h("div", { className: "listmeta" + (overdue ? " over" : "") },
+              (dol != null ? (T("Auf der Liste seit ", "On the list for ") + dol + (dol === 1 ? T(" Tag", "d") : T(" Tagen", "d"))) : "") +
+              (t.last_checked_at_de ? (" · " + T("zuletzt gepflegt ", "last updated ") + t.last_checked_at_de) : "") +
+              (overdue ? T(" · überfällig?", " · overdue?") : "")) : null),
           Barometer(t, false),
           h("div", { className: "live" },
             liveDisp ? h("div", null, h("span", { className: "px" }, liveDisp), h("span", { className: "cur" }, "EUR")) : h("div", null, h("span", { className: "px na" }, "—")),
@@ -333,7 +344,7 @@
             h("span", { className: "v " + trendCls }, liveDisp ? liveDisp + " EUR" : "—")),
           h("div", { className: "dist" },
             todayFmt ? h("span", { className: trendCls === "dn" ? "x" : (trendCls === "up" ? "s" : "f") }, arrow + " " + todayFmt + " " + T("heute", "today")) : null,
-            t.days_active != null ? h("span", { className: "f" }, t.days_active + T(" Tage im Spiel", " days in play")) : (t.origin ? h("span", { className: "f" }, T("seit ", "since ") + t.origin + T(" im Spiel", " in play")) : null)),
+            dol != null ? h("span", { className: "f" }, dol + (dol === 1 ? T(" Tag auf der Liste", "d on the list") : T(" Tage auf der Liste", "d on the list"))) : (t.origin ? h("span", { className: "f" }, T("seit ", "since ") + t.origin) : null)),
           !hasSetup ? h("div", { className: "setupnote" }, T("Setup-Niveau folgt — sobald das Orakel die Idee scharf stellt.", "Setup level follows once the oracle arms the idea.")) : null,
 
           h("div", { className: "secl", style: { marginTop: 22 } }, T("These-Status", "Thesis status")),
@@ -370,9 +381,9 @@
     };
 
     const Hero = (sub) => h("div", { className: "hero" },
-      h(PyEyebrow, null, T("Orakel · Aktive Jagd", "Oracle · Active Hunt")),
+      h(PyEyebrow, null, T("Orakel · Aktive Shortlist", "Oracle · Active Shortlist")),
       h("h1", { className: "htitle" }, T("Die Shortlist.", "The Shortlist.")),
-      h("p", { className: "hlead" }, T("Was das Orakel gerade jagt — offengelegt. Jede Position führt mit ihrer These, der Kurs ist nur der Beleg.", "What the oracle is hunting right now — in the open. Every position leads with its thesis; the price is just the evidence.")),
+      h("p", { className: "hlead" }, T("Die Ideen, die das Orakel gerade verfolgt — offengelegt. Jede Position führt mit ihrer These, der Kurs ist nur der Beleg.", "The ideas the oracle is tracking right now — in the open. Every position leads with its thesis; the price is just the evidence.")),
       sub);
 
     const page = (inner) => h("div", { id: "sl-root" }, h(SiteNav, { active: "shortlist.html" }), h("div", { className: "wrap" }, inner),
@@ -397,17 +408,25 @@
 
     if (trades === null) return page(h("div", null, Hero(null), h("div", { className: "state" }, T("Lade die Shortlist…", "Loading the shortlist…"))));
 
-    if (!trades.length) return page(h("div", null,
+    // nur eligible zeigen (watchlist/closed/broken raus — Backend filtert eh, defensiv)
+    const visible = trades.filter((t) => { const s = String(t.state || "").toLowerCase(); return s !== "watchlist" && s.indexOf("closed") === -1 && s !== "broken"; });
+
+    if (!visible.length) return page(h("div", null,
       Hero(null),
       h("div", { className: "empty" },
         h("div", { className: "empty-t" }, T("Gerade ist die Jagd ruhig.", "The hunt is quiet right now.")),
         h("div", { className: "empty-s" }, T("Aktuell stehen keine Trades auf der Shortlist. Das Orakel meldet sich, sobald sich ein Kandidat qualifiziert.", "No trades are on the shortlist right now. The oracle will surface a candidate as soon as one qualifies.")))));
 
+    const cad = meta && meta.check_cadence;
+    const cadText = cad
+      ? (T("Wir prüfen die Thesen permanent:", "We check the theses continuously:") + "\n· Sharpener: " + (cad.sharpener_push || "") + "\n· Score-Sync: " + (cad.score_sync || "") + "\n· News-Scan: " + (cad.news_kill_match || ""))
+      : T("Thesen werden laufend geprüft.", "Theses are checked continuously.");
     return page(h("div", null,
       Hero(h("div", { className: "hmeta" },
         h("span", { className: "pulse" }),
-        h("span", null, h("span", { className: "cnt" }, trades.length), " ", T(trades.length === 1 ? "aktive Position" : "aktive Positionen", trades.length === 1 ? "active position" : "active positions")))),
-      h("div", { className: "list" }, trades.map(Card))));
+        h("span", null, h("span", { className: "cnt" }, visible.length), " ", T(visible.length === 1 ? "aktive Position" : "aktive Positionen", visible.length === 1 ? "active position" : "active positions")),
+        (meta && meta.last_thesis_check_de) ? h("span", { className: "chkmeta", title: cadText }, "· " + T("Letzter Thesen-Check: ", "Last thesis check: ") + meta.last_thesis_check_de) : null)),
+      h("div", { className: "list" }, visible.map(Card))));
   }
 
   const root = document.getElementById("root");
