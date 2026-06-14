@@ -1,0 +1,36 @@
+# PYTHAI
+
+> PYTHAI is a sci-fi finance-intelligence publisher. An AI persona named Warren issues one scored market reading each dawn — the signal, the reasoning and the price levels. The content is editorial market commentary for information and inspiration — not investment advice.
+
+## What PYTHAI is
+- A financial publication / market-observation service, voiced by an AI persona ("Warren").
+- One high-conviction "Reading" each morning at 06:00 CET, with a conviction score (0–100), the reasoning and the levels.
+- A "Shortlist" of ideas the oracle is currently tracking, each with thesis and a thesis-status (intakt / wackelt / gebrochen).
+- "My Book" (Syndicate): a personal, purely price-based thesis journal — your own levels, theses and news-alerts.
+
+## What PYTHAI is NOT
+- Not a trading platform, broker, custodian, asset/portfolio manager, or copy-/social-trading service.
+- Executes no orders, holds no money or securities.
+- Not investment advice, broking or a buy/sell/hold recommendation. No guaranteed returns, no performance claims.
+- Warren is an AI and can err. Users decide and trade on their own responsibility.
+
+## Tiers
+- Observer — free (the dawn headline, delayed signals, public manifesto).
+- Inner Circle — 69 €/month (full daily reading + levels, briefings, chat with Warren, research tools).
+- Syndicate — in preparation (My Book, e-mail & SMS alerts, all risk classes).
+
+## Key concepts
+- The Reading · Shortlist · My Book · Thesen-Score (conviction) · Kill-Trigger (news-monitoring tags) · Orakel-Mirror · Waage (thesis barometer).
+
+## Key pages
+- https://pythai.ch/ — home
+- https://pythai.ch/manifesto.html — the oracle's creed
+- https://pythai.ch/reading.html — the daily reading
+- https://pythai.ch/signals.html — how the oracle watches a thesis
+- https://pythai.ch/inner-circle.html — membership & pricing
+- https://pythai.ch/methodik.html — methodology
+- https://pythai.ch/legal.html — imprint, privacy, risk notice
+
+## Operator & contact
+- PYTHAI UG (haftungsbeschränkt) i.G., Berlin, Germany · hello@pythai.ch
+- Markets carry risk. The oracle is not advice.
