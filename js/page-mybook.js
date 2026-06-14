@@ -120,6 +120,7 @@
   #mb-root .hcard-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
   #mb-root .hcard-name{font-family:var(--font-oracle);font-size:18px;color:var(--parch);}
   #mb-root .hcard-row{display:flex;align-items:center;gap:14px;margin-top:6px;}
+  #mb-root .f-miss{font-family:var(--font-ui);font-size:12px;line-height:1.5;color:var(--ox-b);background:rgba(224,114,107,.08);border:1px solid rgba(224,114,107,.3);border-radius:7px;padding:8px 11px;margin-top:12px;} #mb-root .f-miss b{color:#F0A39C;}
   #mb-root .f-foot{position:sticky;bottom:0;background:var(--raised);border-top:1px solid var(--border-subtle);padding:12px 0;margin-top:14px;display:flex;gap:10px;justify-content:flex-end;}
   #mb-root .f-up{display:flex;align-items:center;justify-content:center;text-align:center;gap:8px;border:1px dashed var(--border-strong);border-radius:9px;background:rgba(212,169,78,.05);padding:11px 14px;cursor:pointer;font-family:var(--font-ui);font-size:12.5px;color:var(--oracle-b);margin:2px 0 7px;}
   #mb-root .f-up.busy{opacity:.7;cursor:wait;}
@@ -385,8 +386,15 @@
     };
     const trimLen = (s) => (s || "").trim().length;
     const formValid = !!(addF && addF.name.trim() && trimLen(addF.these) >= 50 && trimLen(addF.anti_these) >= 30 && tags().length >= 1 && stopOk && !isinDup);
+    const formMiss = !addF ? "" : (
+      !addF.name.trim() ? T("Name fehlt.", "Name missing.") :
+      trimLen(addF.these) < 50 ? (T("These — noch ", "Thesis — ") + (50 - trimLen(addF.these)) + T(" Zeichen.", " more chars.")) :
+      trimLen(addF.anti_these) < 30 ? (T("Anti-These — noch ", "Anti-thesis — ") + (30 - trimLen(addF.anti_these)) + T(" Zeichen.", " more chars.")) :
+      tags().length < 1 ? T("Mindestens 1 Kill-Trigger-Tag (z. B. „Warren fragen“).", "At least 1 kill-trigger tag (try “Ask Warren”).") :
+      !stopOk ? stopErr :
+      isinDup ? T("Diese ISIN ist schon in deinem Buch.", "This ISIN is already in your book.") : "");
     const submitAdd = () => {
-      const f = addF; if (!formValid) return;
+      const f = addF; if (!formValid) { showFlash(T("Zum Speichern fehlt noch: ", "Still needed to save: ") + formMiss); return; }
       const body = { name: f.name.trim(), isin: (f.isin || "").trim(), issuer: f.issuer, market: (f.idx || "").trim(), art: f.art, venue: f.venue, currency: f.currency, entry: deNum(f.entry), stop: deNum(f.stop), skim: deNum(f.skim), target: deNum(f.target), these: f.these, anti_these: f.anti_these, kill_triggers: tags() };
       if (!editingId && addSrc) body.tracking_source = addSrc; // aus Orakel gepickt → oracle; sonst nicht senden (Backend default member_only)
       // optimistische Anzeige (gilt sofort); KEIN blindes Reload (Notion-Latenz würde zurückspringen)
@@ -631,9 +639,10 @@
                 h("div", { className: "tagsug" }, KILL_SUGGEST.filter((s) => cur.indexOf(s) === -1).slice(0, 8).map((s) => h("button", { key: s, className: "sugchip", onClick: () => addTag(s) }, "+ " + s))));
             })()),
           h("div", { className: "f-note", style: { marginTop: 10 } }, T("Handelsplatz = wo du handelst. Standard Tradegate (EUR). Kurs-Felder leer lassen, wenn unbekannt.", "Trading venue = where you trade. Default Tradegate (EUR). Leave price fields empty if unknown.")),
+          (!formValid && formMiss) ? h("div", { className: "f-miss" }, T("Zum Speichern fehlt noch: ", "Still needed to save: "), h("b", null, formMiss)) : null,
           h("div", { className: "f-foot" },
             h(Button, { variant: "ghost", size: "sm", onClick: closeForm }, T("Abbrechen", "Cancel")),
-            h(Button, { variant: "oracle", size: "sm", disabled: !formValid, onClick: submitAdd }, editingId ? T("Speichern", "Save") : T("Topic anlegen", "Create topic")))))) : null,
+            h(Button, { variant: "oracle", size: "sm", onClick: submitAdd }, editingId ? T("Speichern", "Save") : T("Topic anlegen", "Create topic")))))) : null,
       flash ? h("div", { className: "flash" }, flash) : null,
       h(SiteFooter, null));
   }
