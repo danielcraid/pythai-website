@@ -96,6 +96,8 @@
   #sl-root .stbadge{font-family:var(--font-mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;padding:2px 7px;}
   #sl-root .stbadge.act{color:var(--bull);border:1px solid rgba(111,207,154,.4);}
   #sl-root .stbadge.pend{color:var(--ash);border:1px solid #2A2F39;}
+  #sl-root .newshit{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#CF7A4E;border:1px solid rgba(207,122,78,.5);background:rgba(207,122,78,.12);border-radius:4px;padding:3px 8px;cursor:help;}
+  #sl-root .newshit .nh-dot{width:5px;height:5px;border-radius:50%;background:#CF7A4E;}
   #sl-root .chg.flat{color:var(--steel);background:rgba(124,132,146,.1);border:1px solid rgba(124,132,146,.3);}
   #sl-root .setup{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
   #sl-root .setup .lab{font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel);}
@@ -316,6 +318,8 @@
       const liveDisp = (typeof t.live === "string" && t.live) ? t.live : (live != null ? deFmt(live) : null);
       const dol = (t.days_on_list != null ? t.days_on_list : t.days_active);
       const overdue = dol != null && dol >= 7;
+      const newsHit = !!t.recent_news_hit;
+      const newsHitAt = t.news_hit_at_de || "";
 
       return h("div", { key: t.id, className: "card" + (isOpen ? " open" : "") },
         h("div", { className: "head", onClick: () => setOpen(isOpen ? null : t.id) },
@@ -324,7 +328,8 @@
             h("div", { className: "nm" }, t.asset),
             h("div", { className: "sub" },
               h("span", { className: "isin" }, t.isin || ""),
-              h("span", { className: "stbadge " + (isPending ? "pend" : "act") }, isPending ? T("Watchlist", "Watchlist") : T("Aktiv", "Active"))),
+              h("span", { className: "stbadge " + (isPending ? "pend" : "act") }, isPending ? T("Watchlist", "Watchlist") : T("Aktiv", "Active")),
+              newsHit ? h("span", { className: "newshit", title: T("Validierter Tag-Match auf einer aktuellen News. Schau hin — Einschätzung lesen.", "Validated tag match on a recent news item. Look — read the assessment.") }, h("span", { className: "nh-dot" }), T("News-Alert", "News alert") + (newsHitAt ? " " + newsHitAt : "")) : null),
             (dol != null || t.last_checked_at_de) ? h("div", { className: "listmeta" + (overdue ? " over" : "") },
               (dol != null ? (T("Auf der Liste seit ", "On the list for ") + dol + (dol === 1 ? T(" Tag", "d") : T(" Tagen", "d"))) : "") +
               (t.last_checked_at_de ? (" · " + T("zuletzt gepflegt ", "last updated ") + t.last_checked_at_de) : "") +
@@ -419,13 +424,15 @@
 
     const cad = meta && meta.check_cadence;
     const cadText = cad
-      ? (T("Wir prüfen die Thesen permanent:", "We check the theses continuously:") + "\n· Sharpener: " + (cad.sharpener_push || "") + "\n· Score-Sync: " + (cad.score_sync || "") + "\n· News-Scan: " + (cad.news_kill_match || ""))
+      ? (T("PYTHAI prüft die Thesen permanent:", "PYTHAI checks the theses continuously:") + "\n· Sharpener: " + (cad.sharpener_push || "") + "\n· Score-Sync: " + (cad.score_sync || "") + "\n· News-Scan: " + (cad.news_kill_match || ""))
       : T("Thesen werden laufend geprüft.", "Theses are checked continuously.");
+    const lastChk = meta && (meta.last_thesis_check_de || meta.last_news_check_de);
+    const nextChk = meta && (meta.next_news_check_de || meta.next_thesis_refresh_de);
     return page(h("div", null,
       Hero(h("div", { className: "hmeta" },
         h("span", { className: "pulse" }),
         h("span", null, h("span", { className: "cnt" }, visible.length), " ", T(visible.length === 1 ? "aktive Position" : "aktive Positionen", visible.length === 1 ? "active position" : "active positions")),
-        (meta && meta.last_thesis_check_de) ? h("span", { className: "chkmeta", title: cadText }, "· " + T("Letzter Thesen-Check: ", "Last thesis check: ") + meta.last_thesis_check_de) : null)),
+        lastChk ? h("span", { className: "chkmeta", title: cadText }, "· " + T("zuletzt geprüft ", "last checked ") + lastChk + (nextChk ? (T(" · nächste ", " · next ") + nextChk) : "")) : null)),
       h("div", { className: "list" }, visible.map(Card))));
   }
 
