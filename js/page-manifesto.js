@@ -13,7 +13,7 @@
     ["AI models in ensemble", "11"],
     ["Analytical skills", "64"],
     ["Live API tools", "130+"],
-    ["Filings & datasets parsed", "14M"],
+    ["Filings & datasets parsed", "laufend"],
     ["Signals weighed per reading", "5"],
     ["Market cycles studied", "1929\u2013today"]
   ];

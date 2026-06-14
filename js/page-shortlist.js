@@ -168,7 +168,7 @@
   #sl-root .empty{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:54px 30px;text-align:center;}
   #sl-root .empty-t{font-family:var(--font-oracle);font-size:26px;color:var(--parch);}
   #sl-root .empty-s{font-family:var(--font-ui);font-size:14.5px;line-height:1.6;color:var(--mist);margin:10px auto 0;max-width:52ch;}
-  #sl-root .disc{max-width:1120px;margin:34px auto 0;border:1px solid var(--line);border-left:3px solid #8A6526;border-radius:8px;background:var(--card);padding:14px 18px;}
+  #sl-root .disc{margin:40px 0 0;border:1px solid var(--line);border-left:3px solid #8A6526;border-radius:8px;background:var(--card);padding:14px 18px;}
   #sl-root .disc p{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--mist);margin:0;}
   #sl-root .flash{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:300;max-width:90vw;background:var(--raised);border:1px solid var(--border-oracle);border-left:3px solid var(--oracle-b);border-radius:10px;padding:13px 18px;font-family:var(--font-ui);font-size:13.5px;color:var(--parch);box-shadow:0 14px 40px rgba(0,0,0,.5);}
 
@@ -401,8 +401,8 @@
       h("p", { className: "hlead" }, T("Die Ideen, die das Orakel gerade verfolgt — offengelegt. Jede Position führt mit ihrer These, der Kurs ist nur der Beleg.", "The ideas the oracle is tracking right now — in the open. Every position leads with its thesis; the price is just the evidence.")),
       sub);
 
-    const page = (inner) => h("div", { id: "sl-root" }, h(SiteNav, { active: "shortlist.html" }), h("div", { className: "wrap" }, inner),
-      h("div", { className: "disc" }, h("p", null, T("Die Shortlist ist Markt-Beobachtung, keine Anlageberatung. These, Marken und Status können sich jederzeit ändern. Du handelst eigenverantwortlich.", "The shortlist is market observation, not investment advice. Thesis, levels and status can change at any time. You trade on your own responsibility."))),
+    const page = (inner) => h("div", { id: "sl-root" }, h(SiteNav, { active: "shortlist.html" }), h("div", { className: "wrap" }, inner,
+      h("div", { className: "disc" }, h("p", null, T("Die Shortlist ist Markt-Beobachtung, keine Anlageberatung. These, Marken und Status können sich jederzeit ändern. Du handelst eigenverantwortlich.", "The shortlist is market observation, not investment advice. Thesis, levels and status can change at any time. You trade on your own responsibility.")))),
       flash ? h("div", { className: "flash" }, flash) : null,
       h(SiteFooter, null));
 
