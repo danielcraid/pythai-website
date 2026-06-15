@@ -46,7 +46,7 @@
             h("td", { style: tdS }, h("span", { style: { color: "var(--oracle-bright)", fontSize: 18 } }, "✓"))))))));
   }
 
-  function Overview({ groups, uk, isEnabled, onToggle }) {
+  function Overview({ groups, uk, isEnabled, onToggle, smsBox }) {
     const all = [];
     groups.forEach((g) => g[2].forEach((r) => all.push(r)));
     all.sort((a, b) => (b.tiers.indexOf("observer") > -1 ? 1 : 0) - (a.tiers.indexOf("observer") > -1 ? 1 : 0)); // Free (Observer) Reports nach oben
@@ -62,7 +62,8 @@
             td(h("a", { href: "#r-" + r.key, style: { fontFamily: "var(--font-oracle)", fontSize: 17, color: "var(--text-primary)", textDecoration: "none" } }, r.name)),
             td(h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" } }, r.when)),
             td(h("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, r.tiers.map((tk) => h(Pill, { key: tk, tk })))),
-            td(h("a", { href: "#r-" + r.key, style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-oracle)", textDecoration: "none", whiteSpace: "nowrap" } }, T("Details ↓", "Details ↓")))))))));
+            td(h("a", { href: "#r-" + r.key, style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-oracle)", textDecoration: "none", whiteSpace: "nowrap" } }, T("Details ↓", "Details ↓"))))))),
+      smsBox ? h("div", { style: { marginTop: 14 } }, smsBox) : null));
   }
 
   function Report({ r }) {
@@ -132,16 +133,14 @@
     return h("div", null, h(SiteNav, { active: "rituals.html" }),
       h(PyPageHead, { eyebrow: "Member rituals", title: "What arrives, and when.", sub: T("Der Wochen-Rhythmus aller Reports von Warren — was wann kommt, für wen, und wie du es liest.", "The weekly rhythm of all of Warren's reports — what arrives when, for whom, and how to read it.") }),
       h(TierSummary, null),
-      h(Overview, { groups: GROUPS, uk: uk, isEnabled: isEnabled, onToggle: onToggle }),
-      (uk === "syndicate" && smsV) ? h(PySection, null,
-        h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", border: "1px solid var(--border-subtle)", borderRadius: 12, background: "var(--bg-surface)", padding: "16px 20px" } },
+      h(Overview, { groups: GROUPS, uk: uk, isEnabled: isEnabled, onToggle: onToggle,
+        smsBox: (uk === "syndicate" && smsV) ? h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", border: "1px solid var(--border-subtle)", borderRadius: 12, background: "var(--bg-surface)", padding: "16px 20px" } },
           h("div", null,
             h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 } }, T("SMS-Trade-Alerts gehen an", "SMS trade alerts go to")),
             h("div", { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } },
               h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 16, color: "var(--text-primary)" } }, smsPhone || T("deine Nummer", "your number")),
               h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--bull-bright)", border: "1px solid rgba(111,207,154,0.4)", borderRadius: 999, padding: "3px 9px" } }, T("verifiziert", "verified")))),
-          h(Button, { variant: "ghost", size: "sm", onClick: () => { setSmsSent(false); setSmsCode(""); setSmsErr(""); setSmsModal(true); } }, T("Nummer ändern", "Change number"))))
-        : null,
+          h(Button, { variant: "ghost", size: "sm", onClick: () => { setSmsSent(false); setSmsCode(""); setSmsErr(""); setSmsModal(true); } }, T("Nummer ändern", "Change number"))) : null }),
       GROUPS.map(([gtitle, gtag, reports], gi) => h(PySection, { key: gi, alt: gi % 2 === 1 },
         h("div", { style: { marginBottom: 28 } }, h(PyEyebrow, null, T("Rhythmus", "Rhythm")), h(PyH2, null, gtitle), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-secondary)", margin: "6px 0 0" } }, gtag)),
         reports.map((r) => h(Report, { key: r.key, r: r })))),
