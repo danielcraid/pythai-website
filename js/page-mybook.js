@@ -92,6 +92,7 @@
   #mb-root .mini .bar{display:flex;height:7px;border-radius:999px;overflow:hidden;} #mb-root .mini .bar span{flex:1;}
   #mb-root .mini .lab{font-family:var(--font-mono);font-size:11px;font-weight:700;margin-top:6px;}
   #mb-root .dwrap{padding:6px 0 28px;}
+  #mb-root .sw.locked{opacity:.4;cursor:not-allowed;}
   #mb-root .mirror-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:20px;}
   #mb-root .dgrid{display:grid;grid-template-columns:var(--cols);gap:var(--cgap);align-items:start;}
   #mb-root .dcol-these{grid-column:3 / 5;grid-row:1;min-width:0;}
@@ -322,7 +323,11 @@
       patch(id, { tracking_source: src });
       setTimeout(() => checkThesis({ id: id }), 250); // Score sofort auf neue Source aktualisieren
     };
-    const toggleMirror = (p) => { if (p.tracking_source !== "member_only") setMirrorModal(p.id); else setSource(p.id, "oracle"); };
+    const toggleMirror = (p) => {
+      if (p.tracking_source !== "member_only") { setMirrorModal(p.id); return; } // an → aus: Bestätigung
+      if (!p.oracle_mirror_available) { showFlash(T("Diese These ist kein aktiver Orakel-Trade — Orakel-Mirror nicht möglich. Du kannst nur Beobachten & Alerts schalten.", "This thesis is not an active oracle trade — oracle mirror isn't available. You can only toggle monitoring & alerts.")); return; }
+      setSource(p.id, "oracle"); // aus → an: nur wenn Orakel-These vorhanden
+    };
     const confirmMirrorOff = () => { if (mirrorModal) setSource(mirrorModal, "member_only"); setMirrorModal(null); };
     const doDelete = () => { api("/api/mybook/" + delId, null, "DELETE"); setRows((rs) => rs.filter((r) => r.id !== delId)); setDelId(null); };
     // Action-Required-Buttons (Soll-Mapping → PATCH; VC bestätigt Feld-Namen)
@@ -491,10 +496,10 @@
             h("button", { className: "bedit", onClick: (e) => { e.stopPropagation(); openEdit(p); } }, T("Bearbeiten", "Edit")))),
         isOpen ? h("div", { className: "dpanel" }, h("div", { className: "dwrap" },
           h("div", { className: "mirror-row" },
-            h("button", { className: "sw " + (p.tracking_source !== "member_only" ? "on" : "off"), onClick: () => toggleMirror(p) }, h("span", { className: "knob" })),
+            h("button", { className: "sw " + (p.tracking_source !== "member_only" ? "on" : "off") + ((p.tracking_source === "member_only" && !p.oracle_mirror_available) ? " locked" : ""), onClick: () => toggleMirror(p) }, h("span", { className: "knob" })),
             h("div", null,
               h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" } }, T("Orakel-Mirror", "Oracle mirror")),
-              h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)" } }, p.tracking_source === "member_only" ? T("du trackst selbst — gegen deine Marken", "you track yourself — against your levels") : (p.oracle_mirror_available ? T("spiegelt den Orakel-Score", "mirrors the oracle score") : T("kein aktiver Orakel-Trade — bewertet gegen deine Marken", "no active oracle trade — scored against your levels"))))),
+              h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)" } }, p.tracking_source === "member_only" ? (p.oracle_mirror_available ? T("du trackst selbst — antippen, um den Orakel-Score zu spiegeln", "you track yourself — tap to mirror the oracle score") : T("kein Orakel-Trade — nur Beobachten & Alerts (kein Mirror)", "not an oracle trade — monitoring & alerts only (no mirror)")) : (p.oracle_mirror_available ? T("spiegelt den Orakel-Score", "mirrors the oracle score") : T("Orakel-Trade aktuell inaktiv — bewertet gegen deine Marken", "oracle trade currently inactive — scored against your levels"))))),
           p.action_required ? h("div", { className: "ar-banner" },
             h("div", { className: "ar-head" }, T("Das Orakel meldet einen Bruch", "The oracle reports a break")),
             h("div", { className: "ar-reason" }, p.action_reason || T("Eine Kurs-Marke oder ein Kill-Trigger wurde berührt.", "A price level or kill-trigger was hit.")),
