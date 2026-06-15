@@ -134,7 +134,7 @@
         setMsgs(conv.length ? conv : [member ? memberGreet(d.nickname || d.name) : leadGreet()]);
       } catch (e) { try { localStorage.removeItem(LS); } catch (e2) { } return startFresh(); }
     }
-    function onOpen() { setOpen(true); boot(); }
+    function onOpen() { if (typeof window.PYsfx === "function") window.PYsfx("warren-chat"); setOpen(true); boot(); }
 
     const onCooldown = () => Date.now() < cooldownTs;
 
@@ -219,7 +219,7 @@
     // ---- Render ----
     const fld = { width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "10px 12px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 14, outline: "none", boxSizing: "border-box" };
 
-    const launcher = h("button", { onClick: () => (open ? setOpen(false) : onOpen()), "aria-label": "Warren", style: { position: "fixed", right: 22, bottom: 22, zIndex: 240, display: "flex", alignItems: "center", gap: 9, background: "rgba(14,16,20,0.92)", backdropFilter: "blur(10px)", border: "1px solid var(--border-oracle)", borderRadius: 999, padding: "7px 16px 7px 7px", cursor: "pointer", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" } },
+    const launcher = h("button", { onClick: () => (open ? setOpen(false) : onOpen()), "aria-label": "Warren", "data-sfx": "", style: { position: "fixed", right: 22, bottom: 22, zIndex: 240, display: "flex", alignItems: "center", gap: 9, background: "rgba(14,16,20,0.92)", backdropFilter: "blur(10px)", border: "1px solid var(--border-oracle)", borderRadius: 999, padding: "7px 16px 7px 7px", cursor: "pointer", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" } },
       h("img", { src: PORTRAIT, alt: "", style: { width: 38, height: 38, borderRadius: "50%", objectFit: "cover", objectPosition: "center 20%", border: "1px solid var(--border-oracle)" } }),
       h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-oracle)" } }, open ? T("Schließen", "Close") : T("Ask Warren", "Ask Warren")));
 
