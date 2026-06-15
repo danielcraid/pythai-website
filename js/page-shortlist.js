@@ -36,6 +36,33 @@
   const isNeg = (s) => /^[\-−–]/.test(String(s == null ? "" : s).trim());
   const liveNum = (t) => { const a = num(t.live_price); return a != null ? a : num(t.live); };
   const killList = (t) => { if (Array.isArray(t.thesis_kill_triggers) && t.thesis_kill_triggers.length) return t.thesis_kill_triggers; if (t.kill) return String(t.kill).split(/\s*·\s*/).filter(Boolean); return []; };
+  // Position-Risk (4-Level) ist getrennt von Thesen-Stärke (waage, 5-Level). Decision-Tree -> 1 konsolidierte Pill (kein Mittelwert).
+  const POSR = ["stopped", "danger", "caution", "safe"];
+  const POSCOL = ["#C4524C", "#CF7A4E", "#C9A24E", "#6FCF9A"];
+  const posLabel = (l) => ({ stopped: T("Gestoppt", "Stopped"), danger: T("Gefahr", "Danger"), caution: T("Vorsicht", "Caution"), safe: T("Sicher", "Safe") }[String(l || "").toLowerCase()] || (l || "—"));
+  const consolidatedStatus = (t) => {
+    const thesis = String(t.waage_label || "").toUpperCase();
+    const pos = String(t.position_risk_label || "").toLowerCase();
+    const ps = (t.position_risk_score != null) ? Number(t.position_risk_score) : null;
+    if (pos === "stopped") return { cls: "st-red", label: T("Gestoppt", "Stopped"), tip: T("Position gestoppt — der Stop wurde durchbrochen.", "Position stopped — the stop was crossed.") };
+    if (thesis === "GEBROCHEN") return { cls: "st-red", label: T("Aktion erforderlich", "Action required"), tip: T("These gebrochen — das Fundament ist widerlegt. Schau hin.", "Thesis broken — the case is refuted. Look.") };
+    if (pos === "danger") return { cls: "st-orange", label: T("Positions-Risiko", "Position risk"), tip: T("Kurs nah am Stop / im Drawdown — die These steht evtl. noch.", "Price near stop / in drawdown — the thesis may still hold.") };
+    if (thesis === "WACKELT" && ps != null && ps > 0) return { cls: "st-yellow", label: T("Skim-Chance", "Skim chance"), tip: T("Im Plus, aber der Catalyst wackelt — Gewinn sichern erwägen.", "In profit but the catalyst is wobbling — consider taking some.") };
+    if (thesis === "WACKELT") return { cls: "st-orange", label: T("Drift", "Drift"), tip: T("These wackelt ohne Plus-Polster — beobachten.", "Thesis wobbling with no profit cushion — watch it.") };
+    if (thesis === "STARK" && ps != null && ps > 0.3) return { cls: "st-greenS", label: T("Stark", "Strong"), tip: T("These stark und Position im Plus — beide grün.", "Thesis strong and position in profit — both green.") };
+    return { cls: "st-green", label: T("Intakt", "Intact"), tip: T("These trägt, kein akutes Positions-Risiko.", "Thesis holds, no acute position risk.") };
+  };
+  function PosBar(t) {
+    const lab = String(t.position_risk_label || "").toLowerCase();
+    const idx = POSR.indexOf(lab);
+    const pct = (t.position_risk_pct != null && isFinite(t.position_risk_pct)) ? Math.max(3, Math.min(97, Number(t.position_risk_pct))) : (idx >= 0 ? (idx + 0.5) / 4 * 100 : 50);
+    const col = idx >= 0 ? POSCOL[idx] : "var(--mist)";
+    return h("div", { className: "bm full" },
+      h("div", { className: "bm-ptr" }, h("span", { style: { left: pct + "%", color: col } }, "▼")),
+      h("div", { className: "bm-bar" }, POSCOL.map((c, i) => h("span", { key: i, style: { background: c } }))),
+      h("div", { className: "bm-zones" }, POSR.map((o, i) => h("span", { key: i, style: { color: POSCOL[i] } }, posLabel(o)))),
+      h("div", { className: "bm-lab", style: { color: col } }, posLabel(lab)));
+  }
 
   const CSS = `
   #sl-root{ --void:var(--bg-base); --raised:var(--bg-raised); --card:var(--bg-surface); --line:var(--border-subtle); --parch:var(--parchment); --mist:var(--text-secondary); --ash:var(--text-muted); --oracle-b:var(--oracle-bright); --ox-b:#E0726B; --bull:var(--bull-bright); --input:var(--bg-input); --steel:#7C8492; }
@@ -100,6 +127,14 @@
   #sl-root .newshit .nh-dot{width:5px;height:5px;border-radius:50%;background:#CF7A4E;}
   #sl-root .newshit.broken{color:#E0726B;border-color:rgba(224,114,107,.5);background:rgba(224,114,107,.12);}
   #sl-root .newshit.broken .nh-dot{background:#E0726B;}
+  #sl-root .cstat{display:flex;justify-content:center;}
+  #sl-root .cpill{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:6px 14px;white-space:nowrap;cursor:help;}
+  #sl-root .cpill.st-red{color:#F0A39C;border:1px solid rgba(224,114,107,.55);background:rgba(224,114,107,.14);}
+  #sl-root .cpill.st-orange{color:#E7A062;border:1px solid rgba(207,122,78,.55);background:rgba(207,122,78,.14);}
+  #sl-root .cpill.st-yellow{color:#D8B85A;border:1px solid rgba(201,162,78,.55);background:rgba(201,162,78,.14);}
+  #sl-root .cpill.st-green{color:#8FCBA0;border:1px solid rgba(111,176,122,.5);background:rgba(111,176,122,.12);}
+  #sl-root .cpill.st-greenS{color:#6FCF9A;border:1px solid rgba(111,207,154,.6);background:rgba(111,207,154,.16);}
+  #sl-root .tworow{font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--steel);margin-top:10px;}
   #sl-root .chg.flat{color:var(--steel);background:rgba(124,132,146,.1);border:1px solid rgba(124,132,146,.3);}
   #sl-root .setup{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
   #sl-root .setup .lab{font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel);}
@@ -326,12 +361,7 @@
       const overdue = dol != null && dol >= 7;
       const newsHit = !!t.recent_news_hit;
       const newsHitAt = t.news_hit_at_de || "";
-      const tstat = String(t.thesis_status || "").toLowerCase();
-      const statusPill = tstat === "gebrochen"
-        ? { cls: "broken", txt: T("Gebrochen seit ", "Broken since "), tip: T("These gebrochen — eine validierte News widerlegt sie. Einschätzung lesen.", "Thesis broken — a validated news item refutes it. Read the assessment.") }
-        : tstat === "wackelt"
-          ? { cls: "wobble", txt: T("Wackelt seit ", "Wobbling since "), tip: T("These wackelt — eine aktuelle News stellt sie in Frage, aber kein finaler Kill. Einschätzung lesen.", "Thesis wobbling — recent news challenges it, but not a final kill. Read the assessment.") }
-          : null;
+      const cs = consolidatedStatus(t);
 
       return h("div", { key: t.id, className: "card" + (isOpen ? " open" : "") },
         h("div", { className: "head", onClick: () => setOpen(isOpen ? null : t.id) },
@@ -341,14 +371,12 @@
             h("div", { className: "sub" },
               h("span", { className: "isin" }, t.isin || ""),
               h("span", { className: "stbadge " + (isPending ? "pend" : "act") }, isPending ? T("Watchlist", "Watchlist") : T("Aktiv", "Active")),
-              statusPill
-                ? h("span", { className: "newshit " + statusPill.cls, title: statusPill.tip }, h("span", { className: "nh-dot" }), statusPill.txt + (newsHitAt || ""))
-                : (tstat === "intakt" ? null : (newsHit ? h("span", { className: "newshit", title: T("Validierter Tag-Match auf einer aktuellen News. Schau hin — Einschätzung lesen.", "Validated tag match on a recent news item. Look — read the assessment.") }, h("span", { className: "nh-dot" }), T("News-Alert", "News alert") + (newsHitAt ? " " + newsHitAt : "")) : null))),
+              newsHit ? h("span", { className: "newshit", title: T("Validierter Tag-Match auf einer aktuellen News. Schau hin — Einschätzung lesen.", "Validated tag match on a recent news item. Look — read the assessment.") }, h("span", { className: "nh-dot" }), T("News-Alert", "News alert") + (newsHitAt ? " " + newsHitAt : "")) : null),
             (dol != null || t.last_checked_at_de) ? h("div", { className: "listmeta" + (overdue ? " over" : "") },
               (dol != null ? (T("Auf der Liste seit ", "On the list for ") + dol + (dol === 1 ? T(" Tag", "d") : T(" Tagen", "d"))) : "") +
               (t.last_checked_at_de ? (" · " + T("zuletzt gepflegt ", "last updated ") + t.last_checked_at_de) : "") +
               (overdue ? T(" · überfällig?", " · overdue?") : "")) : null),
-          Barometer(t, false),
+          h("div", { className: "cstat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label)),
           h("div", { className: "live" },
             liveDisp ? h("div", null, h("span", { className: "px" }, liveDisp), h("span", { className: "cur" }, "EUR")) : h("div", null, h("span", { className: "px na" }, "—")),
             todayFmt ? h("span", { className: "chg " + trendCls }, arrow + " " + todayFmt + " " + T("heute", "today")) : null),
@@ -366,8 +394,11 @@
             dol != null ? h("span", { className: "f" }, dol + (dol === 1 ? T(" Tag auf der Liste", "d on the list") : T(" Tage auf der Liste", "d on the list"))) : (t.origin ? h("span", { className: "f" }, T("seit ", "since ") + t.origin) : null)),
           !hasSetup ? h("div", { className: "setupnote" }, T("Setup-Niveau folgt — sobald das Orakel die Idee scharf stellt.", "Setup level follows once the oracle arms the idea.")) : null,
 
-          h("div", { className: "secl", style: { marginTop: 22 } }, T("These-Status", "Thesis status")),
+          h("div", { className: "secl", style: { marginTop: 22 } }, T("Thesen-Stärke", "Thesis health")),
           Barometer(t, true),
+          (t.position_risk_label || t.position_risk_pct != null) ? h("div", { className: "secl", style: { marginTop: 20 } }, T("Positions-Risiko", "Position risk")) : null,
+          (t.position_risk_label || t.position_risk_pct != null) ? PosBar(t) : null,
+          h("div", { className: "tworow" }, T("Zwei getrennte Achsen: die These (Fundament, News, Sektor) und das Positions-Risiko (Kurs, Drawdown, Stop). Der Kurs bestimmt die These nicht.", "Two separate axes: the thesis (fundamentals, news, sector) and the position risk (price, drawdown, stop). Price does not decide the thesis.")),
 
           t.chart_img ? h("div", { className: "secl", style: { marginTop: 24 } }, T("Kursverlauf · letzter Trading-Day", "Price action · last trading day")) : null,
           t.chart_img ? h("div", { className: "chartwrap" }, h("img", { src: t.chart_img, alt: T("Kursverlauf", "Price action"), loading: "lazy" })) : null,
