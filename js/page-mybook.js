@@ -13,6 +13,33 @@
   // deutsche Zahl-Strings ("1.218,80") → Number fürs Backend; leer → null
   const deNum = (s) => { if (s == null || String(s).trim() === "") return null; const n = parseFloat(String(s).replace(/\s/g, "").replace(/\./g, "").replace(",", ".")); return isNaN(n) ? null : n; };
   const statusText = (p) => ZONE[p.zone - 1] + " " + (p.score >= 0 ? "+" : "−") + Math.abs(p.score).toFixed(1);
+  // Position-Risk (4-Level) getrennt von Thesen-Stärke (5-Level). Decision-Tree -> 1 konsolidierte Pill.
+  const POSR = ["stopped", "danger", "caution", "safe"];
+  const POSCOL = ["#C4524C", "#CF7A4E", "#C9A24E", "#6FCF9A"];
+  const posLabel = (l) => ({ stopped: T("Gestoppt", "Stopped"), danger: T("Gefahr", "Danger"), caution: T("Vorsicht", "Caution"), safe: T("Sicher", "Safe") }[String(l || "").toLowerCase()] || (l || "—"));
+  const thesisLabelOf = (p) => String(p.waage_label || ZONE[((p.zone || 3) - 1)] || "").toUpperCase();
+  const consolidatedStatus = (p) => {
+    const thesis = thesisLabelOf(p);
+    const pos = String(p.position_risk_label || "").toLowerCase();
+    const ps = (p.position_risk_score != null) ? Number(p.position_risk_score) : null;
+    if (pos === "stopped") return { cls: "st-red", label: T("Gestoppt", "Stopped"), tip: T("Position gestoppt — der Stop wurde durchbrochen.", "Position stopped — the stop was crossed.") };
+    if (thesis === "GEBROCHEN") return { cls: "st-red", label: T("Aktion erforderlich", "Action required"), tip: T("These gebrochen — das Fundament ist widerlegt. Schau hin.", "Thesis broken — the case is refuted. Look.") };
+    if (pos === "danger") return { cls: "st-orange", label: T("Positions-Risiko", "Position risk"), tip: T("Kurs nah am Stop / im Drawdown — die These steht evtl. noch.", "Price near stop / in drawdown — the thesis may still hold.") };
+    if (thesis === "WACKELT" && ps != null && ps > 0) return { cls: "st-yellow", label: T("Skim-Chance", "Skim chance"), tip: T("Im Plus, aber der Catalyst wackelt — Gewinn sichern erwägen.", "In profit but the catalyst is wobbling — consider taking some.") };
+    if (thesis === "WACKELT") return { cls: "st-orange", label: T("Drift", "Drift"), tip: T("These wackelt ohne Plus-Polster — beobachten.", "Thesis wobbling with no profit cushion — watch it.") };
+    if (thesis === "STARK" && ps != null && ps > 0.3) return { cls: "st-greenS", label: T("Stark", "Strong"), tip: T("These stark und Position im Plus — beide grün.", "Thesis strong and position in profit — both green.") };
+    return { cls: "st-green", label: T("Intakt", "Intact"), tip: T("These trägt, kein akutes Positions-Risiko.", "Thesis holds, no acute position risk.") };
+  };
+  function PosBar({ p }) {
+    const lab = String(p.position_risk_label || "").toLowerCase();
+    const idx = POSR.indexOf(lab);
+    const pct = (p.position_risk_pct != null && isFinite(p.position_risk_pct)) ? Math.max(3, Math.min(97, Number(p.position_risk_pct))) : (idx >= 0 ? (idx + 0.5) / 4 * 100 : 50);
+    const col = idx >= 0 ? POSCOL[idx] : "var(--ash)";
+    return h("div", { className: "mini" },
+      h("div", { className: "mk-row" }, h("span", { className: "arrow", style: { left: pct + "%" } }, "▼")),
+      h("div", { className: "bar" }, POSCOL.map((c, i) => h("span", { key: i, style: { background: c } }))),
+      h("div", { className: "lab", style: { color: col } }, posLabel(lab)));
+  }
 
   // Mock-Daten (bis VPS die My-Book-DB liefert)
   const SEED = [
@@ -91,6 +118,15 @@
   #mb-root .mini{width:100%;max-width:188px;} #mb-root .mini .mk-row{position:relative;height:11px;} #mb-root .mini .arrow{position:absolute;transform:translateX(-50%);font-size:10px;color:var(--oracle-b);line-height:1;}
   #mb-root .mini .bar{display:flex;height:7px;border-radius:999px;overflow:hidden;} #mb-root .mini .bar span{flex:1;}
   #mb-root .mini .lab{font-family:var(--font-mono);font-size:11px;font-weight:700;margin-top:6px;}
+  #mb-root .c-stat .cpill{display:inline-block;}
+  #mb-root .cpill{font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:6px 13px;white-space:nowrap;cursor:help;}
+  #mb-root .cpill.st-red{color:#F0A39C;border:1px solid rgba(224,114,107,.55);background:rgba(224,114,107,.14);}
+  #mb-root .cpill.st-orange{color:#E7A062;border:1px solid rgba(207,122,78,.55);background:rgba(207,122,78,.14);}
+  #mb-root .cpill.st-yellow{color:#D8B85A;border:1px solid rgba(201,162,78,.55);background:rgba(201,162,78,.14);}
+  #mb-root .cpill.st-green{color:#8FCBA0;border:1px solid rgba(111,176,122,.5);background:rgba(111,176,122,.12);}
+  #mb-root .cpill.st-greenS{color:#6FCF9A;border:1px solid rgba(111,207,154,.6);background:rgba(111,207,154,.16);}
+  #mb-root .statbars{margin-bottom:22px;max-width:340px;}
+  #mb-root .tworow{font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--steel);margin-top:12px;}
   #mb-root .dwrap{padding:6px 0 28px;}
   #mb-root .sw.locked{opacity:.4;cursor:not-allowed;}
   #mb-root .mirror-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:20px;}
@@ -480,6 +516,7 @@
 
     const Topic = (p) => {
       const isOpen = open === p.id;
+      const cs = consolidatedStatus(p);
       return h("div", { key: p.id, className: "topic" + (isOpen ? " open" : "") },
         h("div", { className: "orow", onClick: () => setOpen(isOpen ? null : p.id) },
           h("div", { className: "c-mon" }, h("span", { className: "mon-lbl" }, T("Beobachten", "Monitor")), h("button", { className: "sw " + (p.monitored ? "on" : "off"), onClick: (e) => { e.stopPropagation(); toggleMon(p); } }, h("span", { className: "knob" }))),
@@ -489,7 +526,7 @@
             p.tracking_source === "oracle" ? h("span", { className: "badge src-oracle" }, T("Orakel", "Oracle")) : (p.tracking_source === "member_only" ? h("span", { className: "badge src-self" }, T("Du trackst", "You track")) : null),
             p.action_required ? h("span", { className: "ar-pill" }, T("Schau hin", "Look")) : null,
             h("span", { className: "isin" }, p.isin + " · Live " + ((p.live != null && String(p.live) !== "" && String(p.live) !== "null") ? p.live : "—") + (p.currency ? " " + p.currency : "")))),
-          h("div", { className: "c-stat" }, h(Mini, { p })),
+          h("div", { className: "c-stat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label)),
           h("div", { className: "c-trig" }, h(Marks, { p }), p.currency ? h("div", { className: "cur" }, p.currency) : null),
           h("div", { className: "c-act" },
             h("span", { className: "det" }, isOpen ? T("Schließen ▴", "Close ▴") : T("Details ▾", "Details ▾")),
@@ -509,6 +546,12 @@
               h("button", { className: "arb", onClick: () => doAction(p, "member_only") }, T("Weiter laufen lassen", "Let it run")),
               h("button", { className: "arb close", onClick: () => doAction(p, "close") }, T("Schließen", "Close")),
               h("button", { className: "arb warren", onClick: () => doAction(p, "ask_warren") }, T("Frag Warren", "Ask Warren")))) : null,
+          h("div", { className: "statbars" },
+            h("div", { className: "tlbl" }, T("Thesen-Stärke", "Thesis health")),
+            h(Mini, { p }),
+            (p.position_risk_label || p.position_risk_pct != null) ? h("div", { className: "tlbl", style: { marginTop: 16 } }, T("Positions-Risiko", "Position risk")) : null,
+            (p.position_risk_label || p.position_risk_pct != null) ? h(PosBar, { p }) : null,
+            h("div", { className: "tworow" }, T("Zwei getrennte Achsen: die These (Fundament, News, Sektor) und das Positions-Risiko (Kurs, Drawdown, Stop). Der Kurs bestimmt die These nicht.", "Two separate axes: the thesis (fundamentals, news, sector) and the position risk (price, drawdown, stop). Price does not decide the thesis."))),
           h("div", { className: "dgrid" },
           h("div", { className: "dcol-act" },
             h("button", { className: "bline chk", disabled: checkId === p.id, onClick: () => checkThesis(p) }, checkId === p.id ? T("Prüfe…", "Checking…") : T("These prüfen", "Check thesis")),
