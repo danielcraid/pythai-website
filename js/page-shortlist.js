@@ -252,10 +252,14 @@
       if (addingId) return;
       setAddingId(t.id);
       const skims = parseSkims(t.skim_levels || t.skim);
+      const kt = killList(t);
       const body = {
         name: t.asset, isin: t.isin || "", market: "", art: t.art, venue: "Tradegate", currency: "EUR",
         entry: num(t.entry), stop: num(t.stop), skim: skims.length ? skims[0] : null, target: num(t.target),
-        these: t.thesis || t.these || "", anti_these: killList(t).join(" · "), tracking_source: "oracle"
+        these: t.thesis || t.these || "",
+        anti_these: t.anti_these || (kt.length ? (T("Kippt bei: ", "Breaks on: ") + kt.join(" · ")) : ""),
+        kill_triggers: kt,
+        tracking_source: "oracle"
       };
       fetch(API + "/api/mybook", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
         .then((r) => {
