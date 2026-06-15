@@ -55,7 +55,8 @@
   function PosBar(t) {
     const lab = String(t.position_risk_label || "").toLowerCase();
     const idx = POSR.indexOf(lab);
-    const pct = (t.position_risk_pct != null && isFinite(t.position_risk_pct)) ? Math.max(3, Math.min(97, Number(t.position_risk_pct))) : (idx >= 0 ? (idx + 0.5) / 4 * 100 : 50);
+    // Pfeil in die Mitte des Label-Segments (diskrete 4er-Skala) — NICHT per kontinuierlichem pct, sonst Farbe unter Pfeil != Label.
+    const pct = idx >= 0 ? (idx + 0.5) / 4 * 100 : 50;
     const col = idx >= 0 ? POSCOL[idx] : "var(--mist)";
     return h("div", { className: "bm full" },
       h("div", { className: "bm-ptr" }, h("span", { style: { left: pct + "%", color: col } }, "▼")),
