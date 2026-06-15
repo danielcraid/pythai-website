@@ -259,6 +259,8 @@
     const [open, setOpen] = useState(null);
     const [addingId, setAddingId] = useState(null);
     const [addedIds, setAddedIds] = useState([]);
+    const [confirmAdd, setConfirmAdd] = useState(null);
+    const sfx = (n) => { if (typeof window.PYsfx === "function") window.PYsfx(n); };
     const [chartBusy, setChartBusy] = useState(null);
     const [flash, setFlash] = useState("");
     const showFlash = (m) => { setFlash(m); setTimeout(() => setFlash(""), 4500); };
@@ -365,7 +367,7 @@
       const cs = consolidatedStatus(t);
 
       return h("div", { key: t.id, className: "card" + (isOpen ? " open" : "") },
-        h("div", { className: "head", onClick: () => setOpen(isOpen ? null : t.id) },
+        h("div", { className: "head", onClick: () => { sfx(isOpen ? "button-001-itemclose" : "button-002-itemopen"); setOpen(isOpen ? null : t.id); } },
           h("div", { className: "id" },
             h("div", { className: "cat " + (isShort ? "short" : "long") }, t.art || ""),
             h("div", { className: "nm" }, t.asset),
@@ -426,7 +428,7 @@
                       h("button", { className: "badd done", disabled: true }, T("✓ Im My Book", "✓ In My Book")),
                       h("a", { className: "openbook", href: "mybook.html" }, T("→ In My Book öffnen", "→ open My Book")))
                   : h("div", { className: "actcol" },
-                      h("button", { className: "badd", disabled: addingId === t.id, onClick: () => addToBook(t) }, addingId === t.id ? T("übernehme…", "adding…") : T("In My Book übernehmen", "Add to My Book")),
+                      h("button", { className: "badd", disabled: addingId === t.id, onClick: () => setConfirmAdd(t) }, addingId === t.id ? T("übernehme…", "adding…") : T("In My Book übernehmen", "Add to My Book")),
                       h("div", { className: "baddhint" }, T("Übernimmt These & Setup als eigenes Topic — mit eigenen Marken & Alerts.", "Copies thesis & setup as your own topic — with your own levels & alerts."))),
             h("button", { className: "bchart", disabled: chartBusy === t.id, onClick: () => chartMail(t) }, chartBusy === t.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")))) : null);
     };
@@ -440,6 +442,15 @@
     const page = (inner) => h("div", { id: "sl-root" }, h(SiteNav, { active: "shortlist.html" }), h("div", { className: "wrap" }, inner,
       h("div", { className: "disc" }, h("p", null, T("Die Shortlist ist Markt-Beobachtung, keine Anlageberatung. These, Marken und Status können sich jederzeit ändern. Du handelst eigenverantwortlich.", "The shortlist is market observation, not investment advice. Thesis, levels and status can change at any time. You trade on your own responsibility.")))),
       flash ? h("div", { className: "flash" }, flash) : null,
+      confirmAdd ? h("div", { onClick: () => setConfirmAdd(null), style: { position: "fixed", inset: 0, zIndex: 300, background: "rgba(4,5,8,0.82)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } },
+        h("div", { onClick: (e) => e.stopPropagation(), style: { maxWidth: 440, width: "100%", boxSizing: "border-box", background: "var(--bg-raised)", border: "1px solid var(--border-oracle)", borderRadius: 14, padding: 28 } },
+          h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 25, margin: "0 0 10px", color: "var(--oracle-bright)" } }, T("In My Book übernehmen?", "Add to My Book?")),
+          h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 8px" } }, h("strong", { style: { color: "var(--text-primary)" } }, confirmAdd.asset)),
+          h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 22px" } }, T("These & Setup werden als dein eigenes Topic kopiert — mit eigenen Marken & Alerts. Du kannst es danach in My Book anpassen.", "Thesis & setup are copied as your own topic — with your own levels & alerts. You can adjust it afterwards in My Book.")),
+          h("div", { style: { display: "flex", gap: 10, justifyContent: "flex-end" } },
+            h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirmAdd(null) }, T("Abbrechen", "Cancel")),
+            h(Button, { variant: "oracle", size: "sm", onClick: () => { var t = confirmAdd; setConfirmAdd(null); sfx("menue-in-mybook"); addToBook(t); } }, T("Ja, übernehmen", "Yes, add")))))
+        : null,
       h(SiteFooter, null));
 
     if (gate === "loading") return page(h("div", { className: "state" }, T("Das Orakel öffnet die Liste…", "The oracle opens the list…")));

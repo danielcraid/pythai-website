@@ -10,7 +10,7 @@
   window.PYsfx = (function () {
     var cache = {};
     function get(name) { if (!cache[name]) { var a = new Audio("assets/audio/ui/" + name + ".aac"); a.preload = "auto"; cache[name] = a; } return cache[name]; }
-    try { ["menue-account", "menue-login", "request-sanctum-button", "login-button"].forEach(get); } catch (e) { }
+    try { ["menue-account", "menue-login", "request-sanctum-button", "login-button", "button-004-toggle", "button-002-itemopen", "button-001-itemclose", "menue-in-mybook"].forEach(get); } catch (e) { }
     return function (name, cb) {
       var muted = false; try { muted = localStorage.getItem("py_sound") === "off"; } catch (e) { }
       if (!muted) { try { var a = get(name); a.currentTime = 0; a.volume = 0.55; var p = a.play(); if (p && p.catch) p.catch(function () { }); } catch (e) { } }

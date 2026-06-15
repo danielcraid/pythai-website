@@ -297,11 +297,12 @@
     if (gate === "loading") return h("div", null, h(SiteNav, { active: "" }), h("div", { style: { minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 22, color: "var(--text-oracle)" } }, T("Das Orakel prüft deinen Zugang…", "The oracle checks your access…")), h(SiteFooter, null));
     if (gate === "locked") return h("div", null, h(SiteNav, { active: "" }), h("section", { style: { minHeight: "calc(100vh - var(--nav-h))", display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" } }, h("div", { style: { maxWidth: 480 } }, h(PyEyebrow, null, "Syndicate"), h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 44, margin: "8px 0 0", color: "var(--text-primary)" } }, T("My Book lebt im Syndicate.", "My Book lives in the Syndicate.")), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", margin: "16px 0 28px" } }, T("Dein persönliches Thesen-Buch — Trades tracken, These beobachten, Alerts setzen — ist dem Syndicate vorbehalten.", "Your personal thesis book — track trades, watch the thesis, set alerts — is reserved for the Syndicate.")), h(Button, { variant: "oracle", onClick: () => { window.location.href = "account.html"; } }, T("Zum Account", "Go to account")))), h(SiteFooter, null));
 
+    const sfx = (n) => { if (typeof window.PYsfx === "function") window.PYsfx(n); };
     const api = (path, body, method) => fetch(API + path, { method: method || "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then((r) => { if (r && (r.status === 401 || r.status === 403) && window.PYsessionExpired) window.PYsessionExpired(); return r; }).catch(() => { });
     const patch = (id, body) => api("/api/mybook/" + id, body, "PATCH");
     const reload = () => fetch(API + "/api/mybook", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => { if (d && d.ok && Array.isArray(d.topics)) setRows(d.topics); }).catch(() => { });
     const setMon = (id, on, channel) => { setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { monitored: on, channel: on ? (channel === "both" ? "SMS + Mail" : channel === "sms" ? "SMS" : "Mail") : null }) : r)); api("/api/mybook/" + id + "/monitor", { on: on, channel: channel || "mail" }); };
-    const toggleMon = (p) => { if (p.monitored) setMon(p.id, false); else { setMonCh("mail"); setMonModal(p.id); } };
+    const toggleMon = (p) => { sfx("button-004-toggle"); if (p.monitored) setMon(p.id, false); else { setMonCh("mail"); setMonModal(p.id); } };
     const confirmMon = () => { setMon(monModal, true, monCh); setMonModal(null); };
     const openEdit = (p) => { setEditingId(p.id); setTagInput(""); resetSuggest(); setAddF({ name: p.name || "", isin: p.isin || "", issuer: p.issuer || "", idx: p.idx || "", art: p.art || "Aktie · Long", venue: p.venue || "Tradegate", currency: p.currency || "EUR", entry: p.entry || "", stop: p.stop || "", skim: p.skim || "", target: p.target || "", these: p.these || "", anti_these: p.anti_these || "", kill_triggers: killTagsOf(p) }); };
     const checkedTime = (iso) => { try { return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
@@ -345,9 +346,9 @@
       setTimeout(() => checkThesis({ id: id }), 250); // Score sofort auf neue Source aktualisieren
     };
     const toggleMirror = (p) => {
-      if (p.tracking_source !== "member_only") { setMirrorModal(p.id); return; } // an → aus: Bestätigung
+      if (p.tracking_source !== "member_only") { sfx("button-004-toggle"); setMirrorModal(p.id); return; } // an → aus: Bestätigung
       if (!p.oracle_mirror_available) { showFlash(T("Diese These ist kein aktiver Orakel-Trade — Orakel-Mirror nicht möglich. Du kannst nur Beobachten & Alerts schalten.", "This thesis is not an active oracle trade — oracle mirror isn't available. You can only toggle monitoring & alerts.")); return; }
-      setSource(p.id, "oracle"); // aus → an: nur wenn Orakel-These vorhanden
+      sfx("button-004-toggle"); setSource(p.id, "oracle"); // aus → an: nur wenn Orakel-These vorhanden
     };
     const confirmMirrorOff = () => { if (mirrorModal) setSource(mirrorModal, "member_only"); setMirrorModal(null); };
     const doDelete = () => { api("/api/mybook/" + delId, null, "DELETE"); setRows((rs) => rs.filter((r) => r.id !== delId)); setDelId(null); };
@@ -503,7 +504,7 @@
       const isOpen = open === p.id;
       const cs = consolidatedStatus(p);
       return h("div", { key: p.id, className: "topic" + (isOpen ? " open" : "") },
-        h("div", { className: "orow", onClick: () => setOpen(isOpen ? null : p.id) },
+        h("div", { className: "orow", onClick: () => { sfx(isOpen ? "button-001-itemclose" : "button-002-itemopen"); setOpen(isOpen ? null : p.id); } },
           h("div", { className: "c-mon" }, h("span", { className: "mon-lbl" }, T("Beobachten", "Monitor")), h("button", { className: "sw " + (p.monitored ? "on" : "off"), onClick: (e) => { e.stopPropagation(); toggleMon(p); } }, h("span", { className: "knob" }))),
           h("div", { className: "c-topic" }, h("div", { className: "nm" }, p.name), h("div", { className: "t-meta" },
             h("span", { className: "badge idx" }, p.idx),
@@ -567,7 +568,7 @@
         h("div", { className: "toolbar" },
           h(PyEyebrow, null, T("Überblick · ", "Overview · ") + count + "/" + MAX + " Topics"),
           h("div", { style: { display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" } },
-            h("label", { className: "rep" }, h("button", { className: "sw " + (summary ? "on" : "off"), onClick: () => setSummary(!summary) }, h("span", { className: "knob" })), T("Tägliche My-Book-Summary", "Daily My-Book summary")),
+            h("label", { className: "rep" }, h("button", { className: "sw " + (summary ? "on" : "off"), onClick: () => { sfx("button-004-toggle"); setSummary(!summary); } }, h("span", { className: "knob" })), T("Tägliche My-Book-Summary", "Daily My-Book summary")),
             h(Button, { variant: "oracle", size: "sm", disabled: count >= MAX, onClick: addTopic }, T("+ Topic hinzufügen", "+ Add topic")))),
         h("h2", { className: "mb" }, T("Deine Topics auf einen Blick.", "Your topics at a glance.")),
         rows.length ? (function () {

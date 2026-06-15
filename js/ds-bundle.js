@@ -1832,7 +1832,9 @@ function Switch({
   };
   const switchId = id || (label ? 'py-sw-' + label.replace(/\s+/g, '-').toLowerCase() : undefined);
   const toggle = () => {
-    if (!disabled && onChange) onChange(!checked);
+    if (disabled) return;
+    if (typeof window !== 'undefined' && typeof window.PYsfx === 'function') window.PYsfx('button-004-toggle');
+    if (onChange) onChange(!checked);
   };
   return /*#__PURE__*/React.createElement("label", {
     htmlFor: switchId,
