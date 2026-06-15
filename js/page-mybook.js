@@ -22,13 +22,13 @@
     const thesis = thesisLabelOf(p);
     const pos = String(p.position_risk_label || "").toLowerCase();
     const ps = (p.position_risk_score != null) ? Number(p.position_risk_score) : null;
-    if (pos === "stopped") return { cls: "st-red", label: T("Gestoppt", "Stopped"), tip: T("Position gestoppt — der Stop wurde durchbrochen.", "Position stopped — the stop was crossed.") };
-    if (thesis === "GEBROCHEN") return { cls: "st-red", label: T("Aktion erforderlich", "Action required"), tip: T("These gebrochen — das Fundament ist widerlegt. Schau hin.", "Thesis broken — the case is refuted. Look.") };
-    if (pos === "danger") return { cls: "st-orange", label: T("Positions-Risiko", "Position risk"), tip: T("Kurs nah am Stop / im Drawdown — die These steht evtl. noch.", "Price near stop / in drawdown — the thesis may still hold.") };
-    if (thesis === "WACKELT" && ps != null && ps > 0) return { cls: "st-yellow", label: T("Skim-Chance", "Skim chance"), tip: T("Im Plus, aber der Catalyst wackelt — Gewinn sichern erwägen.", "In profit but the catalyst is wobbling — consider taking some.") };
-    if (thesis === "WACKELT") return { cls: "st-orange", label: T("Drift", "Drift"), tip: T("These wackelt ohne Plus-Polster — beobachten.", "Thesis wobbling with no profit cushion — watch it.") };
-    if (thesis === "STARK" && ps != null && ps > 0.3) return { cls: "st-greenS", label: T("Stark", "Strong"), tip: T("These stark und Position im Plus — beide grün.", "Thesis strong and position in profit — both green.") };
-    return { cls: "st-green", label: T("Intakt", "Intact"), tip: T("These trägt, kein akutes Positions-Risiko.", "Thesis holds, no acute position risk.") };
+    if (pos === "stopped") return { cls: "st-red", label: T("Gestoppt", "Stopped"), tip: T("Stop berührt — Position physisch geschlossen.", "Stop touched — position physically closed.") };
+    if (thesis === "GEBROCHEN") return { cls: "st-red", label: T("Aktion erforderlich", "Action required"), tip: T("These gebrochen. Du entscheidest.", "Thesis broken. Your call.") };
+    if (pos === "danger") return { cls: "st-orange", label: T("Positions-Risiko", "Position risk"), tip: T("Position läuft gegen dich. Stop-Nähe oder Drawdown ab 5 %.", "Position running against you. Near stop or drawdown 5%+.") };
+    if (thesis === "WACKELT" && ps != null && ps > 0) return { cls: "st-yellow", label: T("Skim-Chance", "Skim chance"), tip: T("Im Plus, aber Catalyst wackelt. Klassischer Skim-Moment.", "In profit but the catalyst is wobbling. Classic skim moment.") };
+    if (thesis === "WACKELT") return { cls: "st-orange", label: T("Drift", "Drift"), tip: T("Position negativ + Story bröckelt. Schau hin.", "Position negative + story crumbling. Look.") };
+    if (thesis === "STARK" && ps != null && ps > 0.3) return { cls: "st-greenS", label: T("Stark", "Strong"), tip: T("Im Plus, Story bestätigt.", "In profit, story confirmed.") };
+    return { cls: "st-green", label: T("Intakt", "Intact"), tip: T("Story trägt.", "Story holds.") };
   };
   function PosBar({ p }) {
     const lab = String(p.position_risk_label || "").toLowerCase();
@@ -551,7 +551,7 @@
             h(Mini, { p }),
             (p.position_risk_label || p.position_risk_pct != null) ? h("div", { className: "tlbl", style: { marginTop: 16 } }, T("Positions-Risiko", "Position risk")) : null,
             (p.position_risk_label || p.position_risk_pct != null) ? h(PosBar, { p }) : null,
-            h("div", { className: "tworow" }, T("Zwei getrennte Achsen: die These (Fundament, News, Sektor) und das Positions-Risiko (Kurs, Drawdown, Stop). Der Kurs bestimmt die These nicht.", "Two separate axes: the thesis (fundamentals, news, sector) and the position risk (price, drawdown, stop). Price does not decide the thesis."))),
+            h("div", { className: "tworow" }, T("Positions-Risiko misst dein Geld: wie weit der Kurs vom Entry weg ist, wie nah am Stop. Thesen-Stärke misst die Story: halten die Annahmen vom Kauf? News, Sektor, Catalyst-Status. Beide sind getrennt — der Markt kann gegen dich laufen, ohne dass die Story bricht; und die Story kann brechen, bevor der Kurs es zeigt.", "Position risk measures your money: how far price is from entry, how close to the stop. Thesis health measures the story: do the assumptions from your entry still hold? News, sector, catalyst status. They are separate — the market can move against you without the story breaking; and the story can break before price shows it."))),
           h("div", { className: "dgrid" },
           h("div", { className: "dcol-act" },
             h("button", { className: "bline chk", disabled: checkId === p.id, onClick: () => checkThesis(p) }, checkId === p.id ? T("Prüfe…", "Checking…") : T("These prüfen", "Check thesis")),
