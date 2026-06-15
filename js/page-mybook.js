@@ -41,22 +41,6 @@
       h("div", { className: "lab", style: { color: col } }, posLabel(lab)));
   }
 
-  // Mock-Daten (bis VPS die My-Book-DB liefert)
-  const SEED = [
-    { id: "rhm", name: "Rheinmetall AG", idx: "EURO STOXX 50", isin: "DE0007030009", art: "Aktie · Long", live: "1.218,80",
-      entry: "1.197", stop: "1.150", skim: "1.260", target: "1.320", score: 0.6, zone: 4,
-      these: "Defense-Decade — Iran-Eskalation + EU-Aufrüstung stützen den Sektor strukturell. Aufstockung bestätigt.",
-      kill: "Iran-Ceasefire · EU-Budget-Cut · Sektor-Drift", monitored: true, channel: "SMS + Mail" },
-    { id: "brent", name: "Brent Crude Oil ETC", idx: "Rohstoff · Energie", isin: "JE00B78CGV99", art: "ETC · Long", live: "71,40",
-      entry: "72,25", stop: "71,00", skim: "76,00", target: "78,00", score: -0.3, zone: 2,
-      these: "Iran-Risk-Premium hält das Öl — aber der Markt zweifelt, der Stop rückt näher.",
-      kill: "Waffenruhe · Hormus-Resumed", monitored: false, channel: null },
-    { id: "nvda", name: "NVIDIA Corp", idx: "NASDAQ 100", isin: "US67066G1040", art: "Aktie · Long", live: "199,98",
-      entry: "195,00", stop: "184,50", skim: "210,00", target: "220,00", score: 0.7, zone: 5,
-      these: "AI-Capex-Zyklus ungebrochen, Hyperscaler-Guidance stark. Bewertung ambitioniert, Momentum stützt.",
-      kill: "Capex-Cut-Guidance · Export-Ban-News", monitored: false, channel: null }
-  ];
-
   const CSS = `
   #mb-root{ --void:var(--bg-base); --raised:var(--bg-raised); --card:var(--bg-surface); --line:var(--border-subtle); --parch:var(--parchment); --mist:var(--text-secondary); --ash:var(--text-muted); --oracle-b:var(--oracle-bright); --ox-b:#E0726B; --bull:var(--bull-bright); --input:var(--bg-input);
     --z1:#C4524C; --z2:#CF7A4E; --z3:#C9A24E; --z4:#6FB07A; --z5:#6FCF9A; }
