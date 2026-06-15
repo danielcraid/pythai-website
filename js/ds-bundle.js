@@ -254,7 +254,7 @@ function Hero() {
       color: 'var(--text-secondary)',
       margin: '14px 0 0'
     }
-  }, "Wisdom, foretold."), /*#__PURE__*/React.createElement("div", {
+  }, "Market, Wisdom, Foretold."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 28,
@@ -2641,7 +2641,7 @@ function Footer() {
       color: 'var(--text-muted)',
       margin: '20px 0 0'
     }
-  }, "Wisdom, foretold.")), /*#__PURE__*/React.createElement("div", {
+  }, "Market, Wisdom, Foretold.")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 64
