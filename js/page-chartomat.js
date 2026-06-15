@@ -40,7 +40,7 @@
           q ? h("div", { style: { display: "flex", gap: 10, marginTop: 8 } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", minWidth: 52 } }, T("Frage", "Question")), h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 15, color: "var(--text-secondary)", lineHeight: 1.5 } }, q)) : null),
         h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13, lineHeight: 1.6, color: "var(--text-muted)", margin: "0 0 14px" } }, T("Warren ist eine KI und kann irren. Dies ist keine Anlageberatung, sondern reine Information — du entscheidest eigenverantwortlich.", "Warren is an AI and can err. This is not investment advice, just information — you decide on your own responsibility.")),
         h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-oracle)", margin: "0 0 18px" } }, T("Antwort per E-Mail" + (email ? " an " + email : "") + ".", "Reply by email" + (email ? " to " + email : "") + ".")),
-        h(Button, { variant: "oracle", full: true, loading: busy, onClick: onSend }, T("Senden", "Send")),
+        h(Button, { variant: "oracle", full: true, loading: busy, "data-sfx": "request-sanctum-button", onClick: onSend }, T("Senden", "Send")),
         h("div", { style: { textAlign: "center", marginTop: 10 } }, h(Button, { variant: "ghost", onClick: onClose }, T("Abbrechen", "Cancel")))));
   }
   function ChartRequest({ email }) {
@@ -53,7 +53,6 @@
     const lbl = { display: "block", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 6px" };
     function send() {
       if (busy) return; setBusy(true);
-      if (typeof window.PYsfx === "function") window.PYsfx("request-sanctum-button");
       fetch(API + "/api/chartomat/request", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ symbol: symbol.trim(), question: q.trim() }) })
         .then((res) => {
           setBusy(false); setOpen(false);

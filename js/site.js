@@ -10,12 +10,37 @@
   window.PYsfx = (function () {
     var cache = {};
     function get(name) { if (!cache[name]) { var a = new Audio("assets/audio/ui/" + name + ".aac"); a.preload = "auto"; cache[name] = a; } return cache[name]; }
-    try { ["menue-account", "menue-login", "request-sanctum-button", "login-button", "button-004-toggle", "button-002-itemopen", "button-001-itemclose", "menue-in-mybook"].forEach(get); } catch (e) { }
+    try { ["menue-account", "menue-login", "request-sanctum-button", "login-button", "button-004-toggle", "button-002-itemopen", "button-001-itemclose", "menue-in-mybook", "button-all", "delete"].forEach(get); } catch (e) { }
     return function (name, cb) {
       var muted = false; try { muted = localStorage.getItem("py_sound") === "off"; } catch (e) { }
       if (!muted) { try { var a = get(name); a.currentTime = 0; a.volume = 0.55; var p = a.play(); if (p && p.catch) p.catch(function () { }); } catch (e) { } }
       if (cb) setTimeout(cb, muted ? 0 : 300);
     };
+  })();
+
+  // Globaler Button-Sound: jeder Button -> "button-all"; Delete-Buttons (.bdel) -> "delete".
+  // Ausnahmen: Toggles (role="switch" / .sw) haben eigenen Handler; Buttons mit eigenem Sound tragen data-sfx
+  // ("" = stumm lassen, sonst der angegebene Sound). Item-Open/Close liegen auf divs und werden separat behandelt.
+  (function () {
+    function pick(b) {
+      if (!b || b.disabled) return null;
+      var d = b.getAttribute("data-sfx");
+      if (d !== null) return d || null;
+      if (b.getAttribute("role") === "switch") return null;
+      var toks = " " + (b.className || "") + " ";
+      if (toks.indexOf(" sw ") > -1) return null;
+      if (toks.indexOf(" bdel ") > -1) return "delete";
+      return "button-all";
+    }
+    document.addEventListener("click", function (e) {
+      try {
+        var t = e.target;
+        var b = t && t.closest ? t.closest("button, [data-sfx]") : null;
+        if (!b) return;
+        var n = pick(b);
+        if (n && typeof window.PYsfx === "function") window.PYsfx(n);
+      } catch (err) { }
+    }, true);
   })();
   const NAV = [
     ["Manifesto", "manifesto.html"],
@@ -101,14 +126,14 @@
     if (me) {
       const goAccount = () => { window.PYsfx("menue-account", () => { window.location.href = "account.html"; }); };
       const nameEl = /* @__PURE__ */ React.createElement("span", { key: "n", style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, me.nickname || me.name || me.email);
-      const accBtn = /* @__PURE__ */ React.createElement(Button, { key: "a", variant: "oracle", size: "sm", full, onClick: goAccount, style: { fontSize: "1rem" } }, T("Account", "Account"));
+      const accBtn = /* @__PURE__ */ React.createElement(Button, { key: "a", variant: "oracle", size: "sm", full, onClick: goAccount, "data-sfx": "", style: { fontSize: "1rem" } }, T("Account", "Account"));
       const outBtn = /* @__PURE__ */ React.createElement(Button, { key: "o", variant: "chrome", size: "sm", full, onClick: logout, style: { fontSize: "1rem" } }, T("Abmelden", "Log out"));
       // Desktop: Name + Account + Abmelden eng gruppiert; Mobil (full): gestapelt wie bisher
       return full
         ? /* @__PURE__ */ React.createElement(React.Fragment, null, nameEl, accBtn, outBtn)
         : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, nameEl, accBtn, outBtn);
     }
-    return /* @__PURE__ */ React.createElement(Button, { variant: "oracle", size: "sm", full, onClick: signin, style: { fontSize: "1rem" } }, "Enter the Sanctum");
+    return /* @__PURE__ */ React.createElement(Button, { variant: "oracle", size: "sm", full, onClick: signin, "data-sfx": "", style: { fontSize: "1rem" } }, "Enter the Sanctum");
   }
   function SiteNav({ active }) {
     const [open, setOpen] = useState(false);

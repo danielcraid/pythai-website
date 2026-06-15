@@ -449,7 +449,7 @@
           h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 22px" } }, T("These & Setup werden als dein eigenes Topic kopiert — mit eigenen Marken & Alerts. Du kannst es danach in My Book anpassen.", "Thesis & setup are copied as your own topic — with your own levels & alerts. You can adjust it afterwards in My Book.")),
           h("div", { style: { display: "flex", gap: 10, justifyContent: "flex-end" } },
             h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirmAdd(null) }, T("Abbrechen", "Cancel")),
-            h(Button, { variant: "oracle", size: "sm", onClick: () => { var t = confirmAdd; setConfirmAdd(null); sfx("menue-in-mybook"); addToBook(t); } }, T("Ja, übernehmen", "Yes, add")))))
+            h(Button, { variant: "oracle", size: "sm", "data-sfx": "", onClick: () => { var t = confirmAdd; setConfirmAdd(null); sfx("menue-in-mybook"); addToBook(t); } }, T("Ja, übernehmen", "Yes, add")))))
         : null,
       h(SiteFooter, null));
 
