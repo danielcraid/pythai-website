@@ -91,6 +91,7 @@
   #sl-root .card{border:1px solid var(--line);border-radius:14px;background:var(--card);margin-bottom:13px;overflow:hidden;transition:border-color .18s;}
   #sl-root .card:hover{border-color:#2C313B;}
   #sl-root .card.open{border-color:var(--border-oracle);}
+  #sl-root .card.held{border-left:2px solid rgba(212,169,78,.55);}
   #sl-root .head{display:grid;grid-template-columns:minmax(0,1fr) 236px 150px 24px;gap:26px;align-items:center;padding:20px 24px;cursor:pointer;}
   #sl-root .id{min-width:0;}
   #sl-root .cat{font-family:var(--font-mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--steel);}
@@ -184,6 +185,7 @@
   #sl-root .badd:disabled{cursor:not-allowed;}
   #sl-root .badd.done{background:rgba(111,207,154,.12);color:var(--bull);border:1px solid rgba(111,207,154,.4);}
   #sl-root .badd.lock{background:transparent;color:var(--oracle-b);border:1px solid rgba(212,169,78,.45);}
+  #sl-root .badd.open{display:block;text-decoration:none;background:rgba(212,169,78,.14);color:var(--oracle-b);border:1px solid rgba(212,169,78,.5);}
   #sl-root .badd.lock .lk{font-size:10px;vertical-align:1px;}
   #sl-root .bchart{font-family:var(--font-ui);font-size:13px;font-weight:600;border:1px solid rgba(212,169,78,.5);border-radius:9px;padding:11px 16px;cursor:pointer;background:rgba(212,169,78,.06);color:var(--oracle-b);text-align:center;}
   #sl-root .bchart:disabled{opacity:.7;cursor:wait;}
@@ -279,6 +281,7 @@
     const [addedIds, setAddedIds] = useState([]);
     const [confirmAdd, setConfirmAdd] = useState(null);
     const [showArchive, setShowArchive] = useState(false);
+    const [showWatch, setShowWatch] = useState(false);
     const sfx = (n) => { if (typeof window.PYsfx === "function") window.PYsfx(n); };
     const [chartBusy, setChartBusy] = useState(null);
     const [flash, setFlash] = useState("");
@@ -385,7 +388,7 @@
       const newsHitAt = t.news_hit_at_de || "";
       const cs = consolidatedStatus(t);
 
-      return h("div", { key: t.id, className: "card" + (isOpen ? " open" : "") },
+      return h("div", { key: t.id, className: "card" + (isOpen ? " open" : "") + (t.held_by_me ? " held" : "") },
         h("div", { className: "head", onClick: () => { sfx(isOpen ? "button-001-itemclose" : "button-002-itemopen"); setOpen(isOpen ? null : t.id); } },
           h("div", { className: "id" },
             h("div", { className: "cat " + (isShort ? "short" : "long") }, t.art || ""),
@@ -444,10 +447,10 @@
                 ? h("div", { className: "actcol" },
                     h("button", { className: "badd lock", disabled: true }, h("span", { className: "lk" }, "▲"), " ", T("In My Book — Syndicate", "In My Book — Syndicate")),
                     h("a", { className: "baddhint up", href: "inner-circle.html" }, T("Im Syndicate übernimmst du Orakel-Ideen mit einem Klick. → Syndicate", "In the Syndicate you copy oracle ideas with one click. → Syndicate")))
-                : added
+                : (added || t.held_by_me)
                   ? h("div", { className: "actcol" },
-                      h("button", { className: "badd done", disabled: true }, T("✓ Im My Book", "✓ In My Book")),
-                      h("a", { className: "openbook", href: "mybook.html" }, T("→ In My Book öffnen", "→ open My Book")))
+                      h("a", { className: "badd open", href: "mybook.html?isin=" + encodeURIComponent(t.isin || ""), "data-sfx": "menue" }, T("In My Book öffnen", "Open in My Book")),
+                      h("div", { className: "baddhint" }, t.held_by_me ? T("Du hältst diese Position — verwalte sie in deinem My Book.", "You hold this position — manage it in your My Book.") : T("Liegt in deinem My Book.", "It's in your My Book.")))
                   : h("div", { className: "actcol" },
                       h("button", { className: "badd", disabled: addingId === t.id, onClick: () => setConfirmAdd(t) }, addingId === t.id ? T("übernehme…", "adding…") : T("In My Book übernehmen", "Add to My Book")),
                       h("div", { className: "baddhint" }, T("Übernimmt These & Setup als eigenes Topic — mit eigenen Marken & Alerts.", "Copies thesis & setup as your own topic — with your own levels & alerts."))),
@@ -491,9 +494,15 @@
 
     if (trades === null) return page(h("div", null, Hero(null), h("div", { className: "state" }, T("Lade die Shortlist…", "Loading the shortlist…"))));
 
-    // nur eligible zeigen (watchlist/closed/broken/archived raus — Backend filtert eh, defensiv)
-    const visible = trades.filter((t) => { const s = String(t.state || "").toLowerCase(); return s !== "watchlist" && s.indexOf("closed") === -1 && s !== "broken" && s !== "archived" && s !== "deleted"; });
+    // Aktive Shortlist: alles außer watchlist/pending(legacy)/closed/broken/archived/deleted
+    const visible = trades.filter((t) => { const s = String(t.state || "").toLowerCase(); return s !== "watchlist" && s !== "pending" && s.indexOf("closed") === -1 && s !== "broken" && s !== "archived" && s !== "deleted"; });
+    const watch = trades.filter((t) => { const s = String(t.state || "").toLowerCase(); return s === "watchlist" || s === "pending"; });
     const archived = trades.filter((t) => String(t.state || "").toLowerCase() === "archived");
+    const watchEl = watch.length ? h("div", { className: "archsec" },
+      h("div", { className: "archhead", onClick: () => setShowWatch(!showWatch) },
+        h("span", null, (showWatch ? "▾ " : "▸ ") + T("Beobachtung", "Watchlist") + " (" + watch.length + " " + T(watch.length === 1 ? "Eintrag" : "Einträge", watch.length === 1 ? "item" : "items") + ")"),
+        h("span", null, showWatch ? T("Ausblenden", "Hide") : T("Anzeigen", "Show"))),
+      showWatch ? h("div", { className: "list", style: { marginTop: 14 } }, watch.map(Card)) : null) : null;
     const archiveEl = archived.length ? h("div", { className: "archsec" },
       h("div", { className: "archhead", onClick: () => setShowArchive(!showArchive) },
         h("span", null, (showArchive ? "▾ " : "▸ ") + T("Archiv", "Archive") + " (" + archived.length + " " + T(archived.length === 1 ? "Eintrag" : "Einträge", archived.length === 1 ? "item" : "items") + T(", letzte 30 Tage)", ", last 30 days)")),
@@ -507,6 +516,7 @@
       h("div", { className: "empty" },
         h("div", { className: "empty-t" }, T("Gerade ist es still.", "All quiet right now.")),
         h("div", { className: "empty-s" }, T("Aktuell steht keine Idee auf der Shortlist. Das Orakel meldet sich, sobald sich eine qualifiziert.", "No idea is on the shortlist right now. The oracle will surface one as soon as it qualifies."))),
+      watchEl,
       archiveEl));
 
     const cad = meta && meta.check_cadence;
@@ -521,6 +531,7 @@
         h("span", null, h("span", { className: "cnt" }, visible.length), " ", T(visible.length === 1 ? "aktive Position" : "aktive Positionen", visible.length === 1 ? "active position" : "active positions")),
         lastChk ? h("span", { className: "chkmeta", title: cadText }, "· " + T("zuletzt geprüft ", "last checked ") + lastChk + (nextChk ? (T(" · nächste ", " · next ") + nextChk) : "")) : null)),
       h("div", { className: "list" }, visible.map(Card)),
+      watchEl,
       archiveEl));
   }
 

@@ -289,6 +289,16 @@
       }).then((d) => {
         if (d && d.ok && Array.isArray(d.topics)) {
           setRows(d.topics);
+          // Deep-Link aus der Shortlist: ?isin= (oder ?topic=) -> passendes Topic öffnen + scrollen.
+          try {
+            const qp = new URLSearchParams(window.location.search);
+            const qisin = (qp.get("isin") || "").trim();
+            const qtopic = (qp.get("topic") || "").trim();
+            if (qisin || qtopic) {
+              const hit = d.topics.find((x) => (qtopic && String(x.id) === qtopic) || (qisin && String(x.isin || "").toUpperCase() === qisin.toUpperCase()));
+              if (hit) { setOpen(hit.id); setTimeout(() => { const el = document.getElementById("mb-" + hit.id); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 200); }
+            }
+          } catch (e) { }
         }
         setLoaded(true);
       }).catch(() => setLoaded(true));
@@ -503,7 +513,7 @@
     const Topic = (p) => {
       const isOpen = open === p.id;
       const cs = consolidatedStatus(p);
-      return h("div", { key: p.id, className: "topic" + (isOpen ? " open" : "") },
+      return h("div", { key: p.id, id: "mb-" + p.id, className: "topic" + (isOpen ? " open" : "") },
         h("div", { className: "orow", onClick: () => { sfx(isOpen ? "button-001-itemclose" : "button-002-itemopen"); setOpen(isOpen ? null : p.id); } },
           h("div", { className: "c-mon" }, h("span", { className: "mon-lbl" }, T("Beobachten", "Monitor")), h("button", { className: "sw " + (p.monitored ? "on" : "off"), onClick: (e) => { e.stopPropagation(); toggleMon(p); } }, h("span", { className: "knob" }))),
           h("div", { className: "c-topic" }, h("div", { className: "nm" }, p.name), h("div", { className: "t-meta" },
