@@ -64,6 +64,15 @@
       h("div", { className: "bm-zones" }, POSR.map((o, i) => h("span", { key: i, style: { color: POSCOL[i] } }, posLabel(o)))),
       h("div", { className: "bm-lab", style: { color: col } }, posLabel(lab)));
   }
+  // Lifecycle (VC 16.06.): held_by_me Pill, Lifetime-Klassen (kein Emoji), Archiv.
+  const deShort = (iso) => { if (!iso) return ""; try { const d = new Date(iso); if (isNaN(d.getTime())) return ""; return ("0" + d.getDate()).slice(-2) + "." + ("0" + (d.getMonth() + 1)).slice(-2) + "." + d.getFullYear(); } catch (e) { return ""; } };
+  const archReason = (r) => { const k = String(r || "").toLowerCase(); if (k.indexOf("stop") > -1 && (k.indexOf("thesis") > -1 || k.indexOf("kill") > -1)) return T("These gekillt / Stop erreicht", "Thesis killed / stop hit"); if (k.indexOf("stop") > -1) return T("Stop erreicht", "Stop hit"); if (k.indexOf("kill") > -1 || k.indexOf("thesis") > -1) return T("These gekillt", "Thesis killed"); if (k.indexOf("event") > -1 || k.indexOf("passed") > -1) return T("Event vorbei", "Event passed"); if (k.indexOf("idle") > -1) return T("inaktiv archiviert", "archived idle"); return r || T("archiviert", "archived"); };
+  const ltMeta = (c) => ({
+    long_hold: { l: T("Struktur", "Structural"), t: T("Long-Hold — Struktur-These ohne Catalyst-Datum, bleibt unbegrenzt im Pool.", "Long hold — structural thesis with no catalyst date, stays in the pool indefinitely.") },
+    medium_term: { l: T("Mittelfrist", "Mid-term"), t: T("Mittelfrist — Sektor/Macro, ohne scharfes Setup nach 14 Tagen archiviert.", "Mid-term — sector/macro, archived after 14 idle days.") },
+    short_term: { l: T("Kurzfrist", "Short-term"), t: T("Kurzfrist — Catalyst-Trade, ohne Setup nach 7 Tagen archiviert.", "Short-term — catalyst trade, archived after 7 idle days.") },
+    event_driven: { l: T("Event", "Event"), t: T("Event-gebunden — 2 Tage nach dem Event-Datum archiviert.", "Event-driven — archived 2 days after the event date.") }
+  }[String(c || "").toLowerCase()] || { l: T("Mittelfrist", "Mid-term"), t: T("Mittelfrist — Standard-Lebensdauer.", "Mid-term — default lifetime.") });
 
   const CSS = `
   #sl-root{ --void:var(--bg-base); --raised:var(--bg-raised); --card:var(--bg-surface); --line:var(--border-subtle); --parch:var(--parchment); --mist:var(--text-secondary); --ash:var(--text-muted); --oracle-b:var(--oracle-bright); --ox-b:#E0726B; --bull:var(--bull-bright); --input:var(--bg-input); --steel:#7C8492; }
@@ -128,6 +137,15 @@
   #sl-root .newshit .nh-dot{width:5px;height:5px;border-radius:50%;background:#CF7A4E;}
   #sl-root .newshit.broken{color:#E0726B;border-color:rgba(224,114,107,.5);background:rgba(224,114,107,.12);}
   #sl-root .newshit.broken .nh-dot{background:#E0726B;}
+  #sl-root .bestand{display:inline-flex;align-items:center;font-family:var(--font-mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--text-oracle);border:1px solid rgba(212,169,78,.5);background:rgba(212,169,78,.12);border-radius:4px;padding:3px 8px;cursor:help;}
+  #sl-root .ltm{display:inline-flex;align-items:center;font-family:var(--font-mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--steel);border:1px solid var(--line);border-radius:4px;padding:3px 7px;cursor:help;}
+  #sl-root .archsec{margin-top:36px;border-top:1px solid var(--line);padding-top:20px;}
+  #sl-root .archhead{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--steel);user-select:none;}
+  #sl-root .archhead:hover{color:var(--parch);}
+  #sl-root .archlist{margin-top:14px;display:flex;flex-direction:column;gap:8px;}
+  #sl-root .archrow{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:11px 15px;background:rgba(255,255,255,0.012);}
+  #sl-root .archrow .an{font-family:var(--font-oracle);font-size:16px;color:var(--mist);}
+  #sl-root .archrow .am{font-family:var(--font-mono);font-size:10px;color:var(--steel);letter-spacing:.04em;}
   #sl-root .cstat{display:flex;justify-content:center;}
   #sl-root .cpill{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:6px 14px;white-space:nowrap;cursor:help;}
   #sl-root .cpill.st-red{color:#F0A39C;border:1px solid rgba(224,114,107,.55);background:rgba(224,114,107,.14);}
@@ -260,6 +278,7 @@
     const [addingId, setAddingId] = useState(null);
     const [addedIds, setAddedIds] = useState([]);
     const [confirmAdd, setConfirmAdd] = useState(null);
+    const [showArchive, setShowArchive] = useState(false);
     const sfx = (n) => { if (typeof window.PYsfx === "function") window.PYsfx(n); };
     const [chartBusy, setChartBusy] = useState(null);
     const [flash, setFlash] = useState("");
@@ -276,7 +295,7 @@
     }, []);
     useEffect(() => {
       if (gate !== "ok") return;
-      fetch(API + "/api/mybook/hunter-shortlist", { credentials: "include" }).then((r) => {
+      fetch(API + "/api/mybook/hunter-shortlist?include_archived=1", { credentials: "include" }).then((r) => {
         if (r.status === 401) { if (window.PYsessionExpired) window.PYsessionExpired(); return null; }
         if (r.status === 403) { setDenied(true); return null; }
         return r.ok ? r.json() : null;
@@ -374,6 +393,8 @@
             h("div", { className: "sub" },
               h("span", { className: "isin" }, t.isin || ""),
               h("span", { className: "stbadge " + (isPending ? "pend" : "act") }, isPending ? T("Watchlist", "Watchlist") : T("Aktiv", "Active")),
+              t.held_by_me ? h("span", { className: "bestand", title: T("Du hältst diese Position in deinem My Book.", "You hold this position in your My Book.") }, T("Bestand", "Held")) : null,
+              t.lifetime_class ? h("span", { className: "ltm", title: ltMeta(t.lifetime_class).t }, ltMeta(t.lifetime_class).l) : null,
               newsHit ? h("span", { className: "newshit", title: T("Validierter Tag-Match auf einer aktuellen News. Schau hin — Einschätzung lesen.", "Validated tag match on a recent news item. Look — read the assessment.") }, h("span", { className: "nh-dot" }), T("News-Alert", "News alert") + (newsHitAt ? " " + newsHitAt : "")) : null),
             (dol != null || t.last_checked_at_de) ? h("div", { className: "listmeta" + (overdue ? " over" : "") },
               (dol != null ? (T("Auf der Liste seit ", "On the list for ") + dol + (dol === 1 ? T(" Tag", "d") : T(" Tagen", "d"))) : "") +
@@ -470,14 +491,23 @@
 
     if (trades === null) return page(h("div", null, Hero(null), h("div", { className: "state" }, T("Lade die Shortlist…", "Loading the shortlist…"))));
 
-    // nur eligible zeigen (watchlist/closed/broken raus — Backend filtert eh, defensiv)
-    const visible = trades.filter((t) => { const s = String(t.state || "").toLowerCase(); return s !== "watchlist" && s.indexOf("closed") === -1 && s !== "broken"; });
+    // nur eligible zeigen (watchlist/closed/broken/archived raus — Backend filtert eh, defensiv)
+    const visible = trades.filter((t) => { const s = String(t.state || "").toLowerCase(); return s !== "watchlist" && s.indexOf("closed") === -1 && s !== "broken" && s !== "archived" && s !== "deleted"; });
+    const archived = trades.filter((t) => String(t.state || "").toLowerCase() === "archived");
+    const archiveEl = archived.length ? h("div", { className: "archsec" },
+      h("div", { className: "archhead", onClick: () => setShowArchive(!showArchive) },
+        h("span", null, (showArchive ? "▾ " : "▸ ") + T("Archiv", "Archive") + " (" + archived.length + " " + T(archived.length === 1 ? "Eintrag" : "Einträge", archived.length === 1 ? "item" : "items") + T(", letzte 30 Tage)", ", last 30 days)")),
+        h("span", null, showArchive ? T("Ausblenden", "Hide") : T("Anzeigen", "Show"))),
+      showArchive ? h("div", { className: "archlist" }, archived.map((t) => h("div", { key: (t.id || t.isin || t.asset), className: "archrow" },
+        h("span", { className: "an" }, t.asset),
+        h("span", { className: "am" }, (t.archived_at ? deShort(t.archived_at) : "") + (t.archive_reason ? " · " + archReason(t.archive_reason) : ""))))) : null) : null;
 
     if (!visible.length) return page(h("div", null,
       Hero(null),
       h("div", { className: "empty" },
         h("div", { className: "empty-t" }, T("Gerade ist es still.", "All quiet right now.")),
-        h("div", { className: "empty-s" }, T("Aktuell steht keine Idee auf der Shortlist. Das Orakel meldet sich, sobald sich eine qualifiziert.", "No idea is on the shortlist right now. The oracle will surface one as soon as it qualifies.")))));
+        h("div", { className: "empty-s" }, T("Aktuell steht keine Idee auf der Shortlist. Das Orakel meldet sich, sobald sich eine qualifiziert.", "No idea is on the shortlist right now. The oracle will surface one as soon as it qualifies."))),
+      archiveEl));
 
     const cad = meta && meta.check_cadence;
     const cadText = cad
@@ -490,7 +520,8 @@
         h("span", { className: "pulse" }),
         h("span", null, h("span", { className: "cnt" }, visible.length), " ", T(visible.length === 1 ? "aktive Position" : "aktive Positionen", visible.length === 1 ? "active position" : "active positions")),
         lastChk ? h("span", { className: "chkmeta", title: cadText }, "· " + T("zuletzt geprüft ", "last checked ") + lastChk + (nextChk ? (T(" · nächste ", " · next ") + nextChk) : "")) : null)),
-      h("div", { className: "list" }, visible.map(Card))));
+      h("div", { className: "list" }, visible.map(Card)),
+      archiveEl));
   }
 
   const root = document.getElementById("root");
