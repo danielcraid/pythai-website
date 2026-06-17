@@ -37,17 +37,17 @@
 
   function Bubble({ m, onSignin, onReset }) {
     if (m.role === "user") {
-      return h("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 12 } },
-        h("div", { style: { maxWidth: "82%", background: "var(--grad-gold)", color: "var(--text-on-gold)", borderRadius: "12px 12px 4px 12px", padding: "9px 13px", fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" } }, m.text));
+      return h("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 7 } },
+        h("div", { style: { maxWidth: "90%", background: "var(--grad-gold)", color: "var(--text-on-gold)", borderRadius: "12px 12px 4px 12px", padding: "8px 12px", fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.38, whiteSpace: "pre-wrap", wordBreak: "break-word" } }, m.text));
     }
     if (m.role === "system") {
       return h("div", { style: { textAlign: "center", margin: "10px 0" } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-oracle)", fontStyle: "italic" } }, m.text));
     }
     // warren
-    return h("div", { style: { display: "flex", gap: 9, marginBottom: 12 } },
+    return h("div", { style: { display: "flex", gap: 7, marginBottom: 7 } },
       h("img", { src: PORTRAIT, alt: "", style: { width: 26, height: 26, borderRadius: "50%", objectFit: "cover", objectPosition: "center 20%", flexShrink: 0, marginTop: 2, border: "1px solid var(--border-oracle)" } }),
-      h("div", { style: { maxWidth: "86%" } },
-        h("div", { style: { background: "var(--bg-input)", border: "1px solid var(--border-subtle)", borderRadius: "12px 12px 12px 4px", padding: "10px 13px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.55 } }, h(Md, { text: m.text })),
+      h("div", { style: { maxWidth: "90%" } },
+        h("div", { style: { background: "var(--bg-input)", border: "1px solid var(--border-subtle)", borderRadius: "12px 12px 12px 4px", padding: "8px 12px", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.4 } }, h(Md, { text: m.text })),
         (m.attachments || []).map((a, i) => h("figure", { key: i, style: { margin: "8px 0 0" } },
           h("img", { src: a.url, alt: a.alt || "", loading: "lazy", style: { width: "100%", borderRadius: 8, border: "1px solid var(--border-subtle)", display: "block", cursor: "zoom-in" }, onClick: () => window.open(a.url, "_blank", "noopener") }),
           a.alt ? h("figcaption", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginTop: 4 } }, a.alt) : null)),
@@ -56,7 +56,7 @@
   }
 
   function Typing() {
-    return h("div", { style: { display: "flex", gap: 9, marginBottom: 12, alignItems: "center" } },
+    return h("div", { style: { display: "flex", gap: 7, marginBottom: 7, alignItems: "center" } },
       h("img", { src: PORTRAIT, alt: "", style: { width: 26, height: 26, borderRadius: "50%", objectFit: "cover", objectPosition: "center 20%", border: "1px solid var(--border-oracle)" } }),
       h("div", { style: { background: "var(--bg-input)", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "11px 14px" } },
         h("style", null, "@keyframes pyc-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-4px);opacity:1}} .pyc-dot{width:6px;height:6px;border-radius:50%;background:var(--text-oracle);display:inline-block;margin:0 2px;animation:pyc-bounce 1.2s infinite}"),
@@ -78,11 +78,15 @@
     const [auth, setAuth] = useState(null); // {phase:'email'|'code', email, code, sending, error, hint}
     const pollRef = useRef(null);
     const bodyRef = useRef(null);
+    const taRef = useRef(null);
     const startedRef = useRef(false);
 
     const push = (m) => setMsgs((a) => a.concat([m]));
 
     useEffect(() => { if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight; }, [msgs, busy, auth]);
+    // Eingabefeld wächst mit dem Text (responsiv) und schrumpft wieder, wenn geleert.
+    const growTa = (el) => { if (!el) return; el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 132) + "px"; };
+    useEffect(() => { const el = taRef.current; if (el) { if (!input) el.style.height = "auto"; else growTa(el); } }, [input]);
     useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
     // Globaler Hook: andere Seiten (z.B. My Book „Frag Warren") öffnen den Chat vorbefüllt
     useEffect(() => {
@@ -235,7 +239,7 @@
         msgs.length > 1 ? h("button", { onClick: resetChat, title: T("Chat zurücksetzen", "Reset chat"), "aria-label": "Reset", style: { background: "none", border: "none", color: "var(--text-muted)", fontSize: 16, cursor: "pointer", lineHeight: 1, marginRight: 4 } }, "↺") : null,
         h("button", { onClick: () => setOpen(false), "aria-label": "Close", style: { background: "none", border: "none", color: "var(--text-muted)", fontSize: 22, cursor: "pointer", lineHeight: 1 } }, "×")),
       // body
-      h("div", { ref: bodyRef, style: { flex: 1, overflowY: "auto", padding: "16px 14px" } },
+      h("div", { ref: bodyRef, style: { flex: 1, overflowY: "auto", padding: "13px 9px" } },
         msgs.map((m, i) => h(Bubble, { key: i, m, onSignin: () => setAuth({ phase: "email", email: "" }), onReset: resetChat })),
         busy ? h(Typing, null) : null,
         busy && soft ? h("div", { style: { textAlign: "center", fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", marginTop: 2 } }, T("Warren denkt nach — Recherche dauert manchmal.", "Warren is thinking — research takes a moment.")) : null),
@@ -252,10 +256,10 @@
               h("input", { style: Object.assign({}, fld, { letterSpacing: "0.4em", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 18 }), inputMode: "numeric", maxLength: 6, placeholder: "······", value: auth.code || "", autoFocus: true, onChange: (e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 6); setAuth((a) => Object.assign({}, a, { code: v, error: null })); if (v.length === 6) submitCode(v); } }),
               auth.error ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--text-warn, #d8a34a)", margin: "6px 0 0" } }, auth.error) : null,
               h("button", { onClick: () => { stopPolling(); setAuth({ phase: "email", email: auth.email }); }, style: { background: "none", border: "none", color: "var(--text-muted)", fontFamily: "var(--font-ui)", fontSize: 12, cursor: "pointer", marginTop: 8, textDecoration: "underline" } }, T("Andere Email", "Different email"))))
-        : h("div", { style: { borderTop: "1px solid var(--border-subtle)", padding: "10px 12px" } },
+        : h("div", { style: { borderTop: "1px solid var(--border-subtle)", padding: "10px 9px" } },
             onCooldown() ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--text-muted)", textAlign: "center", padding: "6px 0" } }, T("Kurz durchatmen — gleich geht’s weiter.", "Catch your breath — back in a moment.")) : null,
             h("div", { style: { display: "flex", gap: 8, alignItems: "flex-end" } },
-              h("textarea", { value: input, disabled: inputDisabled, onChange: (e) => setInput(e.target.value), onKeyDown: (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }, placeholder: T("Frag Warren …", "Ask Warren …"), rows: 1, style: Object.assign({}, fld, { resize: "none", maxHeight: 96, opacity: inputDisabled ? 0.6 : 1 }) }),
+              h("textarea", { ref: taRef, value: input, disabled: inputDisabled, onChange: (e) => { setInput(e.target.value); growTa(e.target); }, onKeyDown: (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }, placeholder: T("Frag Warren …", "Ask Warren …"), rows: 2, style: Object.assign({}, fld, { fontSize: 15.5, lineHeight: 1.4, minHeight: 48, maxHeight: 132, resize: "none", opacity: inputDisabled ? 0.6 : 1 }) }),
               h("button", { onClick: sendMessage, disabled: inputDisabled || !input.trim(), "aria-label": "Send", style: { flexShrink: 0, width: 42, height: 42, borderRadius: 10, border: "none", background: inputDisabled || !input.trim() ? "var(--bg-input)" : "var(--grad-gold)", color: inputDisabled || !input.trim() ? "var(--text-muted)" : "var(--text-on-gold)", cursor: inputDisabled || !input.trim() ? "not-allowed" : "pointer", fontSize: 18, lineHeight: 1 } }, "↑")),
             mode !== "member" ? h("div", { style: { textAlign: "center", marginTop: 8 } }, h("button", { onClick: () => setAuth({ phase: "email", email: "" }), style: { background: "none", border: "none", color: "var(--text-oracle)", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer" } }, T("Schon Member? Anmelden", "Already a member? Sign in"))) : null,
             h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-muted)", textAlign: "center", marginTop: 7, lineHeight: 1.4 } }, T("Warren ist eine KI und kann irren. Keine Anlageberatung.", "Warren is an AI and can err. Not investment advice."))));
