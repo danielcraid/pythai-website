@@ -220,8 +220,11 @@
     );
   }
 
+  const SECTIONS = ["members", "vouchers", "a", "b"];
   function App() {
     const [gate, setGate] = useState("loading");
+    const [view, setView] = useState(() => { try { var hsh = (window.location.hash || "").replace(/^#/, ""); return SECTIONS.indexOf(hsh) !== -1 ? hsh : "home"; } catch (e) { return "home"; } });
+    const go = (v) => { if (typeof window.PYsfx === "function") window.PYsfx("menue"); try { window.location.hash = v === "home" ? "" : v; } catch (e) { } setView(v); };
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
         setGate(d && d.ok && (d.isAdmin === true || d.tier === "admin") ? "ok" : "denied");
@@ -239,9 +242,32 @@
       h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 38, margin: "8px 0 0", color: "var(--text-primary)" } }, T("Kein Zugang.", "No access.")),
       h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-secondary)", margin: "16px 0 26px", lineHeight: 1.6 } }, T("Dieser Bereich ist Admins vorbehalten.", "This area is reserved for admins.")),
       h(Button, { variant: "oracle", onClick: () => { window.location.href = "account.html"; } }, T("Zum Konto", "To account"))));
+    const TILES = [
+      ["members", T("Member Management", "Member management"), T("Einladungen, Warren-Inbox-Whitelist und versendete Einladungen.", "Invitations, Warren-inbox whitelist and sent invites.")],
+      ["vouchers", T("Gutscheine", "Vouchers"), T("Rabattcodes und Gutscheine verwalten.", "Manage discount codes and vouchers.")],
+      ["a", T("Platzhalter A", "Placeholder A"), T("Reserviert für später.", "Reserved for later.")],
+      ["b", T("Platzhalter B", "Placeholder B"), T("Reserviert für später.", "Reserved for later.")]
+    ];
+    const titleOf = { members: T("Member Management", "Member management"), vouchers: T("Gutscheine", "Vouchers"), a: T("Platzhalter A", "Placeholder A"), b: T("Platzhalter B", "Placeholder B") };
+    const adminHead = (sub) => h("div", { style: { marginBottom: 30 } },
+      sub ? h("div", { onClick: () => go("home"), style: { display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 16 } }, "← " + T("Admin-Übersicht", "Admin overview")) : null,
+      h(PyEyebrow, null, "Admin"),
+      h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, letterSpacing: "-0.02em", fontSize: "clamp(30px,5vw,48px)", lineHeight: 1.05, margin: 0, color: "var(--text-primary)" } }, sub ? titleOf[sub] : T("Admin-Bereich", "Admin area")));
+    const placeholder = (note) => h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
+      h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 15, color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 } }, note));
+
+    if (view === "members") return wrap(h(React.Fragment, null, adminHead("members"), h(AdminInvite, null), h(WarrenWhitelist, null), h(InviteLog, null)));
+    if (view === "vouchers") return wrap(h(React.Fragment, null, adminHead("vouchers"), placeholder(T("Gutschein-Verwaltung kommt hierher — Codes anlegen, Laufzeiten, Einlösungen.", "Voucher management goes here — create codes, durations, redemptions."))));
+    if (view === "a") return wrap(h(React.Fragment, null, adminHead("a"), placeholder(T("Reserviert. Hier kann ein weiteres Admin-Tool entstehen.", "Reserved. Another admin tool can live here."))));
+    if (view === "b") return wrap(h(React.Fragment, null, adminHead("b"), placeholder(T("Reserviert. Hier kann ein weiteres Admin-Tool entstehen.", "Reserved. Another admin tool can live here."))));
+
     return wrap(h(React.Fragment, null,
-      h("div", { style: { marginBottom: 30 } }, h(PyEyebrow, null, "Admin"), h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, letterSpacing: "-0.02em", fontSize: "clamp(34px,5vw,52px)", lineHeight: 1.05, margin: 0, color: "var(--text-primary)" } }, T("Admin-Bereich", "Admin area"))),
-      h(AdminInvite, null), h(WarrenWhitelist, null), h(InviteLog, null)));
+      adminHead(null),
+      h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 } },
+        TILES.map((t) => h("div", { key: t[0], onClick: () => go(t[0]), style: { cursor: "pointer", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "22px 20px", background: "var(--bg-raised, rgba(255,255,255,0.02))" } },
+          h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 21, color: "var(--text-primary)", marginBottom: 6 } }, t[1]),
+          h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, color: "var(--text-secondary)", lineHeight: 1.5 } }, t[2]),
+          h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-oracle)", marginTop: 12, letterSpacing: "0.08em" } }, T("Öffnen →", "Open →")))))));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(h(App, null));
 })();
