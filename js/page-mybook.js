@@ -82,8 +82,11 @@
   #mb-root .topic{border-bottom:1px solid var(--line);}
   #mb-root .orow{display:grid;grid-template-columns:var(--cols);gap:var(--cgap);align-items:center;padding:16px 10px 16px 0;cursor:pointer;}
   #mb-root .orow:hover{background:#13161C;}
-  /* Geöffnetes Topic: einfach hellerer, neutraler Hintergrund (kein Akzent, keine Linie). */
+  /* Geöffnetes Topic: hellerer Hintergrund + bündige Farblinie ganz am linken Rand (volle Höhe). */
   #mb-root .topic.open,#mb-root .topic.open>.orow{background:#1E232B;}
+  #mb-root .grp.oracle .topic.open{box-shadow:inset 3px 0 0 var(--oracle);}
+  #mb-root .grp.self .topic.open{box-shadow:inset 3px 0 0 #9F7BCB;}
+  #mb-root .topic.open>.orow,#mb-root .topic.open .dwrap{padding-left:12px;}
   #mb-root .c-mon{display:flex;align-items:center;gap:10px;justify-self:start;}
   #mb-root .c-topic{min-width:0;}
   #mb-root .c-act{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:9px;}
@@ -154,6 +157,7 @@
   #mb-root .ov2{position:fixed;inset:0;background:rgba(4,5,8,.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;z-index:260;}
   #mb-root .modal{max-width:440px;width:100%;background:var(--raised);border:1px solid var(--border-oracle);border-radius:12px;padding:26px;}
   #mb-root .flash{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:300;max-width:90vw;background:var(--raised);border:1px solid rgba(224,114,107,.6);border-left:3px solid var(--ox-b);border-radius:10px;padding:13px 18px;font-family:var(--font-ui);font-size:13.5px;color:var(--parch);box-shadow:0 14px 40px rgba(0,0,0,.5);}
+  #mb-root .flash.ok{border-color:rgba(111,207,154,.5);border-left-color:var(--bull);}
   #mb-root .modal-wide{max-width:560px;max-height:90vh;overflow-y:auto;padding:22px 22px 0;}
   #mb-root .modal-wide h3{margin:0 0 12px;}
   #mb-root .mode-tabs{display:flex;gap:6px;background:var(--input);border:1px solid var(--line);border-radius:9px;padding:4px;margin:0 0 16px;}
