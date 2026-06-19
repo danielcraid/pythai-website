@@ -224,6 +224,10 @@
     #mb-root .dgrid{display:flex;flex-direction:column;gap:22px;}
     #mb-root .dcol-these,#mb-root .dcol-act{grid-column:auto;width:100%;}
     #mb-root .dcol-these{order:0;} #mb-root .dcol-act{order:1;}
+    /* Mobile: deutlich weniger Rand-Verschwendung — Section-Padding + Gruppen-Einzug schrumpfen. */
+    #mb-root section > div{padding-left:16px !important;padding-right:16px !important;}
+    #mb-root .grp{padding-left:9px;}
+    #mb-root .orow{padding-right:0;}
   }`;
 
   function injectCSS() {
