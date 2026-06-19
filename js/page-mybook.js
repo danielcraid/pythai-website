@@ -215,11 +215,14 @@
     #mb-root .orow{display:grid;grid-template-columns:1fr auto;column-gap:16px;row-gap:16px;align-items:center;padding:20px 0;}
     #mb-root .c-topic{grid-column:1;grid-row:1;align-self:start;}
     #mb-root .det{grid-column:2;grid-row:1;justify-self:end;align-self:start;}
-    #mb-root .c-mon{grid-column:1 / -1;grid-row:2;}
+    #mb-root .c-mon{grid-column:1;grid-row:2;justify-self:start;}
     #mb-root .mon-lbl{display:inline;}
-    #mb-root .c-stat{grid-column:1 / -1;grid-row:3;}
-    #mb-root .c-trig{grid-column:1;grid-row:4;}
-    #mb-root .bedit{grid-column:2;grid-row:4;justify-self:end;align-self:center;}
+    #mb-root .c-stat{grid-column:2;grid-row:2;justify-self:end;align-self:center;}
+    #mb-root .c-trig{grid-column:1;grid-row:3;}
+    #mb-root .bedit{grid-column:2;grid-row:3;justify-self:end;align-self:center;}
+    #mb-root .mks{flex-wrap:nowrap;gap:8px;}
+    #mb-root .mk{flex:1 1 0;min-width:0;}
+    #mb-root .mk .v{font-size:13px;}
     #mb-root .mini{max-width:none;}
     #mb-root .dgrid{display:flex;flex-direction:column;gap:22px;}
     #mb-root .dcol-these,#mb-root .dcol-act{grid-column:auto;width:100%;}
