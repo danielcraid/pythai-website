@@ -82,11 +82,8 @@
   #mb-root .topic{border-bottom:1px solid var(--line);}
   #mb-root .orow{display:grid;grid-template-columns:var(--cols);gap:var(--cgap);align-items:center;padding:16px 10px 16px 0;cursor:pointer;}
   #mb-root .orow:hover{background:#13161C;}
-  /* Geöffnetes Topic: hellerer Hintergrund + bündige Farblinie ganz am linken Rand (volle Höhe). */
+  /* Geöffnetes Topic: nur hellerer Hintergrund (die farbige Linie liefert bereits die Gruppe ganz links). */
   #mb-root .topic.open,#mb-root .topic.open>.orow{background:#1E232B;}
-  #mb-root .grp.oracle .topic.open{box-shadow:inset 3px 0 0 var(--oracle);}
-  #mb-root .grp.self .topic.open{box-shadow:inset 3px 0 0 #9F7BCB;}
-  #mb-root .topic.open>.orow,#mb-root .topic.open .dwrap{padding-left:12px;}
   #mb-root .c-mon{display:flex;align-items:center;gap:10px;justify-self:start;}
   #mb-root .c-topic{min-width:0;}
   #mb-root .c-act{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:9px;}
