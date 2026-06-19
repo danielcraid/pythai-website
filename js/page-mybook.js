@@ -230,6 +230,11 @@
     #mb-root section > div{padding-left:16px !important;padding-right:16px !important;}
     #mb-root .grp{padding-left:9px;}
     #mb-root .orow{padding-right:0;}
+    /* Offenes Topic: graue Fläche bis an die Ränder (links bis zur Gruppenlinie, rechts bis zum Bildschirmrand). */
+    #mb-root .topic.open{position:relative;margin-left:-9px;margin-right:-16px;padding-left:12px;padding-right:16px;}
+    /* X in die obere rechte Ecke, größer. */
+    #mb-root .topic.open .det.x{position:absolute;top:4px;right:8px;z-index:3;font-size:28px;padding:6px 10px;}
+    #mb-root .topic.open .c-topic{padding-right:40px;}
   }`;
 
   function injectCSS() {
@@ -292,6 +297,7 @@
     const [checkId, setCheckId] = useState(null);
     const [checkMsg, setCheckMsg] = useState({});
     const [chartBusy, setChartBusy] = useState(null);
+    const [chartConfirm, setChartConfirm] = useState(null);
     const [tagInput, setTagInput] = useState("");
     const [suggestBusy, setSuggestBusy] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
@@ -577,7 +583,7 @@
           h("div", { className: "dgrid" },
           h("div", { className: "dcol-act" },
             h("button", { className: "bline chk", disabled: checkId === p.id, onClick: () => checkThesis(p) }, checkId === p.id ? T("Prüfe…", "Checking…") : T("These prüfen", "Check thesis")),
-            h("button", { className: "bline" + (chartBusy === p.id ? " saving" : ""), disabled: chartBusy === p.id, onClick: () => chartMail(p) }, chartBusy === p.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")),
+            h("button", { className: "bline" + (chartBusy === p.id ? " saving" : ""), disabled: chartBusy === p.id, onClick: () => setChartConfirm(p) }, chartBusy === p.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")),
             h("button", { className: "bdel", onClick: () => setDelId(p.id) }, T("Topic löschen", "Delete topic"))),
           h("div", { className: "dcol-these" },
             h("div", { className: "tlbl", style: { color: "var(--ox-b)" } }, T("Anti-These", "Anti-thesis")),
@@ -683,6 +689,13 @@
           h("div", { className: "mrow" },
             h(Button, { variant: "ghost", size: "sm", onClick: () => setDelId(null) }, T("Abbrechen", "Cancel")),
             h("button", { className: "bdel", style: { padding: "9px 16px" }, onClick: doDelete }, T("Endgültig löschen", "Delete permanently"))))) : null,
+      chartConfirm ? h("div", { className: "ov2", onClick: () => setChartConfirm(null) },
+        h("div", { className: "modal", onClick: (e) => e.stopPropagation() },
+          h("h3", null, T("Chart-Analyse per Mail?", "Chart analysis by mail?")),
+          h("p", null, T("Du möchtest eine Chart-Analyse zu ", "You'd like a chart analysis for "), h("b", { style: { color: "var(--parch)" } }, chartConfirm.name || ""), T(" per Mail bekommen? Warren rendert sie und schickt sie dir in 1–2 Minuten.", " by mail? Warren renders it and sends it to you in 1–2 minutes.")),
+          h("div", { className: "mrow" },
+            h(Button, { variant: "ghost", size: "sm", onClick: () => setChartConfirm(null) }, T("Abbruch", "Cancel")),
+            h(Button, { variant: "oracle", size: "sm", "data-sfx": "", onClick: () => { var pp = chartConfirm; setChartConfirm(null); sfx("menue-in-mybook"); chartMail(pp); } }, T("Bestätigen", "Confirm"))))) : null,
       addF ? h("div", { className: "ov2", onClick: closeForm },
         h("div", { className: "modal modal-wide", onClick: (e) => e.stopPropagation() },
           h("h3", null, editingId ? T("Topic bearbeiten", "Edit topic") : T("Neues Topic", "New topic")),

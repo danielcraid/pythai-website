@@ -185,7 +185,7 @@
     function boot() {
       var ICON_ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>';
       var ICON_OFF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>';
-      var TARGET = 0.32, on = false, fadeT, gestureArmed = false;
+      var TARGET = 0.32, on = false, fadeT, gestureArmed = false, everPlayed = false;
       var audio = document.createElement("audio");
       audio.loop = true; audio.preload = "auto"; audio.volume = 0; audio.muted = true;
       [["assets/audio/sanctum.m4a", "audio/mp4"], ["assets/audio/sanctum.mp3", "audio/mpeg"]].forEach(function (s) {
@@ -211,9 +211,10 @@
       // Start playback: try unmuted immediately. After the first interaction the browser keeps
       // the autoplay permission for the session, so navigation stays seamless. If it's still
       // blocked (first ever visit), fall back to muted autoplay + unmute on first gesture.
-      function start() { resume(); audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); disarm(); setHint(false); }).catch(function () { audio.muted = true; audio.play().catch(function () { }); arm(); setHint(true); }); }
+      function start() { resume(); audio.muted = false; (audio.play() || Promise.resolve()).then(function () { everPlayed = true; fade(TARGET); disarm(); setHint(false); }).catch(function () { audio.muted = true; audio.play().catch(function () { }); arm(); setHint(true); }); }
       var btn = document.createElement("button");
       btn.setAttribute("aria-label", "Sound");
+      btn.setAttribute("data-sfx", "");
       btn.style.cssText = "position:fixed;left:20px;bottom:20px;z-index:300;width:42px;height:42px;border-radius:50%;border:1px solid var(--border-strong);background:rgba(8,9,12,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .2s,border-color .2s,box-shadow .2s;";
       // gentle pulse hint until the first gesture unmutes the ambient (browsers block audible autoplay)
       var hintCss = document.createElement("style");
@@ -223,13 +224,13 @@
       function render() { btn.innerHTML = on ? ICON_ON : ICON_OFF; btn.style.color = on ? "var(--text-oracle)" : "var(--text-muted)"; btn.style.borderColor = on ? "var(--border-oracle)" : "var(--border-strong)"; btn.style.boxShadow = on ? "0 0 16px var(--glow-oracle-soft)" : "none"; }
       function enable() { on = true; setPref("on"); render(); start(); }
       window.PYsoundEnable = enable; // erlaubt anderen Buttons (z.B. "Hear the Sanctum"), den Ambient anzuschalten
-      function disable() { on = false; setPref("off"); render(); disarm(); setHint(false); fade(0, function () { audio.pause(); audio.muted = true; }); }
+      function disable() { on = false; everPlayed = false; setPref("off"); render(); disarm(); setHint(false); fade(0, function () { audio.pause(); audio.muted = true; }); }
       // Stop the button's own pointerdown from triggering the window unmute handler (caused a blip).
       btn.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
       btn.addEventListener("click", function () {
         if (!on) { enable(); return; }                 // was off → turn on
-        if (audio.muted || audio.paused) { setPref("on"); start(); render(); return; } // on-intent but not yet audible → activate
-        disable();                                       // actually playing → turn off
+        if (!everPlayed && (audio.muted || audio.paused)) { setPref("on"); start(); render(); return; } // on, aber nie hörbar gestartet (Autoplay blockiert) → aktivieren
+        disable();                                       // sonst → ausschalten (auch wenn gerade pausiert)
       });
       document.body.appendChild(btn);
       var want = pref() !== "off"; // default on, unless the user explicitly opted out

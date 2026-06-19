@@ -280,6 +280,7 @@
     const [addingId, setAddingId] = useState(null);
     const [addedIds, setAddedIds] = useState([]);
     const [confirmAdd, setConfirmAdd] = useState(null);
+    const [chartConfirm, setChartConfirm] = useState(null);
     const [showArchive, setShowArchive] = useState(false);
     const [showWatch, setShowWatch] = useState(false);
     const sfx = (n) => { if (typeof window.PYsfx === "function") window.PYsfx(n); };
@@ -454,7 +455,7 @@
                   : h("div", { className: "actcol" },
                       h("button", { className: "badd", disabled: addingId === t.id, onClick: () => setConfirmAdd(t) }, addingId === t.id ? T("übernehme…", "adding…") : T("In My Book übernehmen", "Add to My Book")),
                       h("div", { className: "baddhint" }, T("Übernimmt These & Setup als eigenes Topic — mit eigenen Marken & Alerts.", "Copies thesis & setup as your own topic — with your own levels & alerts."))),
-            h("button", { className: "bchart", disabled: chartBusy === t.id, onClick: () => chartMail(t) }, chartBusy === t.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")))) : null);
+            h("button", { className: "bchart", disabled: chartBusy === t.id, onClick: () => setChartConfirm(t) }, chartBusy === t.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")))) : null);
     };
 
     const Hero = (sub) => h("div", { className: "hero" },
@@ -474,6 +475,14 @@
           h("div", { style: { display: "flex", gap: 10, justifyContent: "flex-end" } },
             h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirmAdd(null) }, T("Abbrechen", "Cancel")),
             h(Button, { variant: "oracle", size: "sm", "data-sfx": "", onClick: () => { var t = confirmAdd; setConfirmAdd(null); sfx("menue-in-mybook"); addToBook(t); } }, T("Ja, übernehmen", "Yes, add")))))
+        : null,
+      chartConfirm ? h("div", { onClick: () => setChartConfirm(null), style: { position: "fixed", inset: 0, zIndex: 300, background: "rgba(4,5,8,0.82)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } },
+        h("div", { onClick: (e) => e.stopPropagation(), style: { maxWidth: 440, width: "100%", boxSizing: "border-box", background: "var(--bg-raised)", border: "1px solid var(--border-oracle)", borderRadius: 14, padding: 28 } },
+          h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 25, margin: "0 0 10px", color: "var(--oracle-bright)" } }, T("Chart-Analyse per Mail?", "Chart analysis by mail?")),
+          h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 22px" } }, T("Du möchtest eine Chart-Analyse zu ", "You'd like a chart analysis for "), h("strong", { style: { color: "var(--text-primary)" } }, chartConfirm.asset), T(" per Mail bekommen? Warren rendert sie und schickt sie dir in 1–2 Minuten.", " by mail? Warren renders it and sends it to you in 1–2 minutes.")),
+          h("div", { style: { display: "flex", gap: 10, justifyContent: "flex-end" } },
+            h(Button, { variant: "ghost", size: "sm", onClick: () => setChartConfirm(null) }, T("Abbruch", "Cancel")),
+            h(Button, { variant: "oracle", size: "sm", "data-sfx": "", onClick: () => { var t = chartConfirm; setChartConfirm(null); sfx("menue-in-mybook"); chartMail(t); } }, T("Bestätigen", "Confirm")))))
         : null,
       h(SiteFooter, null));
 
