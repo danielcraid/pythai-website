@@ -237,7 +237,7 @@
         h("div", { style: { flex: 1, lineHeight: 1.1 } }, h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 18, color: "var(--text-primary)" } }, "Warren"), h("div", { style: { marginTop: 3 } }, h(TierBadge, { tier: mode === "member" ? tier : "lead" }))),
         mode === "member" ? h("button", { onClick: logout, title: T("Abmelden", "Log out"), style: { background: "none", border: "none", color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", marginRight: 6 } }, T("Abmelden", "Log out")) : null,
         msgs.length > 1 ? h("button", { onClick: resetChat, title: T("Chat zurücksetzen", "Reset chat"), "aria-label": "Reset", style: { background: "none", border: "none", color: "var(--text-muted)", fontSize: 16, cursor: "pointer", lineHeight: 1, marginRight: 4 } }, "↺") : null,
-        h("button", { onClick: () => setOpen(false), "aria-label": "Close", style: { background: "none", border: "none", color: "var(--text-muted)", fontSize: 22, cursor: "pointer", lineHeight: 1 } }, "×")),
+        h("button", { onClick: (e) => { e.stopPropagation(); setOpen(false); }, "aria-label": "Close", "data-sfx": "", style: { background: "none", border: "none", color: "var(--text-muted)", fontSize: 24, cursor: "pointer", lineHeight: 1, padding: "8px 10px", margin: "-8px -6px -8px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 40, minHeight: 40 } }, "×")),
       // body
       h("div", { ref: bodyRef, style: { flex: 1, overflowY: "auto", padding: "13px 9px" } },
         msgs.map((m, i) => h(Bubble, { key: i, m, onSignin: () => setAuth({ phase: "email", email: "" }), onReset: resetChat })),
