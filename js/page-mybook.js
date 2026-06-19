@@ -293,8 +293,8 @@
     const [suggestBusy, setSuggestBusy] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
     const [suggestErr, setSuggestErr] = useState("");
-    const [flash, setFlash] = useState("");
-    const showFlash = (msg) => { setFlash(msg); setTimeout(() => setFlash(""), 4500); };
+    const [flash, setFlash] = useState(null);
+    const showFlash = (msg, kind) => { setFlash({ msg: msg, kind: kind || "" }); setTimeout(() => setFlash(null), 4500); };
 
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
@@ -367,9 +367,9 @@
         .then((res) => {
           setChartBusy(null);
           if (!res) return;
-          if (res.cooldown) { showFlash(T("Chart-Analyse läuft gerade schon — gleich kommt die Mail.", "Chart analysis already running — the mail is on its way.")); return; }
+          if (res.cooldown) { showFlash(T("Chart-Analyse läuft gerade schon — gleich kommt die Mail.", "Chart analysis already running — the mail is on its way."), "ok"); return; }
           if (res.err) { showFlash(T("Chart-Analyse konnte nicht ausgelöst werden — versuch es gleich nochmal.", "Couldn't trigger the chart analysis — try again shortly.")); return; }
-          showFlash(T("Warren rendert deine Chart-Analyse — kommt in 1–2 Min per Mail.", "Warren is rendering your chart analysis — arrives by mail in 1–2 min."));
+          showFlash(T("Warren rendert deine Chart-Analyse — kommt in 1–2 Min per Mail.", "Warren is rendering your chart analysis — arrives by mail in 1–2 min."), "ok");
         })
         .catch(() => { setChartBusy(null); showFlash(T("Netzwerkfehler — versuch es gleich nochmal.", "Network error — try again shortly.")); });
     };
@@ -750,7 +750,7 @@
           h("div", { className: "f-foot" },
             h(Button, { variant: "ghost", size: "sm", onClick: closeForm }, T("Abbrechen", "Cancel")),
             h(Button, { variant: "oracle", size: "sm", onClick: submitAdd }, editingId ? T("Speichern", "Save") : T("Topic anlegen", "Create topic")))))) : null,
-      flash ? h("div", { className: "flash" }, flash) : null,
+      flash ? h("div", { className: "flash " + (flash.kind || "") }, flash.msg) : null,
       h(SiteFooter, null));
   }
 
