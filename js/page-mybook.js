@@ -90,7 +90,7 @@
   #mb-root .mon-lbl{display:none;font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
   #mb-root .nm{font-family:var(--font-oracle);font-size:22px;line-height:1.08;color:var(--parch);}
   #mb-root .t-meta{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap;}
-  #mb-root .isin{font-family:var(--font-mono);font-size:10.5px;color:var(--ash);letter-spacing:.04em;}
+  #mb-root .isin{font-family:var(--font-mono);font-size:12px;color:var(--parch);letter-spacing:.04em;}
   #mb-root .badge{font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--mist);border:1px solid #2A2F39;border-radius:5px;padding:5px 9px;white-space:nowrap;}
   #mb-root .badge.long{color:var(--bull);border-color:rgba(111,207,154,.35);}
   #mb-root .badge.idx{border-radius:999px;font-size:8.5px;color:#7FB0E8;border-color:rgba(127,176,232,.45);background:rgba(127,176,232,.1);padding:4px 9px;}
@@ -115,6 +115,8 @@
   #mb-root .bedit{font-family:var(--font-ui);font-size:12px;font-weight:600;border:1px solid rgba(212,169,78,.5);background:rgba(212,169,78,.1);color:var(--oracle-b);border-radius:7px;padding:6px 13px;cursor:pointer;white-space:nowrap;}
   #mb-root .bedit.saving{border-color:rgba(224,114,107,.6);background:rgba(224,114,107,.14);color:var(--ox-b);}
   #mb-root .det{font-family:var(--font-mono);font-size:11px;color:var(--oracle);white-space:nowrap;cursor:pointer;}
+  #mb-root .det.x{font-size:21px;line-height:1;color:var(--mist);}
+  #mb-root .det.x:hover{color:var(--parch);}
   #mb-root .mini{width:100%;max-width:188px;} #mb-root .mini .mk-row{position:relative;height:11px;} #mb-root .mini .arrow{position:absolute;transform:translateX(-50%);font-size:10px;color:var(--oracle-b);line-height:1;}
   #mb-root .mini .bar{display:flex;height:7px;border-radius:999px;overflow:hidden;} #mb-root .mini .bar span{flex:1;}
   #mb-root .mini .lab{font-family:var(--font-mono);font-size:11px;font-weight:700;margin-top:6px;}
@@ -129,7 +131,7 @@
   #mb-root .tworow{font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--steel);margin-top:12px;}
   #mb-root .dwrap{padding:6px 0 28px;}
   #mb-root .sw.locked{opacity:.4;cursor:not-allowed;}
-  #mb-root .mirror-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:20px;}
+  #mb-root .mirror-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:#1E232B;margin-bottom:20px;}
   #mb-root .dgrid{display:grid;grid-template-columns:var(--cols);gap:var(--cgap);align-items:start;}
   #mb-root .dcol-these{grid-column:3 / 5;grid-row:1;min-width:0;}
   #mb-root .dcol-act{grid-column:5 / 6;grid-row:1;justify-self:end;align-self:start;display:flex;flex-direction:column;gap:12px;width:100%;}
@@ -549,7 +551,7 @@
           h("div", { className: "c-stat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label)),
           h("div", { className: "c-trig" }, h(Marks, { p }), p.currency ? h("div", { className: "cur" }, p.currency) : null),
           h("div", { className: "c-act" },
-            h("span", { className: "det" }, isOpen ? T("Schließen ▴", "Close ▴") : T("Details ▾", "Details ▾")),
+            h("span", { className: "det" + (isOpen ? " x" : ""), title: isOpen ? T("Schließen", "Close") : T("Details", "Details") }, isOpen ? "✕" : T("Details ▾", "Details ▾")),
             h("button", { className: "bedit", onClick: (e) => { e.stopPropagation(); openEdit(p); } }, T("Bearbeiten", "Edit")))),
         isOpen ? h("div", { className: "dpanel" }, h("div", { className: "dwrap" },
           h("div", { className: "mirror-row" },
