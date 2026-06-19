@@ -230,6 +230,12 @@
         setGate(d && d.ok && (d.isAdmin === true || d.tier === "admin") ? "ok" : "denied");
       }).catch(() => setGate("denied"));
     }, []);
+    // Browser Vor/Zurück zwischen den Subpages (Hash-Routing).
+    useEffect(() => {
+      const onHash = () => { try { var hsh = (window.location.hash || "").replace(/^#/, ""); setView(SECTIONS.indexOf(hsh) !== -1 ? hsh : "home"); } catch (e) { } };
+      window.addEventListener("hashchange", onHash);
+      return () => window.removeEventListener("hashchange", onHash);
+    }, []);
     const wrap = (inner) => h("div", null, h(SiteNav, { active: "" }),
       h("section", { style: { position: "relative", minHeight: "calc(100vh - var(--nav-h))", padding: "64px 24px", overflow: "hidden" } },
         h("div", { style: { position: "absolute", inset: 0, pointerEvents: "none", background: "radial-gradient(70% 50% at 50% 0%, var(--glow-oracle-soft) 0%, transparent 60%)" } }),
