@@ -302,6 +302,8 @@
     const [suggestBusy, setSuggestBusy] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
     const [suggestErr, setSuggestErr] = useState("");
+    const [aiBusy, setAiBusy] = useState(null); // "these" | "anti" | null
+    const [aiErr, setAiErr] = useState({});
     const [flash, setFlash] = useState(null);
     const showFlash = (msg, kind) => { setFlash({ msg: msg, kind: kind || "" }); setTimeout(() => setFlash(null), 4500); };
 
@@ -418,7 +420,27 @@
     const tags = () => (addF && Array.isArray(addF.kill_triggers)) ? addF.kill_triggers : [];
     const addTag = (raw) => { const t = normTag(raw); setTagInput(""); if (!t) return; const cur = tags(); if (cur.indexOf(t) !== -1 || cur.length >= 12) return; setAf("kill_triggers", cur.concat([t])); };
     const removeTag = (t) => setAf("kill_triggers", tags().filter((x) => x !== t));
-    const resetSuggest = () => { setSuggestions([]); setSuggestErr(""); setSuggestBusy(false); };
+    const resetSuggest = () => { setSuggestions([]); setSuggestErr(""); setSuggestBusy(false); setAiBusy(null); setAiErr({}); };
+    // Warren-Vorschlag für These / Anti-These (Freitext-Feld direkt befüllen).
+    const askWarrenField = (kind) => {
+      if (aiBusy || !addF) return;
+      if (kind === "these" && !(addF.name || "").trim()) { setAiErr((e) => Object.assign({}, e, { these: T("Bitte zuerst den Namen ausfüllen.", "Please fill in the name first.") })); return; }
+      if (kind === "anti" && (addF.these || "").trim().length < 30) { setAiErr((e) => Object.assign({}, e, { anti: T("Schreib zuerst deine These (mind. 30 Zeichen).", "Write your thesis first (at least 30 chars).") })); return; }
+      setAiErr((e) => Object.assign({}, e, { [kind]: "" })); setAiBusy(kind);
+      const ep = kind === "these" ? "/api/mybook/suggest-thesis" : "/api/mybook/suggest-anti-these";
+      fetch(API + ep, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: (addF.name || "").trim(), isin: (addF.isin || "").trim(), art: addF.art || "", idx: (addF.idx || "").trim(), these: addF.these || "" }) })
+        .then((r) => r ? (r.ok ? r.json() : (r.status === 403 ? { forbidden: true } : (r.status === 400 ? { badreq: true } : null))) : null)
+        .then((d) => {
+          setAiBusy(null);
+          if (!d) { setAiErr((e) => Object.assign({}, e, { [kind]: T("Konnte gerade nicht — versuch es nochmal.", "Couldn't do that — try again.") })); return; }
+          if (d.forbidden) { setAiErr((e) => Object.assign({}, e, { [kind]: T("Warren-Vorschläge sind dem Syndicate vorbehalten.", "Warren suggestions are reserved for the Syndicate.") })); return; }
+          if (d.badreq) { setAiErr((e) => Object.assign({}, e, { [kind]: kind === "these" ? T("Bitte Name ausfüllen.", "Please fill in the name.") : T("Schreib zuerst deine These.", "Write your thesis first.") })); return; }
+          const sug = String(d.suggestion || d.text || "").trim();
+          if (!sug) { setAiErr((e) => Object.assign({}, e, { [kind]: T("Kein Vorschlag erhalten.", "No suggestion returned.") })); return; }
+          setAf(kind === "these" ? "these" : "anti_these", sug);
+        })
+        .catch(() => { setAiBusy(null); setAiErr((e) => Object.assign({}, e, { [kind]: T("Netzwerkfehler — versuch es nochmal.", "Network error — try again.") })); });
+    };
     const acceptSuggestion = (s) => { addTag(s.tag); setSuggestions((ss) => ss.filter((x) => x.tag !== s.tag)); };
     const askWarrenTags = () => {
       if (suggestBusy || !addF) return;
@@ -530,14 +552,17 @@
       };
       reader.readAsDataURL(file);
     };
-    const Fld = (o) => { const len = ((addF && addF[o.k]) || "").trim().length; const ok = o.min ? len >= o.min : true; return h("div", { key: o.k, className: "f" + (o.full ? " f-full" : "") },
-      h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } },
+    const Fld = (o) => { const len = ((addF && addF[o.k]) || "").trim().length; const ok = o.min ? len >= o.min : true; const aiDisabled = aiBusy === o.ai || (o.ai === "anti" && ((addF && addF.these) || "").trim().length < 30) || (o.ai === "these" && !((addF && addF.name) || "").trim()); return h("div", { key: o.k, className: "f" + (o.full ? " f-full" : "") },
+      h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 } },
         h("label", { className: "f-l" }, o.label, o.req ? h("span", { style: { color: "var(--ox-b)" } }, " *") : null),
-        o.min ? h("span", { className: "f-cnt" + (ok ? " ok" : "") }, len + "/" + o.min) : null),
+        h("div", { style: { display: "flex", alignItems: "center", gap: 9, flexShrink: 0 } },
+          o.min ? h("span", { className: "f-cnt" + (ok ? " ok" : "") }, len + "/" + o.min) : null,
+          o.ai ? h("button", { className: "askwarren", disabled: aiDisabled, title: aiDisabled && o.ai === "anti" ? T("Erst These schreiben (≥ 30 Zeichen)", "Write the thesis first (≥ 30 chars)") : (aiDisabled && o.ai === "these" ? T("Erst den Namen ausfüllen", "Fill in the name first") : ""), onClick: () => askWarrenField(o.ai) }, aiBusy === o.ai ? T("Warren überlegt…", "Warren is thinking…") : T("Warren fragen", "Ask Warren")) : null)),
       o.area ? h("textarea", { className: "f-i", rows: o.rows || 2, value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) })
              : h("input", { className: "f-i", value: addF[o.k], placeholder: o.ph || "", onChange: (e) => setAf(o.k, e.target.value) }),
       o.hint ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--text-muted)", marginTop: 4 } }, o.hint) : null,
-      o.err ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--ox-b)", marginTop: 4 } }, o.err) : null); };
+      o.err ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--ox-b)", marginTop: 4 } }, o.err) : null,
+      (o.ai && aiErr[o.ai]) ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--ox-b)", marginTop: 4 } }, aiErr[o.ai]) : null); };
     const Sel = (o) => h("div", { key: o.k, className: "f" },
       h("label", { className: "f-l" }, o.label),
       h("select", { className: "f-i", value: addF[o.k], onChange: (e) => setAf(o.k, e.target.value) }, o.opts.map((op) => h("option", { key: op, value: op }, op))));
@@ -740,8 +765,8 @@
             Fld({ label: "Stop", k: "stop", ph: "0,00", err: stopErr }),
             Fld({ label: "Skim", k: "skim", ph: "0,00" }),
             Fld({ label: "Target", k: "target", ph: "0,00" }),
-            Fld({ label: T("Was erwartest du? Warum?", "What do you expect? Why?"), k: "these", full: true, area: true, rows: 3, req: true, min: 50, ph: T("Ein klarer Satz — z. B. „Iran-Eskalation + EU-Aufrüstung stützen den Defense-Sektor strukturell für Quartale.“", "One clear sentence — e.g. “Iran escalation + EU rearmament structurally support the defense sector for quarters.”"), hint: T("Wird vom Orakel wörtlich zitiert. Mindestens 50 Zeichen.", "Quoted verbatim by the oracle. At least 50 characters.") }),
-            Fld({ label: T("Was würde diese These widerlegen? (Story)", "What would disprove this thesis? (story)"), k: "anti_these", full: true, area: true, rows: 2, req: true, min: 30, ph: T("Wenn die EZB die Zinsen wieder anhebt und der Euro Richtung 1.20 läuft, ist die These tot.", "If the ECB hikes rates again and the euro runs toward 1.20, the thesis is dead."), hint: T("Wird vom Orakel als Kontext für die Lesart genutzt. Mindestens 30 Zeichen.", "Used by the oracle as context for its read. At least 30 characters.") }),
+            Fld({ label: T("Was erwartest du? Warum?", "What do you expect? Why?"), k: "these", full: true, area: true, rows: 6, req: true, min: 50, ai: "these", ph: T("Ein klarer Satz — z. B. „Iran-Eskalation + EU-Aufrüstung stützen den Defense-Sektor strukturell für Quartale.“", "One clear sentence — e.g. “Iran escalation + EU rearmament structurally support the defense sector for quarters.”"), hint: T("Wird vom Orakel wörtlich zitiert. Mindestens 50 Zeichen.", "Quoted verbatim by the oracle. At least 50 characters.") }),
+            Fld({ label: T("Was würde diese These widerlegen? (Story)", "What would disprove this thesis? (story)"), k: "anti_these", full: true, area: true, rows: 4, req: true, min: 30, ai: "anti", ph: T("Wenn die EZB die Zinsen wieder anhebt und der Euro Richtung 1.20 läuft, ist die These tot.", "If the ECB hikes rates again and the euro runs toward 1.20, the thesis is dead."), hint: T("Wird vom Orakel als Kontext für die Lesart genutzt. Mindestens 30 Zeichen.", "Used by the oracle as context for its read. At least 30 characters.") }),
             (function () {
               var cur = tags();
               var theseLen = ((addF && addF.these) || "").trim().length;
