@@ -249,8 +249,8 @@
       h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-secondary)", margin: "16px 0 26px", lineHeight: 1.6 } }, T("Dieser Bereich ist Admins vorbehalten.", "This area is reserved for admins.")),
       h(Button, { variant: "oracle", onClick: () => { window.location.href = "account.html"; } }, T("Zum Konto", "To account"))));
     const TILES = [
-      ["members", T("Member Management", "Member management"), T("Einladungen, Warren-Inbox-Whitelist und versendete Einladungen.", "Invitations, Warren-inbox whitelist and sent invites.")],
-      ["vouchers", T("Gutscheine", "Vouchers"), T("Rabattcodes und Gutscheine verwalten.", "Manage discount codes and vouchers.")],
+      ["members", T("Member Management", "Member management"), T("Warren-Inbox-Whitelist — wer darf Warren schreiben.", "Warren-inbox whitelist — who may write to Warren.")],
+      ["vouchers", T("Gutscheine", "Vouchers"), T("Einladungen mit Rabatt-Code und die versendeten Einladungen.", "Invitations with discount code and the sent-invites log.")],
       ["a", T("Platzhalter A", "Placeholder A"), T("Reserviert für später.", "Reserved for later.")],
       ["b", T("Platzhalter B", "Placeholder B"), T("Reserviert für später.", "Reserved for later.")]
     ];
@@ -262,8 +262,8 @@
     const placeholder = (note) => h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
       h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 15, color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 } }, note));
 
-    if (view === "members") return wrap(h(React.Fragment, null, adminHead("members"), h(AdminInvite, null), h(WarrenWhitelist, null), h(InviteLog, null)));
-    if (view === "vouchers") return wrap(h(React.Fragment, null, adminHead("vouchers"), placeholder(T("Gutschein-Verwaltung kommt hierher — Codes anlegen, Laufzeiten, Einlösungen.", "Voucher management goes here — create codes, durations, redemptions."))));
+    if (view === "members") return wrap(h(React.Fragment, null, adminHead("members"), h(WarrenWhitelist, null)));
+    if (view === "vouchers") return wrap(h(React.Fragment, null, adminHead("vouchers"), h(AdminInvite, null), h(InviteLog, null)));
     if (view === "a") return wrap(h(React.Fragment, null, adminHead("a"), placeholder(T("Reserviert. Hier kann ein weiteres Admin-Tool entstehen.", "Reserved. Another admin tool can live here."))));
     if (view === "b") return wrap(h(React.Fragment, null, adminHead("b"), placeholder(T("Reserviert. Hier kann ein weiteres Admin-Tool entstehen.", "Reserved. Another admin tool can live here."))));
 
