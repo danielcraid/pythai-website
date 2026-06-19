@@ -116,6 +116,104 @@
               h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap", flexShrink: 0 } }, fmt(r))))) : null));
   }
 
+  /* 19.06.2026 — Warren-Inbox-Whitelist Toggle pro Member.
+     Backend: GET/POST /api/admin/whitelist (cookie-session, admin-only).
+     Notion: Property "Warren-Inbox-Enabled" Checkbox in Members-DB.
+     Sync-Cron auf VPS schreibt state/warren_inbound_whitelist.json alle 5min. */
+  function WarrenWhitelist() {
+    const [st, setSt] = useState("loading"); // loading | ok | error | empty
+    const [rows, setRows] = useState([]);
+    const [filter, setFilter] = useState("");
+    const [pending, setPending] = useState({}); // email → boolean (UI-disabled state during toggle)
+
+    function load() {
+      setSt("loading");
+      fetch(API + "/api/admin/whitelist", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
+        if (d && d.ok && Array.isArray(d.members)) { setRows(d.members); setSt(d.members.length === 0 ? "empty" : "ok"); }
+        else setSt("error");
+      }).catch(() => setSt("error"));
+    }
+    useEffect(() => { load(); }, []);
+
+    function onToggle(email, newVal) {
+      setPending((p) => Object.assign({}, p, { [email]: true }));
+      fetch(API + "/api/admin/whitelist/toggle", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, enabled: newVal }),
+      }).then((r) => r.ok ? r.json() : null).then((d) => {
+        if (d && d.ok) setRows((rs) => rs.map((r) => r.email === email ? Object.assign({}, r, { enabled: newVal }) : r));
+        setPending((p) => { const np = Object.assign({}, p); delete np[email]; return np; });
+      }).catch(() => {
+        setPending((p) => { const np = Object.assign({}, p); delete np[email]; return np; });
+      });
+    }
+
+    const tierName = { "inner-circle": "Inner Circle", "syndicate": "Syndicate", "circle-of-trust": "CoT", "observer": "Observer", "lead": "Lead", "admin": "Admin" };
+    const f = String(filter || "").toLowerCase().trim();
+    const filtered = !f ? rows : rows.filter((r) =>
+      String(r.email || "").toLowerCase().includes(f) ||
+      String(r.nickname || "").toLowerCase().includes(f) ||
+      String(r.tier || "").toLowerCase().includes(f)
+    );
+    const enabledCount = rows.filter((r) => r.enabled).length;
+
+    // Custom Toggle-Switch (matched zum PYTHAI-Design — gold/oracle accents).
+    const switchEl = (on, disabled, onClick) => h("button", {
+      onClick: disabled ? null : onClick,
+      style: {
+        position: "relative", display: "inline-block",
+        width: 44, height: 24, padding: 0, border: "1px solid " + (on ? "var(--oracle-accent, #D4A94E)" : "var(--border-subtle)"),
+        background: on ? "rgba(212,169,78,0.22)" : "rgba(255,255,255,0.04)",
+        borderRadius: 999, cursor: disabled ? "wait" : "pointer", opacity: disabled ? 0.5 : 1,
+        transition: "background 0.15s ease, border-color 0.15s ease",
+      }
+    }, h("span", {
+      style: {
+        position: "absolute", top: 2, left: on ? 22 : 2, width: 18, height: 18,
+        background: on ? "var(--oracle-accent, #D4A94E)" : "var(--text-muted, #7C8492)",
+        borderRadius: "50%", transition: "left 0.15s ease, background 0.15s ease",
+      }
+    }));
+
+    return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
+      h(PyEyebrow, null, T("Warren-Inbox-Whitelist", "Warren-Inbox Whitelist")),
+      h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 24, color: "var(--text-primary)", margin: "6px 0 6px" } }, T("Wer darf Warren schreiben?", "Who may write to Warren?")),
+      h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 16px" } },
+        T("Nur Member auf der Whitelist kriegen den Warren-Reply-Loop. Nicht-Whitelist-Mails werden direkt an dich weitergeleitet.",
+          "Only members on the whitelist get Warren's reply loop. Mails from others are forwarded directly to you.")),
+      h("div", { style: { display: "flex", alignItems: "baseline", gap: 10, margin: "10px 0 18px" } },
+        h("span", { style: { fontFamily: "var(--font-oracle)", fontSize: 40, lineHeight: 1, color: "var(--text-primary)" } }, String(enabledCount)),
+        h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" } },
+          T("von " + rows.length + " aktiv", "of " + rows.length + " active"))),
+      h("input", {
+        type: "text", value: filter, onChange: (e) => setFilter(e.target.value),
+        placeholder: T("Filter: E-Mail / Nickname / Tier", "Filter: email / nickname / tier"),
+        style: { width: "100%", boxSizing: "border-box", padding: "10px 14px", border: "1px solid var(--border-subtle)", background: "var(--bg-input, rgba(255,255,255,0.03))", color: "var(--text-primary)", fontFamily: "var(--font-ui)", fontSize: 14, borderRadius: 8, margin: "0 0 14px" }
+      }),
+      st === "loading" && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--text-muted)", margin: "10px 0 0" } }, T("Lädt…", "Loading…")),
+      st === "error" && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--text-danger, #E0726B)", margin: "10px 0 0" } }, T("Konnte Whitelist nicht laden.", "Could not load whitelist.")),
+      st === "empty" && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--text-muted)", margin: "10px 0 0" } }, T("Keine Member.", "No members.")),
+      st === "ok" && h("div", { style: { borderTop: "1px solid var(--border-subtle)" } },
+        filtered.length === 0
+          ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--text-muted)", padding: "14px 0" } }, T("Kein Treffer.", "No match."))
+          : filtered.map((m) => h("div", {
+              key: m.email, style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid var(--border-subtle)" }
+            },
+              h("div", { style: { minWidth: 0, flex: 1 } },
+                h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, m.email),
+                h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.04em" } },
+                  (tierName[m.tier] || m.tier || "—") + (m.nickname ? " · " + m.nickname : "") + (m.approval && m.approval !== "approved" ? " · " + m.approval : ""))
+              ),
+              switchEl(!!m.enabled, !!pending[m.email], () => onToggle(m.email, !m.enabled))
+            ))
+      ),
+      h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", margin: "16px 0 0", letterSpacing: "0.02em", lineHeight: 1.5 } },
+        T('Sync-Cron läuft alle 5 min. Notion-Checkbox „Warren-Inbox-Enabled" ist die Quelle, der Toggle hier schreibt sie direkt.',
+          'Sync-cron runs every 5 min. Notion checkbox „Warren-Inbox-Enabled" is the source; this toggle writes it directly.'))
+    );
+  }
+
   function App() {
     const [gate, setGate] = useState("loading");
     useEffect(() => {
@@ -137,7 +235,7 @@
       h(Button, { variant: "oracle", onClick: () => { window.location.href = "account.html"; } }, T("Zum Konto", "To account"))));
     return wrap(h(React.Fragment, null,
       h("div", { style: { marginBottom: 30 } }, h(PyEyebrow, null, "Admin"), h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, letterSpacing: "-0.02em", fontSize: "clamp(34px,5vw,52px)", lineHeight: 1.05, margin: 0, color: "var(--text-primary)" } }, T("Admin-Bereich", "Admin area"))),
-      h(AdminInvite, null), h(InviteLog, null)));
+      h(AdminInvite, null), h(WarrenWhitelist, null), h(InviteLog, null)));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(h(App, null));
 })();
