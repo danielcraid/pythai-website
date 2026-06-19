@@ -74,20 +74,16 @@
   #mb-root .grp.self .grp-title{color:#C4A2E8;}
   #mb-root .grp-sub{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ash);}
   #mb-root .grp-desc{font-family:var(--font-ui);font-size:13px;line-height:1.5;color:var(--mist);margin:0 0 14px;max-width:70ch;}
-  #mb-root .grp.oracle .orow:hover,#mb-root .grp.oracle .topic.open>.orow{background:rgba(212,169,78,.06);}
-  #mb-root .grp.self .orow:hover,#mb-root .grp.self .topic.open>.orow{background:rgba(159,123,203,.08);}
+  #mb-root .grp.oracle .orow:hover{background:rgba(212,169,78,.06);}
+  #mb-root .grp.self .orow:hover{background:rgba(159,123,203,.08);}
   #mb-root .list{--cols:64px minmax(0,1fr) 196px 330px 220px;--cgap:20px;}
   #mb-root .hdr{display:grid;grid-template-columns:var(--cols);gap:var(--cgap);align-items:end;padding:0 10px 12px 0;border-bottom:1px solid var(--line);}
   #mb-root .hdr .hc{font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);white-space:nowrap;overflow:hidden;}
   #mb-root .topic{border-bottom:1px solid var(--line);}
   #mb-root .orow{display:grid;grid-template-columns:var(--cols);gap:var(--cgap);align-items:center;padding:16px 10px 16px 0;cursor:pointer;}
-  #mb-root .orow:hover,#mb-root .topic.open>.orow{background:#13161C;}
-  /* Geöffnetes Topic klar als Karte abheben (inset-Akzent = kein Layout-Shift). */
-  #mb-root .topic.open{border-bottom-color:transparent;border-radius:10px;margin:8px 0;position:relative;z-index:1;}
-  #mb-root .grp.oracle .topic.open{background:rgba(212,169,78,.05);box-shadow:inset 3px 0 0 var(--oracle),0 14px 32px -8px rgba(0,0,0,.55);}
-  #mb-root .grp.self .topic.open{background:rgba(159,123,203,.07);box-shadow:inset 3px 0 0 #9F7BCB,0 14px 32px -8px rgba(0,0,0,.55);}
-  #mb-root .topic.open>.orow{padding-left:15px;border-radius:10px 10px 0 0;}
-  #mb-root .topic.open>.orow .c-topic .nm,#mb-root .topic.open>.orow .nm{color:var(--parch);}
+  #mb-root .orow:hover{background:#13161C;}
+  /* Geöffnetes Topic: einfach hellerer, neutraler Hintergrund (kein Akzent, keine Linie). */
+  #mb-root .topic.open,#mb-root .topic.open>.orow{background:#1E232B;}
   #mb-root .c-mon{display:flex;align-items:center;gap:10px;justify-self:start;}
   #mb-root .c-topic{min-width:0;}
   #mb-root .c-act{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:9px;}
