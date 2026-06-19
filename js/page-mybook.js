@@ -429,15 +429,19 @@
       setAiErr((e) => Object.assign({}, e, { [kind]: "" })); setAiBusy(kind);
       const ep = kind === "these" ? "/api/mybook/suggest-thesis" : "/api/mybook/suggest-anti-these";
       fetch(API + ep, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: (addF.name || "").trim(), isin: (addF.isin || "").trim(), art: addF.art || "", idx: (addF.idx || "").trim(), these: addF.these || "" }) })
-        .then((r) => r ? (r.ok ? r.json() : (r.status === 403 ? { forbidden: true } : (r.status === 400 ? { badreq: true } : null))) : null)
-        .then((d) => {
+        .then((r) => r.json().then((j) => ({ status: r.status, ok: r.ok, j: j || {} })).catch(() => ({ status: r && r.status, ok: !!(r && r.ok), j: {} })))
+        .then((res) => {
           setAiBusy(null);
-          if (!d) { setAiErr((e) => Object.assign({}, e, { [kind]: T("Konnte gerade nicht — versuch es nochmal.", "Couldn't do that — try again.") })); return; }
-          if (d.forbidden) { setAiErr((e) => Object.assign({}, e, { [kind]: T("Warren-Vorschläge sind dem Syndicate vorbehalten.", "Warren suggestions are reserved for the Syndicate.") })); return; }
-          if (d.badreq) { setAiErr((e) => Object.assign({}, e, { [kind]: kind === "these" ? T("Bitte Name ausfüllen.", "Please fill in the name.") : T("Schreib zuerst deine These.", "Write your thesis first.") })); return; }
-          const sug = String(d.suggestion || d.text || "").trim();
-          if (!sug) { setAiErr((e) => Object.assign({}, e, { [kind]: T("Kein Vorschlag erhalten.", "No suggestion returned.") })); return; }
-          setAf(kind === "these" ? "these" : "anti_these", sug);
+          const j = res.j || {}, code = String(j.error || "").toLowerCase();
+          const setErr = (m) => setAiErr((e) => Object.assign({}, e, { [kind]: m }));
+          if (res.ok) { const sug = String(j.suggestion || j.text || "").trim(); if (!sug) setErr(T("Kein Vorschlag erhalten.", "No suggestion returned.")); else setAf(kind === "these" ? "these" : "anti_these", sug); return; }
+          if (res.status === 401 || code === "unauthorized") { if (window.PYsessionExpired) window.PYsessionExpired(); return; }
+          if (res.status === 403 || code === "syndicate_only") { setErr(T("Warren-Vorschläge sind dem Syndicate vorbehalten.", "Warren suggestions are reserved for the Syndicate.")); return; }
+          if (code === "these_too_short") { setErr(T("Schreib zuerst deine These (mind. 30 Zeichen).", "Write your thesis first (at least 30 chars).")); return; }
+          if (code === "name_required") { setErr(T("Bitte zuerst den Namen ausfüllen.", "Please fill in the name first.")); return; }
+          if (res.status === 429 || code === "cooldown") { const s = Math.max(1, parseInt(j.cooldown_seconds_remaining, 10) || 30); setErr(T("Kurz warten — in ", "Hold on — try again in ") + s + T(" s nochmal.", "s.")); return; }
+          if (res.status === 502 || code === "suggester_failed") { setErr(T("Warren ist gerade überlastet — versuch es gleich nochmal.", "Warren is busy right now — try again shortly.")); return; }
+          setErr(T("Konnte gerade nicht — versuch es nochmal.", "Couldn't do that — try again."));
         })
         .catch(() => { setAiBusy(null); setAiErr((e) => Object.assign({}, e, { [kind]: T("Netzwerkfehler — versuch es nochmal.", "Network error — try again.") })); });
     };
