@@ -82,6 +82,12 @@
   #mb-root .topic{border-bottom:1px solid var(--line);}
   #mb-root .orow{display:grid;grid-template-columns:var(--cols);gap:var(--cgap);align-items:center;padding:16px 10px 16px 0;cursor:pointer;}
   #mb-root .orow:hover,#mb-root .topic.open>.orow{background:#13161C;}
+  /* Geöffnetes Topic klar als Karte abheben (inset-Akzent = kein Layout-Shift). */
+  #mb-root .topic.open{border-bottom-color:transparent;border-radius:10px;margin:8px 0;position:relative;z-index:1;}
+  #mb-root .grp.oracle .topic.open{background:rgba(212,169,78,.05);box-shadow:inset 3px 0 0 var(--oracle),0 14px 32px -8px rgba(0,0,0,.55);}
+  #mb-root .grp.self .topic.open{background:rgba(159,123,203,.07);box-shadow:inset 3px 0 0 #9F7BCB,0 14px 32px -8px rgba(0,0,0,.55);}
+  #mb-root .topic.open>.orow{padding-left:15px;border-radius:10px 10px 0 0;}
+  #mb-root .topic.open>.orow .c-topic .nm,#mb-root .topic.open>.orow .nm{color:var(--parch);}
   #mb-root .c-mon{display:flex;align-items:center;gap:10px;justify-self:start;}
   #mb-root .c-topic{min-width:0;}
   #mb-root .c-act{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:9px;}
