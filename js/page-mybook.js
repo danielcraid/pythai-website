@@ -48,6 +48,19 @@
   #mb-root .toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;}
   #mb-root .rep{display:flex;align-items:center;gap:10px;font-family:var(--font-ui);font-size:14px;color:var(--mist);cursor:pointer;}
   #mb-root h2.mb{font-family:var(--font-oracle);font-weight:400;font-size:30px;margin:6px 0 18px;color:var(--parch);}
+  #mb-root .vtog{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  #mb-root .vtog button{background:none;border:none;padding:7px 13px;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);cursor:pointer;}
+  #mb-root .vtog button.on{background:var(--grad-gold);color:var(--text-on-gold);}
+  #mb-root .simplelist{display:flex;flex-direction:column;border-top:1px solid var(--line);}
+  #mb-root .srow{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:15px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
+  #mb-root .srow:hover{background:#13161C;}
+  #mb-root .sleft{display:flex;align-items:center;gap:12px;min-width:0;}
+  #mb-root .sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  #mb-root .sdot.o{background:var(--oracle);} #mb-root .sdot.s{background:#9F7BCB;}
+  #mb-root .sname{min-width:0;}
+  #mb-root .sname .nm{font-family:var(--font-oracle);font-size:18px;color:var(--parch);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #mb-root .sname .px{font-family:var(--font-mono);font-size:12px;color:var(--ash);margin-top:2px;}
+  #mb-root .srow .cpill{flex-shrink:0;font-size:10px;padding:5px 11px;}
   #mb-root .sw{width:46px;min-width:46px;max-width:46px;height:26px;box-sizing:border-box;display:inline-block;border-radius:999px;position:relative;flex:0 0 auto;cursor:pointer;padding:0;box-shadow:inset 0 1px 2px rgba(0,0,0,.4);}
   #mb-root .sw.on{background:rgba(212,169,78,.18);border:1px solid var(--oracle);box-shadow:0 0 14px -5px rgba(212,169,78,.7),inset 0 1px 2px rgba(0,0,0,.4);}
   #mb-root .sw.off{background:var(--input);border:1px solid var(--steel);}
@@ -252,6 +265,7 @@
     const [mirrorModal, setMirrorModal] = useState(null);
     const [delId, setDelId] = useState(null);
     const [summary, setSummary] = useState(true);
+    const [simple, setSimple] = useState(() => { try { return window.innerWidth < 760; } catch (e) { return false; } });
     const BLANK = { name: "", isin: "", issuer: "", idx: "", art: "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: "", stop: "", skim: "", target: "", these: "", anti_these: "", kill_triggers: [] };
     const KILL_SUGGEST = ["iran_ceasefire", "hormus_resumed", "recession_eu", "capex_cut", "sektor_drift_down", "fed_hawkish_shock", "usd_crash", "china_export_ban", "earnings_miss", "esma_ban", "oil_supply_shock"];
     const normTag = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
@@ -578,10 +592,23 @@
         h("div", { className: "toolbar" },
           h(PyEyebrow, null, T("Überblick · ", "Overview · ") + count + "/" + MAX + " Topics"),
           h("div", { style: { display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" } },
+            h("div", { className: "vtog" },
+              h("button", { className: simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(true); } }, T("Einfach", "Simple")),
+              h("button", { className: !simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(false); } }, T("Detail", "Detail"))),
             h("label", { className: "rep" }, h("button", { className: "sw " + (summary ? "on" : "off"), onClick: () => { sfx("button-004-toggle"); setSummary(!summary); } }, h("span", { className: "knob" })), T("Tägliche My-Book-Summary", "Daily My-Book summary")),
             h(Button, { variant: "oracle", size: "sm", disabled: count >= MAX, onClick: addTopic }, T("+ Topic hinzufügen", "+ Add topic")))),
         h("h2", { className: "mb" }, T("Deine Topics auf einen Blick.", "Your topics at a glance.")),
-        rows.length ? (function () {
+        rows.length ? (simple ? h("div", { className: "simplelist" }, rows.map((p) => {
+          const cs = consolidatedStatus(p);
+          const oracle = p.tracking_source === "oracle";
+          return h("div", { key: p.id, className: "srow", role: "button", tabIndex: 0, onClick: () => { sfx("button-002-itemopen"); setSimple(false); setOpen(p.id); setTimeout(() => { const el = document.getElementById("mb-" + p.id); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 250); } },
+            h("div", { className: "sleft" },
+              h("span", { className: "sdot " + (oracle ? "o" : "s"), title: oracle ? T("Orakel-Shortlist", "Oracle shortlist") : T("Meine These", "My thesis") }),
+              h("div", { className: "sname" },
+                h("div", { className: "nm" }, p.name),
+                p.live ? h("div", { className: "px" }, (typeof p.live === "string" ? p.live : String(p.live)) + " " + (p.currency || "EUR")) : null)),
+            h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label));
+        })) : (function () {
           const mkHdr = () => h("div", { className: "hdr" },
             h("span", { className: "hc c-mon" }, T("Beobachten", "Monitor")),
             h("span", { className: "hc c-topic" }, "Topic"),
@@ -599,7 +626,7 @@
           return h("div", null,
             group("oracle", T("Orakel-Shortlist", "Oracle shortlist"), T("Aus dem Orakel übernommen — der Score spiegelt den Hunter-Pool.", "Taken from the oracle — the score mirrors the hunter pool."), oracleRows),
             group("self", T("Meine Thesen", "My theses"), T("Du trackst selbst — bewertet gegen deine eigenen Marken.", "You track yourself — scored against your own levels."), selfRows));
-        })()
+        })())
         : (loaded ? h("div", { className: "empty" },
             h("div", { className: "empty-t" }, T("Dein Buch ist noch leer.", "Your book is still empty.")),
             h("div", { className: "empty-s" }, T("Leg ein Topic an, wenn eine These stark genug ist — per Upload oder von Hand. Warren beobachtet ab dann, ob sie hält.", "Add a topic when a thesis is strong enough — by upload or by hand. Warren then watches whether it holds.")),
