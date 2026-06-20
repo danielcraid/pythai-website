@@ -12,11 +12,14 @@
   // ---- Feature lists (aligned to Build-Spec v3) ----
   const OBSERVER_F = [T("Morgen-Headline", "Dawn headline"), T("Markt-Vibe der Woche", "Weekly market vibe"), T("\xD6ffentliches Manifesto", "Public manifesto")];
   const INNER_F = [T("Volle Reading + Levels", "Full reading + levels"), T("Low- & Mid-Risk Setups", "Low & mid-risk setups"), T("Im Spiel, EOD- & Weekend-Briefings", "Im Spiel, EOD & weekend briefings"), T("Chat mit Warren — mit Kontext", "Chat with Warren — with context"), T("Research- & Chart-Tools", "Research & chart tools")];
-  const SYND_F = [T("Alles aus Inner Circle", "Everything in Inner Circle"), T("Alle Risk-Klassen + Live-Updates", "All risk classes + live updates"), T("Telefon mit Warren", "Phone with Warren"), T("Portfolio-Tracker", "Portfolio tracker")];
+  const SYND_F = [T("Alles aus Inner Circle", "Everything in Inner Circle"), T("Alle Risk-Klassen + Live-Updates", "All risk classes + live updates"), T("My Book — deine Thesen beobachten", "My Book — track your theses"), T("Telefon mit Warren (bald)", "Phone with Warren (coming soon)"), T("SMS-Alerts (bald)", "SMS alerts (coming soon)")];
 
   function FeatureRow({ label, gold, accent }) {
-    const lit = gold || !!accent;
-    return h("div", { style: { display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-ui)", fontSize: 14, color: lit ? "var(--text-primary)" : "var(--text-secondary)" } }, h("span", { style: { color: accent || (gold ? "var(--oracle)" : "var(--steel)"), fontSize: 15, flexShrink: 0 } }, "✓"), label);
+    const soon = /\((coming soon|bald)\)/i.test(label);
+    const lit = (gold || !!accent) && !soon;
+    const mark = soon ? "○" : "✓";
+    const markColor = soon ? "var(--text-muted)" : (accent || (gold ? "var(--oracle)" : "var(--steel)"));
+    return h("div", { style: { display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-ui)", fontSize: 14, color: soon ? "var(--text-muted)" : (lit ? "var(--text-primary)" : "var(--text-secondary)") } }, h("span", { style: { color: markColor, fontSize: 15, flexShrink: 0 } }, mark), label);
   }
 
   function TierBox({ premium, royal, eyebrow, name, price, memberSince, features, children }) {
@@ -499,6 +502,8 @@
     let included = OBSERVER_F.slice();
     if (tier === "inner-circle" || tier === "circle-of-trust" || tier === "syndicate" || tier === "admin") included = included.concat(INNER_F);
     if (tier === "syndicate" || tier === "admin") included = included.concat(SYND_F);
+    // "Alles aus Inner Circle" als Lead ganz nach oben (Syndicate-Box).
+    if (tier === "syndicate" || tier === "admin") { const lead = SYND_F[0]; included = [lead].concat(included.filter((x) => x !== lead)); }
     // Upgrade läuft jetzt in-page über den UpgradeDialog (kein Wegspringen mehr).
     return h("div", { style: { maxWidth: 680, margin: "0 auto" } },
       justJoined && h("div", { style: { border: "1px solid var(--border-oracle)", background: "rgba(212,169,78,0.07)", borderRadius: 10, padding: "16px 20px", marginBottom: 28, textAlign: "center" } }, h("span", { style: { fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 20, color: "var(--text-oracle)" } }, T("Du bist drin. Willkommen im Sanctum.", "You’re in. Welcome to the sanctum."))),
