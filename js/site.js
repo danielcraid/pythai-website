@@ -140,7 +140,7 @@
     const items = navItems(me);
     const loggedIn = !!me;
     const linkColor = function (href) {
-      if (active === href) return "var(--text-oracle)";
+      if (active === href) return "var(--oxblood-bright)";
       if (loggedIn && MEMBER_AREA.indexOf(href) !== -1) return "var(--oracle-pale)";
       return "var(--text-secondary)";
     };
