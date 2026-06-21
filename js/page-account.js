@@ -265,16 +265,26 @@
     const [editingMobile, setEditingMobile] = useState(false);
     const [mobileErr, setMobileErr] = useState("");
     const [mobileBusy, setMobileBusy] = useState(false);
+    const [emailBusy, setEmailBusy] = useState(false);
+    const [emailErr, setEmailErr] = useState("");
+    const emailErrMsg = (status, e) => { const c = String(e || "").toLowerCase(); if (c === "invalid_email") return T("Ungültige E-Mail-Adresse.", "Invalid email address."); if (c === "same_email") return T("Das ist bereits deine Adresse.", "That's already your address."); if (c === "email_in_use" || status === 409) return T("Diese Adresse wird bereits verwendet.", "This address is already in use."); if (c === "rate_limited" || status === 429) return T("Zu viele Versuche — bitte später nochmal (max. 3/Stunde).", "Too many attempts — try again later (max 3/hour)."); if (c === "send_failed" || status === 502) return T("Die Bestätigungsmail konnte nicht gesendet werden. Bitte gleich nochmal versuchen.", "The confirmation email couldn't be sent. Please try again shortly."); if (c === "unauthorized" || status === 401) { if (window.PYsessionExpired) window.PYsessionExpired(); return ""; } return T("Hat nicht geklappt — versuch es gleich nochmal.", "That didn't work — try again shortly."); };
     const validEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || "").trim());
     const post = (path, body) => fetch(API + path, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).catch(() => ({ ok: false }));
     const parseRes = (r) => (r && typeof r.json === "function") ? r.json().then((j) => ({ ok: !!r.ok, status: r.status, error: (j && j.error) || "" })).catch(() => ({ ok: !!(r && r.ok), status: r && r.status, error: "" })) : Promise.resolve({ ok: false, error: "network" });
     const mobileErrMsg = (e) => { const c = String(e || "").toLowerCase(); if (c === "invalid_phone") return T("Ungültige Nummer. Bitte im Format +41… eingeben.", "Invalid number. Please use the +41… format."); if (c === "prefix_not_allowed") return T("Diese Vorwahl wird nicht unterstützt.", "This country prefix isn't supported."); if (c === "sms_failed") return T("SMS konnte nicht gesendet werden — gleich nochmal versuchen.", "Couldn't send the SMS — try again shortly."); if (c === "bad_code") return T("Code stimmt nicht. Prüf die SMS.", "Code doesn't match. Check the SMS."); if (c === "expired") return T("Code abgelaufen — sende einen neuen.", "Code expired — send a new one."); if (c === "unauthorized") { if (window.PYsessionExpired) window.PYsessionExpired(); return ""; } return T("Hat nicht geklappt — versuch es gleich nochmal.", "That didn't work — try again shortly."); };
     function startEmailChange() {
       const e = newEmail.trim();
-      if (!validEmail(e) || e.toLowerCase() === String(a.email || "").toLowerCase()) return;
-      post("/api/account/email-change/start", { newEmail: e });
-      setEditingEmail(false); setNewEmail("");
-      setEmailNote(T("Bestätigungslink an die neue Adresse geschickt — und eine Info an die alte. Die Änderung wird erst nach dem Klick wirksam.", "Confirmation link sent to the new address — and a notice to the old one. The change takes effect only after you click it."));
+      if (!validEmail(e) || e.toLowerCase() === String(a.email || "").toLowerCase() || emailBusy) return;
+      setEmailNote(null); setEmailErr(""); setEmailBusy(true);
+      post("/api/account/email-change/start", { newEmail: e }).then(parseRes).then((d) => {
+        setEmailBusy(false);
+        if (d.ok) {
+          setEditingEmail(false); setNewEmail("");
+          setEmailNote(T("Bestätigungslink an die neue Adresse geschickt — und eine Info an die alte. Die Änderung wird erst nach dem Klick wirksam.", "Confirmation link sent to the new address — and a notice to the old one. The change takes effect only after you click it."));
+        } else {
+          setEmailErr(emailErrMsg(d.status, d.error));
+        }
+      });
     }
     const saveNick = () => post("/api/account/nickname", { nickname: nick.trim() });
     function toggleMails(v) { setMails(v); post("/api/mail-prefs", { mailsActive: v }); }
@@ -299,10 +309,11 @@
         h(Divider),
         h(SetRow, { title: T("E-Mail-Adresse", "Email address"), sub: T("Login & alle Mails. Änderung nur per Bestätigungslink an die neue Adresse.", "Login & all emails. Change only via a confirmation link sent to the new address."), control: editingEmail
           ? h(Button, { variant: "ghost", size: "sm", onClick: () => { setEditingEmail(false); setNewEmail(""); } }, T("Abbrechen", "Cancel"))
-          : h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, a.email || ""), h(Button, { variant: "chrome", size: "sm", disabled: true, onClick: () => { setEditingEmail(true); setEmailNote(null); setNewEmail(""); } }, T("Ändern (bald)", "Change (soon)"))) }),
+          : h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, a.email || ""), h(Button, { variant: "chrome", size: "sm", onClick: () => { setEditingEmail(true); setEmailNote(null); setEmailErr(""); setNewEmail(""); } }, T("Ändern", "Change"))) }),
         editingEmail && h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", padding: "0 0 14px" } },
           h(Input, { type: "email", placeholder: T("neue@adresse.de", "new@address.com"), value: newEmail, onChange: (e) => setNewEmail(e.target.value), style: { flex: 1, minWidth: 200 } }),
-          h(Button, { variant: "oracle", onClick: startEmailChange, disabled: !validEmail(newEmail) || newEmail.trim().toLowerCase() === String(a.email || "").toLowerCase() }, T("Bestätigung senden", "Send confirmation"))),
+          h(Button, { variant: "oracle", onClick: startEmailChange, disabled: !validEmail(newEmail) || newEmail.trim().toLowerCase() === String(a.email || "").toLowerCase() || emailBusy }, emailBusy ? T("sende…", "sending…") : T("Bestätigung senden", "Send confirmation"))),
+        emailErr && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--text-warn, #d8a34a)", margin: "-4px 0 14px", lineHeight: 1.5 } }, emailErr),
         emailNote && h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--text-oracle)", margin: "-4px 0 14px", lineHeight: 1.5 } }, emailNote),
         h(Divider),
         h(SetRow, { title: T("Mails erhalten", "Receive emails"), sub: T("Der Hauptschalter. System-Mails (Login) kommen immer.", "The master switch. System mails (login) always arrive."), control: h(Switch, { checked: mails, onChange: toggleMails }) }),
