@@ -263,8 +263,12 @@
     const [newEmail, setNewEmail] = useState("");
     const [emailNote, setEmailNote] = useState(null);
     const [editingMobile, setEditingMobile] = useState(false);
+    const [mobileErr, setMobileErr] = useState("");
+    const [mobileBusy, setMobileBusy] = useState(false);
     const validEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || "").trim());
     const post = (path, body) => fetch(API + path, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).catch(() => ({ ok: false }));
+    const parseRes = (r) => (r && typeof r.json === "function") ? r.json().then((j) => ({ ok: !!r.ok, status: r.status, error: (j && j.error) || "" })).catch(() => ({ ok: !!(r && r.ok), status: r && r.status, error: "" })) : Promise.resolve({ ok: false, error: "network" });
+    const mobileErrMsg = (e) => { const c = String(e || "").toLowerCase(); if (c === "invalid_phone") return T("Ungültige Nummer. Bitte im Format +41… eingeben.", "Invalid number. Please use the +41… format."); if (c === "prefix_not_allowed") return T("Diese Vorwahl wird nicht unterstützt.", "This country prefix isn't supported."); if (c === "sms_failed") return T("SMS konnte nicht gesendet werden — gleich nochmal versuchen.", "Couldn't send the SMS — try again shortly."); if (c === "bad_code") return T("Code stimmt nicht. Prüf die SMS.", "Code doesn't match. Check the SMS."); if (c === "expired") return T("Code abgelaufen — sende einen neuen.", "Code expired — send a new one."); if (c === "unauthorized") { if (window.PYsessionExpired) window.PYsessionExpired(); return ""; } return T("Hat nicht geklappt — versuch es gleich nochmal.", "That didn't work — try again shortly."); };
     function startEmailChange() {
       const e = newEmail.trim();
       if (!validEmail(e) || e.toLowerCase() === String(a.email || "").toLowerCase()) return;
@@ -275,9 +279,17 @@
     const saveNick = () => post("/api/account/nickname", { nickname: nick.trim() });
     function toggleMails(v) { setMails(v); post("/api/mail-prefs", { mailsActive: v }); }
     function toggleCompass(v) { setCompass(v); post("/api/mail-prefs", { report: "morning-compass", on: v }); post("/api/mail-prefs", { report: "markt-vibe", on: v }); }
-    function toggleMobile(v) { setMobileOn(v); if (!v) { setSent(false); setVerified(false); post("/api/mobile/disable", {}); } }
-    function sendCode() { if (!phone) return; post("/api/mobile/start", { phone }); setSent(true); }
-    function verify() { post("/api/mobile/verify", { code }); setVerified(true); setSent(false); setEditingMobile(false); }
+    function toggleMobile(v) { setMobileErr(""); setMobileOn(v); if (!v) { setSent(false); setVerified(false); post("/api/mobile/disable", {}); } }
+    function sendCode() {
+      if (!phone || mobileBusy) return;
+      setMobileErr(""); setMobileBusy(true);
+      post("/api/mobile/start", { phone }).then(parseRes).then((d) => { setMobileBusy(false); if (d.ok) { setSent(true); setCode(""); } else setMobileErr(mobileErrMsg(d.error)); });
+    }
+    function verify() {
+      if (!code || mobileBusy) return;
+      setMobileErr(""); setMobileBusy(true);
+      post("/api/mobile/verify", { code }).then(parseRes).then((d) => { setMobileBusy(false); if (d.ok) { setVerified(true); setSent(false); setEditingMobile(false); } else setMobileErr(mobileErrMsg(d.error)); });
+    }
     function doDowngrade() { post("/api/account/downgrade", {}); setConfirming(null); setNote(T("Wir haben dir eine Best\xE4tigungs-Mail geschickt — best\xE4tige den Downgrade \xFCber den Link.", "We’ve emailed you a confirmation link to complete the downgrade.")); }
     function doDelete() { post("/api/account/delete", {}); setConfirming(null); setNote(T("Wir haben dir eine Best\xE4tigungs-Mail geschickt — best\xE4tige die L\xF6schung \xFCber den Link.", "We’ve emailed you a confirmation link to complete the deletion.")); }
     return h(Card, { variant: "raised", padding: "30px", style: { marginBottom: 30 } },
@@ -298,15 +310,15 @@
         h(SetRow, { title: T("Standard Rituals", "Standard rituals"), sub: T("Morning Compass & Market Vibe. Die t\xE4gliche Edukations-Mail — wo der Tag startet, News erkl\xE4rt, eine Beobachtung zum Nachpr\xFCfen. 1\xD7 die Woche der Market Vibe. (Weitere Reports ab Inner Circle in den Rituals.)", "Morning Compass & Market Vibe. The daily education email — where the day starts, news explained, one observation to verify. Plus the weekly Market Vibe. (Further reports from Inner Circle in Rituals.)"), control: h("div", { style: { opacity: mails ? 1 : 0.4, pointerEvents: mails ? "auto" : "none" } }, h(Switch, { checked: compass, onChange: toggleCompass })) }),
         h(Divider),
         h(SetRow, { title: T("Mobilnummer", "Mobile number"), sub: T("F\xFCr Verify-Codes & Service-Alerts. Kein Marketing. Neue Nummer wird per SMS-Code best\xE4tigt.", "For verify codes & service alerts. No marketing. A new number is confirmed via SMS code."), control: (verified && !editingMobile)
-          ? h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)" } }, phone || a.phone || ""), h(Badge, { tone: "oracle", variant: "outline" }, T("verifiziert ✓", "verified ✓")), h(Button, { variant: "chrome", size: "sm", disabled: true, onClick: () => { setEditingMobile(true); setSent(false); setCode(""); } }, T("\xC4ndern (bald)", "Change (soon)")))
+          ? h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" } }, h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)" } }, phone || a.phone || ""), h(Badge, { tone: "oracle", variant: "outline" }, T("verifiziert ✓", "verified ✓")), h(Button, { variant: "chrome", size: "sm", onClick: () => { setEditingMobile(true); setMobileErr(""); setSent(false); setCode(""); } }, T("\xC4ndern", "Change")))
           : (editingMobile
             ? h(Button, { variant: "ghost", size: "sm", onClick: () => { setEditingMobile(false); setSent(false); setCode(""); setPhone(a.phone || ""); } }, T("Abbrechen", "Cancel"))
             : h(Switch, { checked: mobileOn, onChange: toggleMobile })) }),
         ((mobileOn && !verified) || editingMobile) && h("div", { style: { display: "flex", flexDirection: "column", gap: 10, padding: "4px 0 14px" } },
-          !sent ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, h(Input, { type: "tel", placeholder: "+41 7…", value: phone, onChange: (e) => setPhone(e.target.value), style: { flex: 1, minWidth: 180 } }), h(Button, { variant: "chrome", onClick: sendCode, disabled: !phone }, T("Code senden", "Send code")))
+          !sent ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, h(Input, { type: "tel", placeholder: "+41 7…", value: phone, onChange: (e) => setPhone(e.target.value), style: { flex: 1, minWidth: 180 } }), h(Button, { variant: "chrome", onClick: sendCode, disabled: !phone || mobileBusy }, mobileBusy ? T("sende…", "sending…") : T("Code senden", "Send code")))
             : h(React.Fragment, null,
                 h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--text-oracle)", margin: 0, lineHeight: 1.5 } }, T("Code verschickt an ", "Code sent to ") + (phone || "") + T(" — gib ihn ein. Die Nummer gilt erst nach Bestätigung als verifiziert.", " — enter it. The number counts as verified only after confirmation.")),
-                h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, h(Input, { placeholder: T("SMS-Code", "SMS code"), value: code, onChange: (e) => setCode(e.target.value), style: { flex: 1, minWidth: 140 } }), h(Button, { variant: "oracle", onClick: verify, disabled: !code }, T("Best\xE4tigen", "Verify"))))),
+                h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, h(Input, { placeholder: T("SMS-Code", "SMS code"), value: code, onChange: (e) => setCode(e.target.value), style: { flex: 1, minWidth: 140 } }), h(Button, { variant: "oracle", onClick: verify, disabled: !code || mobileBusy }, mobileBusy ? T("pr\xFCfe…", "checking…") : T("Best\xE4tigen", "Verify")))), mobileErr ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--text-warn, #d8a34a)" } }, mobileErr) : null),
         paying && h(React.Fragment, null, h(Divider), h(SetRow, { title: T("Subscription downgraden", "Downgrade subscription"), sub: T("L\xE4uft bis zum Periodenende weiter.", "Stays active until the end of the period."), control: confirming === "downgrade" ? h("div", { style: { display: "flex", gap: 8 } }, h(Button, { variant: "oxblood", size: "sm", onClick: doDowngrade }, T("Sicher?", "Sure?")), h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming(null) }, T("Abbrechen", "Cancel"))) : h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming("downgrade") }, T("Downgrade", "Downgrade")) })),
         h(Divider),
         h(SetRow, { title: T("Account l\xF6schen", "Delete account"), sub: T("Unwiderruflich. Per Magic-Link-Best\xE4tigung.", "Irreversible. Confirmed via magic link."), control: confirming === "delete" ? h("div", { style: { display: "flex", gap: 8 } }, h(Button, { variant: "oxblood", size: "sm", "data-sfx": "delete", onClick: doDelete }, T("Sicher?", "Sure?")), h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming(null) }, T("Abbrechen", "Cancel"))) : h(Button, { variant: "ghost", size: "sm", "data-sfx": "delete", onClick: () => setConfirming("delete") }, T("L\xF6schen", "Delete")) })),
