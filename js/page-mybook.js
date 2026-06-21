@@ -18,6 +18,9 @@
   const POSCOL = ["#C4524C", "#CF7A4E", "#C9A24E", "#6FCF9A"];
   const posLabel = (l) => ({ stopped: T("Gestoppt", "Stopped"), danger: T("Gefahr", "Danger"), caution: T("Vorsicht", "Caution"), safe: T("Sicher", "Safe") }[String(l || "").toLowerCase()] || (l || "—"));
   const thesisLabelOf = (p) => String(p.waage_label || ZONE[((p.zone || 3) - 1)] || "").toUpperCase();
+  // Reine Thesen-Stärke als Pill (für die Simple-Ansicht: wackelt vs. intakt auf einen Blick).
+  const TH_META = { GEBROCHEN: { l: T("Gebrochen", "Broken"), c: "#E0726B" }, WACKELT: { l: T("Wackelt", "Wobbling"), c: "#CF7A4E" }, NEUTRAL: { l: T("Neutral", "Neutral"), c: "#C9A24E" }, INTAKT: { l: T("Intakt", "Intact"), c: "#6FB07A" }, STARK: { l: T("Stark", "Strong"), c: "#6FCF9A" } };
+  const thesisPill = (p) => TH_META[thesisLabelOf(p)] || TH_META.NEUTRAL;
   const consolidatedStatus = (p) => {
     const thesis = thesisLabelOf(p);
     const pos = String(p.position_risk_label || "").toLowerCase();
@@ -51,7 +54,7 @@
   #mb-root .vtog{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
   #mb-root .vtog button{background:none;border:none;padding:7px 13px;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);cursor:pointer;}
   #mb-root .vtog button.on{background:var(--grad-gold);color:var(--text-on-gold);}
-  #mb-root .simplelist{display:flex;flex-direction:column;border-top:1px solid var(--line);}
+  #mb-root .simplelist{display:flex;flex-direction:column;border-top:1px solid var(--line);max-width:880px;}
   #mb-root .srow{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:15px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
   #mb-root .srow:hover{background:#13161C;}
   #mb-root .sleft{display:flex;align-items:center;gap:12px;min-width:0;}
@@ -60,7 +63,10 @@
   #mb-root .sname{min-width:0;}
   #mb-root .sname .nm{font-family:var(--font-oracle);font-size:18px;color:var(--parch);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   #mb-root .sname .px{font-family:var(--font-mono);font-size:12px;color:var(--ash);margin-top:2px;}
-  #mb-root .srow .cpill{flex-shrink:0;font-size:10px;padding:5px 11px;}
+  #mb-root .sright{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  #mb-root .slbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .spill{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid currentColor;border-radius:999px;padding:5px 12px;white-space:nowrap;}
+  @media(max-width:560px){ #mb-root .slbl{display:none;} }
   #mb-root .sw{width:46px;min-width:46px;max-width:46px;height:26px;box-sizing:border-box;display:inline-block;border-radius:999px;position:relative;flex:0 0 auto;cursor:pointer;padding:0;box-shadow:inset 0 1px 2px rgba(0,0,0,.4);}
   #mb-root .sw.on{background:rgba(212,169,78,.18);border:1px solid var(--oracle);box-shadow:0 0 14px -5px rgba(212,169,78,.7),inset 0 1px 2px rgba(0,0,0,.4);}
   #mb-root .sw.off{background:var(--input);border:1px solid var(--steel);}
@@ -646,7 +652,7 @@
             h(Button, { variant: "oracle", size: "sm", disabled: count >= MAX, onClick: addTopic }, T("+ Topic hinzufügen", "+ Add topic")))),
         h("h2", { className: "mb" }, T("Deine Topics auf einen Blick.", "Your topics at a glance.")),
         rows.length ? (simple ? h("div", { className: "simplelist" }, rows.map((p) => {
-          const cs = consolidatedStatus(p);
+          const tp = thesisPill(p);
           const oracle = p.tracking_source === "oracle";
           return h("div", { key: p.id, className: "srow", role: "button", tabIndex: 0, onClick: () => { sfx("button-002-itemopen"); setSimple(false); setOpen(p.id); setTimeout(() => { const el = document.getElementById("mb-" + p.id); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 250); } },
             h("div", { className: "sleft" },
@@ -654,7 +660,9 @@
               h("div", { className: "sname" },
                 h("div", { className: "nm" }, p.name),
                 p.live ? h("div", { className: "px" }, (typeof p.live === "string" ? p.live : String(p.live)) + " " + (p.currency || "EUR")) : null)),
-            h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label));
+            h("span", { className: "sright" },
+              h("span", { className: "slbl" }, T("These", "Thesis")),
+              h("span", { className: "spill", style: { color: tp.c, borderColor: tp.c } }, tp.l)));
         })) : (function () {
           const mkHdr = () => h("div", { className: "hdr" },
             h("span", { className: "hc c-mon" }, T("Beobachten", "Monitor")),
