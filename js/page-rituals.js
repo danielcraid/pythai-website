@@ -29,7 +29,7 @@
     const ROWS = [
       ["observer", "7 / Woche", T("5× Morgen-Headline (Mo–Fr) · Mi Markt-Vibe · Sa Weekend", "5× morning headline (Mon–Fri) · Wed market-vibe · Sat weekend")],
       ["inner", "22+ / Woche", T("Morgen-Headline · Daily Oracle · Im Spiel · Earnings · EOD · Markt-Vibe · Weekend · Sunday", "Morning headline · Daily Oracle · Im Spiel · Earnings · EOD · market-vibe · weekend · Sunday")],
-      ["syndicate", T("wie Inner Circle + Telefon", "like Inner Circle + phone"), T("Alles aus Inner Circle, plus Live-Updates, Trade-Alerts und die direkte Linie zu Warren.", "Everything in Inner Circle, plus live updates, trade alerts and the direct line to Warren.")]
+      ["syndicate", T("wie Inner Circle + Telefon", "like Inner Circle + phone"), T("Alles aus Inner Circle, plus Live-Updates, Thesen-Alerts und die direkte Linie zu Warren.", "Everything in Inner Circle, plus live updates, thesis alerts and the direct line to Warren.")]
     ];
     const th = (txt) => h("th", { style: { textAlign: "left", padding: "0 14px 10px 0", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 400, borderBottom: "1px solid var(--border-subtle)" } }, txt);
     const tdS = { padding: "16px 14px 16px 0", borderBottom: "1px solid var(--border-subtle)", verticalAlign: "top" };
@@ -49,7 +49,8 @@
   function Overview({ groups, uk, isEnabled, onToggle, smsBox }) {
     const all = [];
     groups.forEach((g) => g[2].forEach((r) => all.push(r)));
-    all.sort((a, b) => (b.tiers.indexOf("observer") > -1 ? 1 : 0) - (a.tiers.indexOf("observer") > -1 ? 1 : 0)); // Free (Observer) Reports nach oben
+    const rank = (r) => r.tiers.indexOf("observer") > -1 ? 0 : (r.tiers.indexOf("inner") > -1 ? 1 : 2); // Observer oben, Syndicate-only unten
+    all.sort((a, b) => rank(a) - rank(b));
     const th = (txt) => h("th", { style: { textAlign: "left", padding: "0 14px 10px 0", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 400, borderBottom: "1px solid var(--border-subtle)" } }, txt);
     const td = (child) => h("td", { style: { padding: "12px 14px 12px 0", borderBottom: "1px solid var(--border-subtle)", verticalAlign: "middle" } }, child);
     return h(PySection, null,
@@ -79,6 +80,54 @@
         h("div", { style: { padding: "28px 30px", display: "flex", alignItems: "center", background: "var(--bg-surface)" } }, h(Shot, { src: "assets/rituals/" + r.key + ".png", label: r.name }))));
   }
 
+  function SmsAlerts({ phone, smsV, smsConsent, prefs, onStream, onVerify, onConsent }) {
+    const STREAMS = [
+      { key: "my-book-alert-sms", name: T("My-Book-Alerts", "My Book alerts"),
+        desc: T("Kritische Events deiner Topics: Stop berührt, −7 % Drawdown oder eine These, die verifiziert gebrochen ist.", "Critical events on your topics: stop touched, −7 % drawdown or a thesis that has verifiably broken."),
+        ex: "[PYTHAI] STOP · Defense ETF · live 9.20 · marke 9.30" },
+      { key: "weekend-stop-risk-sms", name: T("Wochenend-Stop-Risiko", "Weekend stop risk"),
+        desc: T("Sonntag 18:00 — eine Warnung, wenn eine Position vor Wochenstart innerhalb von 5 % Stop-Abstand liegt.", "Sunday 18:00 — a heads-up when a position sits within 5 % of its stop before the week opens."),
+        ex: "[PYTHAI] 3 Positionen nahe Stop vor Mo-Open" }
+    ];
+    const ready = !!(phone && smsV && smsConsent);
+    const missing = !phone ? T("Hinterlege zuerst deine Mobilnummer.", "Add your mobile number first.")
+      : !smsV ? T("Bestätige deine Nummer einmalig per SMS-Code.", "Confirm your number once via SMS code.")
+      : !smsConsent ? T("Erteile die SMS-Einwilligung, um Alerts zu erhalten.", "Give SMS consent to receive alerts.") : "";
+    const card = { border: "1px solid var(--border-subtle)", borderRadius: 12, background: "var(--bg-surface)", padding: "18px 20px" };
+    return h(PySection, null,
+      h("div", { style: { marginBottom: 18 } }, h(PyEyebrow, null, T("Direkt aufs Handy", "Straight to your phone")), h(PyH2, null, T("Thesen-Alerts (SMS)", "Thesis alerts (SMS)"))),
+      h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 20px", maxWidth: "62ch" } },
+        T("Nur die wirklich kritischen Events — als kurze SMS, knapp und klar. Standardmäßig aus; du entscheidest, was dein Handy erreicht.", "Only the truly critical events — as a short SMS, brief and clear. Off by default; you decide what reaches your phone.")),
+
+      !ready ? h("div", { style: Object.assign({}, card, { marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }) },
+        h("div", null,
+          h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-oracle)", marginBottom: 6 } }, T("Voraussetzung", "Required first")),
+          h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 15, color: "var(--text-primary)" } }, missing)),
+        (!phone || !smsV)
+          ? h(Button, { variant: "oracle", size: "sm", onClick: onVerify }, !phone ? T("Nummer hinterlegen", "Add number") : T("Nummer verifizieren", "Verify number"))
+          : h("label", { style: { display: "flex", alignItems: "center", gap: 10, cursor: "pointer" } },
+              h(Switch, { checked: false, onChange: () => onConsent() }),
+              h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 13.5, color: "var(--text-secondary)", maxWidth: "34ch" } }, T("Ich erlaube PYTHAI, mir SMS-Alerts zu kritischen Events zu senden.", "I allow PYTHAI to send me SMS alerts on critical events.")))) : null,
+
+      ready ? h("div", { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 16, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" } },
+        h("span", null, T("Alerts gehen an", "Alerts go to")),
+        h("span", { style: { fontSize: 15, color: "var(--text-primary)" } }, phone),
+        h("span", { style: { fontSize: 10, color: "var(--bull-bright)", border: "1px solid rgba(111,207,154,0.4)", borderRadius: 999, padding: "3px 9px" } }, T("verifiziert", "verified")),
+        h("button", { onClick: onVerify, style: { background: "none", border: "none", color: "var(--text-oracle)", fontFamily: "var(--font-ui)", fontSize: 12.5, cursor: "pointer", padding: 0 } }, T("ändern", "change"))) : null,
+
+      h("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, STREAMS.map((s) =>
+        h("div", { key: s.key, title: ready ? "" : missing, style: Object.assign({}, card, { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 18, opacity: ready ? 1 : 0.55 }) },
+          h("div", { style: { flex: 1, minWidth: 0 } },
+            h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 19, color: "var(--text-primary)", marginBottom: 5 } }, s.name),
+            h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.55, color: "var(--text-secondary)", margin: "0 0 9px", maxWidth: "60ch" } }, s.desc),
+            h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", background: "var(--bg-input)", border: "1px solid var(--border-subtle)", borderRadius: 6, padding: "6px 9px", display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, s.ex)),
+          h("div", { style: { flexShrink: 0, pointerEvents: ready ? "auto" : "none" } },
+            h(Switch, { checked: prefs[s.key] === true, onChange: (v) => onStream(s.key, v) })))) ),
+
+      h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, lineHeight: 1.6, color: "var(--text-muted)", margin: "18px 0 0", maxWidth: "60ch" } },
+        T("PYTHAI trägt die SMS-Kosten. Maximal 5 Alerts pro Tag — du bekommst nur die wirklich kritischen Events. Service-Alerts, kein Marketing; jederzeit hier abschaltbar.", "PYTHAI covers the SMS cost. At most 5 alerts per day — you only get the truly critical events. Service alerts, no marketing; switch off here anytime.")));
+  }
+
   function App() {
     const [gate, setGate] = useState("loading");
     const [me, setMe] = useState(null);
@@ -89,9 +138,11 @@
     const [smsCode, setSmsCode] = useState("");
     const [smsSent, setSmsSent] = useState(false);
     const [smsErr, setSmsErr] = useState("");
+    const [smsConsent, setSmsConsent] = useState(false);
+    const [smsPending, setSmsPending] = useState(null);
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((res) => res.ok ? res.json() : null).then((d) => {
-        if (d && d.ok) { setMe(d); setPrefs(d.mailReports || {}); setSmsV(!!(d.smsVerified || d.sms_verified)); if (d.phone) setSmsPhone(d.phone); }
+        if (d && d.ok) { setMe(d); setPrefs(d.mailReports || {}); setSmsV(!!(d.smsVerified || d.sms_verified)); setSmsConsent(!!(d.smsConsent || d.sms_consent)); if (d.phone) setSmsPhone(d.phone); }
         if (d && d.onboardingRequired) { window.location.href = "account.html"; return; }
         const member = d && d.ok && PRIV.indexOf(d.tier) !== -1 && d.approval === "approved";
         setGate(member ? "ok" : "locked");
@@ -115,7 +166,7 @@
       ]],
       [T("In Echtzeit", "Real-time"), T("Nur wenn es zählt — Syndicate-Eingriffe, während ein Trade läuft.", "Only when it matters — Syndicate interventions while a trade runs."), [
         { key: "live-updates", name: "Live-Updates", when: T("Intraday · bei Bedarf", "Intraday · as needed"), tiers: ["syndicate"], was: T("Echtzeit-Eingriffe während ein Trade läuft: Skim-Trigger, Stop-Verschiebung, Exit-Signal.", "Real-time interventions while a trade runs: skim triggers, stop moves, exit signals."), wie: T("Sie kommen nur, wenn es zählt. Wenn ein Live-Update reinkommt, ist Handeln gefragt.", "They only come when it matters. When a live update lands, it is time to act.") },
-        { key: "trade-alerts", name: "Trade-Alerts (SMS)", when: T("Kritisch · Push", "Critical · push"), tiers: ["syndicate"], was: T("Push-Alert aufs Handy in kritischen Momenten: Stop-Hit, Margin, zeitkritischer Exit.", "A push alert to your phone at critical moments: stop hit, margin, a time-critical exit."), wie: T("SMS, knapp und klar. Nur für das Allerwichtigste — kein Marketing, keine Konversation.", "SMS, short and clear. Only for the most critical — no marketing, no conversation.") }
+        { key: "trade-alerts", name: "Thesen-Alert (SMS)", when: T("Kritisch · Push", "Critical · push"), tiers: ["syndicate"], was: T("Push-Alert aufs Handy, wenn es bei einer These kritisch wird: Stop berührt, Drawdown, oder ein Kill-Trigger rückt in Reichweite.", "A push alert to your phone when a thesis turns critical: stop touched, drawdown, or a kill-trigger moving within reach."), wie: T("SMS, knapp und klar. Nur für das Allerwichtigste — kein Marketing, keine Konversation.", "SMS, short and clear. Only for the most critical — no marketing, no conversation.") }
       ]],
       [T("Newsfeed", "Newsfeed"), T("Lage in Echtzeit und der Morgen-Cluster — für alle Stufen.", "The situation in real time and the morning cluster — for every tier."), [
         { key: "breaking-critical", name: "Breaking · Critical", when: T("Bei Bedarf · Push", "As needed · push"), tiers: ["observer", "inner", "syndicate"], was: T("Push-Mail bei CRITICAL-Events (Geopolitik, Macro, Notenbank-Schocks). Max 1/Situation/Tag, außer Eskalation. Jederzeit – auch nachts.", "Push email on CRITICAL events (geopolitics, macro, central-bank shocks). Max 1/situation/day, except escalation. Anytime — even at night."), wie: T("Kommt nur, wenn es wirklich zählt: eine Schlagzeile, der Kontext, was es für den Markt heißt.", "Only lands when it truly matters: one headline, the context, what it means for the market.") },
@@ -126,9 +177,12 @@
     const uk = me ? (me.tier === "syndicate" || me.tier === "admin" ? "syndicate" : (me.tier === "inner-circle" || me.tier === "circle-of-trust" ? "inner" : "observer")) : "inner";
     const isEnabled = (key) => (key === "morning-compass" || key === "breaking-critical" || key === "morning-news-flash" || key === "daily-oracle" || key === "im-spiel") ? prefs[key] !== false : prefs[key] === true;
     const onToggleRaw = (key, v) => { setPrefs((p) => { const n = Object.assign({}, p); n[key] = v; return n; }); fetch(API + "/api/mail-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ report: key, on: v }) }).catch(() => { }); try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } fetch(API + "/api/setup-complete", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setupComplete: true }) }).catch(() => { }); };
-    const onToggle = (key, v) => { if (key === "trade-alerts" && v && !smsV) { setSmsErr(""); setSmsCode(""); setSmsSent(false); setSmsModal(true); return; } onToggleRaw(key, v); };
+    const onToggle = (key, v) => { if (key === "trade-alerts" && v && !smsV) { setSmsPending("trade-alerts"); setSmsErr(""); setSmsCode(""); setSmsSent(false); setSmsModal(true); return; } onToggleRaw(key, v); };
+    const openSmsVerify = () => { setSmsPending(null); setSmsErr(""); setSmsCode(""); setSmsSent(false); setSmsModal(true); };
+    const setConsentOn = () => { setSmsConsent(true); fetch(API + "/api/mail-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ smsConsent: true }) }).catch(() => { }); };
+    const smsStreamToggle = (key, v) => { onToggleRaw(key, v); };
     const smsSend = () => { if (!smsPhone) return; setSmsErr(""); fetch(API + "/api/mobile/start", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: smsPhone }) }).then((r) => r.ok ? r.json() : null).then(() => setSmsSent(true)).catch(() => setSmsErr(T("Senden fehlgeschlagen. Versuch es nochmal.", "Send failed. Try again."))); };
-    const smsVerify = () => { if (!smsCode) return; fetch(API + "/api/mobile/verify", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: smsCode }) }).then((r) => r.ok ? r.json() : null).then((d) => { if (d && (d.ok || d.verified)) { setSmsV(true); setSmsModal(false); onToggleRaw("trade-alerts", true); } else { setSmsErr(T("Code stimmt nicht. Prüf die SMS.", "Code doesn't match. Check the SMS.")); } }).catch(() => setSmsErr(T("Prüfung fehlgeschlagen.", "Verification failed."))); };
+    const smsVerify = () => { if (!smsCode) return; fetch(API + "/api/mobile/verify", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: smsCode }) }).then((r) => r.ok ? r.json() : null).then((d) => { if (d && (d.ok || d.verified)) { setSmsV(true); setSmsModal(false); if (smsPending) { onToggleRaw(smsPending, true); setSmsPending(null); } } else { setSmsErr(T("Code stimmt nicht. Prüf die SMS.", "Code doesn't match. Check the SMS.")); } }).catch(() => setSmsErr(T("Prüfung fehlgeschlagen.", "Verification failed."))); };
 
     return h("div", null, h(SiteNav, { active: "rituals.html" }),
       h(PyPageHead, { eyebrow: "Member rituals", title: "What arrives, and when.", sub: T("Der Wochen-Rhythmus aller Reports von Warren — was wann kommt, für wen, und wie du es liest.", "The weekly rhythm of all of Warren's reports — what arrives when, for whom, and how to read it.") }),
@@ -136,18 +190,19 @@
       h(Overview, { groups: GROUPS, uk: uk, isEnabled: isEnabled, onToggle: onToggle,
         smsBox: (uk === "syndicate" && smsV) ? h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", border: "1px solid var(--border-subtle)", borderRadius: 12, background: "var(--bg-surface)", padding: "16px 20px" } },
           h("div", null,
-            h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 } }, T("SMS-Trade-Alerts gehen an", "SMS trade alerts go to")),
+            h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 } }, T("Thesen-Alerts gehen an", "Thesis alerts go to")),
             h("div", { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } },
               h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 16, color: "var(--text-primary)" } }, smsPhone || T("deine Nummer", "your number")),
               h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--bull-bright)", border: "1px solid rgba(111,207,154,0.4)", borderRadius: 999, padding: "3px 9px" } }, T("verifiziert", "verified")))),
-          h(Button, { variant: "ghost", size: "sm", onClick: () => { setSmsSent(false); setSmsCode(""); setSmsErr(""); setSmsModal(true); } }, T("Nummer ändern", "Change number"))) : null }),
+          h(Button, { variant: "ghost", size: "sm", onClick: () => { setSmsPending(null); setSmsSent(false); setSmsCode(""); setSmsErr(""); setSmsModal(true); } }, T("Nummer ändern", "Change number"))) : null }),
+      (uk === "syndicate") ? h(SmsAlerts, { phone: smsPhone, smsV: smsV, smsConsent: smsConsent, prefs: prefs, onStream: smsStreamToggle, onVerify: openSmsVerify, onConsent: setConsentOn }) : null,
       GROUPS.map(([gtitle, gtag, reports], gi) => h(PySection, { key: gi, alt: gi % 2 === 1 },
         h("div", { style: { marginBottom: 28 } }, h(PyEyebrow, null, T("Rhythmus", "Rhythm")), h(PyH2, null, gtitle), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, color: "var(--text-secondary)", margin: "6px 0 0" } }, gtag)),
         reports.map((r) => h(Report, { key: r.key, r: r })))),
       smsModal ? h("div", { onClick: () => setSmsModal(false), style: { position: "fixed", inset: 0, zIndex: 260, background: "rgba(4,5,8,0.82)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } },
         h("div", { onClick: (e) => e.stopPropagation(), style: { maxWidth: 440, width: "100%", boxSizing: "border-box", background: "var(--bg-raised)", border: "1px solid var(--border-oracle)", borderRadius: 14, padding: 28 } },
           h("h3", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 25, margin: "0 0 10px", color: "var(--oracle-bright)" } }, T("Mobilnummer verifizieren", "Verify your mobile number")),
-          h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 18px" } }, T("SMS-Trade-Alerts gehen aufs Handy — dafür müssen wir deine Nummer einmal bestätigen. Wir schicken dir einen Code per SMS.", "SMS trade alerts go to your phone — we need to confirm your number once. We'll text you a code.")),
+          h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", margin: "0 0 18px" } }, T("Thesen-Alerts gehen aufs Handy — dafür müssen wir deine Nummer einmal bestätigen. Wir schicken dir einen Code per SMS.", "Thesis alerts go to your phone — we need to confirm your number once. We'll text you a code.")),
           !smsSent
             ? h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } },
                 h("input", { type: "tel", placeholder: "+49 151 …", value: smsPhone, onChange: (e) => setSmsPhone(e.target.value), style: { flex: 1, minWidth: 180, fontFamily: "var(--font-mono)", fontSize: 15, background: "var(--bg-input)", border: "1px solid var(--border-strong)", borderRadius: 7, padding: "11px 12px", color: "var(--text-primary)", outline: "none" } }),
