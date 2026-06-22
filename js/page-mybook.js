@@ -397,7 +397,21 @@
           setCheckId(null);
           if (!res) return;
           if (res.cooldown) { setCheckMsg((m) => Object.assign({}, m, { [p.id]: T("Cooldown — gerade erst geprüft. Versuch's in ein paar Minuten.", "Cooldown — just checked. Try again in a few minutes.") })); return; }
-          if (res.ok) setRows((rs) => rs.map((r) => r.id === p.id ? Object.assign({}, r, { score: res.score, zone: res.zone, waage_pct: (typeof res.score === "number" ? wpct(res.score) : r.waage_pct), einschaetzung: res.einschaetzung, last_checked_at: res.last_checked_at }) : r));
+          if (res.ok) setRows((rs) => rs.map((r) => {
+            if (r.id !== p.id) return r;
+            const zone = (res.zone != null) ? res.zone : r.zone;
+            const upd = Object.assign({}, r, {
+              score: res.score,
+              zone: zone,
+              waage_pct: (typeof res.score === "number" ? wpct(res.score) : r.waage_pct),
+              waage_label: res.waage_label || ZONE[((zone || 3) - 1)] || r.waage_label,
+              einschaetzung: res.einschaetzung,
+              last_checked_at: res.last_checked_at
+            });
+            // Status-Pill mitziehen: frischen Backend-Status nehmen, sonst null -> Fallback rechnet aus neuem Thesen-Label + live/entry neu.
+            upd.status = (res.status && res.status.key) ? res.status : null;
+            return upd;
+          }));
         })
         .catch(() => setCheckId(null));
     };
@@ -617,7 +631,8 @@
             h("span", { className: "badge long" }, p.art),
             p.tracking_source === "oracle" ? h("span", { className: "badge src-oracle" }, T("Orakel", "Oracle")) : (p.tracking_source === "member_only" ? h("span", { className: "badge src-self" }, T("Du trackst", "You track")) : null),
             p.action_required ? h("span", { className: "ar-pill" }, T("Schau hin", "Look")) : null,
-            h("span", { className: "isin" }, p.isin + " · Live " + ((p.live != null && String(p.live) !== "" && String(p.live) !== "null") ? p.live : "—") + (p.currency ? " " + p.currency : "")))),
+            h("span", { className: "isin" }, p.isin + " · Live " + ((p.live != null && String(p.live) !== "" && String(p.live) !== "null") ? p.live : "—") + (p.currency ? " " + p.currency : "")),
+            p.updated ? h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginLeft: 8 }, title: T("Letztes Live-Preis-Update", "Last live-price update") }, T("Aktualisiert um ", "Updated at ") + checkedTime(p.updated)) : null)),
           h("div", { className: "c-stat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label)),
           h("div", { className: "c-trig" }, h(Marks, { p }), p.currency ? h("div", { className: "cur" }, p.currency) : null),
           h("div", { className: "c-act" },
@@ -645,7 +660,7 @@
           h("div", { className: "topgrid" },
             h("div", { className: "einscol" },
               p.einschaetzung ? h("div", { className: "einsbox" },
-                h("div", { className: "tlbl" }, T("Warrens Einschätzung", "Warren's read")),
+                h("div", { className: "tlbl" }, T("Warrens Einschätzung", "Warren's read"), h("span", { style: { cursor: "help", color: "var(--text-muted)", marginLeft: 7, fontSize: 11 }, title: T("Warren bewertet die These automatisch, wenn der Kurs deutlich gelaufen ist oder eine Marke berührt wurde. Du kannst jederzeit selbst eine frische Bewertung anfordern.", "Warren re-checks the thesis automatically when price has moved significantly or a level was touched. You can request a fresh read anytime.") }, "(?)")),
                 h("div", { className: "einstext" }, p.einschaetzung),
                 p.last_checked_at ? h("div", { className: "einschk" }, T("Geprüft ", "Checked ") + checkedTime(p.last_checked_at)) : null) : null,
               checkMsg[p.id] ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--ox-b)", marginTop: 10 } }, checkMsg[p.id]) : null),
