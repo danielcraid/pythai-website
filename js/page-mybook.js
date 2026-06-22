@@ -134,6 +134,18 @@
   #mb-root .cpill.st-green{color:#8FCBA0;border:1px solid rgba(111,176,122,.5);background:rgba(111,176,122,.12);}
   #mb-root .cpill.st-greenS{color:#6FCF9A;border:1px solid rgba(111,207,154,.6);background:rgba(111,207,154,.16);}
   #mb-root .statbars{margin-bottom:22px;max-width:340px;}
+  /* Detail-Layout (Mockup): Bars-Reihe, Einschätzung-Box + Aktionen, Sektionen, Delete unten rechts. */
+  #mb-root .statrow{display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;margin-bottom:24px;}
+  #mb-root .stcol{flex:0 0 auto;min-width:190px;}
+  #mb-root .statrow .tworow{flex:1;min-width:240px;margin-top:0;align-self:flex-start;}
+  #mb-root .topgrid{display:grid;grid-template-columns:1fr 264px;gap:24px;align-items:start;}
+  #mb-root .einsbox{border:1px solid var(--border-oracle);background:rgba(212,169,78,.06);border-radius:12px;padding:18px 20px;}
+  #mb-root .einsbox .tlbl{margin-top:0;}
+  #mb-root .einstext{font-family:var(--font-ui);font-size:15px;line-height:1.6;color:var(--parch);margin:8px 0 0;}
+  #mb-root .einschk{font-family:var(--font-mono);font-size:10px;color:var(--ash);margin-top:12px;}
+  #mb-root .actcol2{display:flex;flex-direction:column;gap:12px;}
+  #mb-root .delrow{display:flex;justify-content:flex-end;margin-top:30px;}
+  @media(max-width:760px){ #mb-root .topgrid{grid-template-columns:1fr;} #mb-root .statrow{gap:18px;} #mb-root .actcol2{flex-direction:row;flex-wrap:wrap;} #mb-root .delrow{justify-content:flex-start;} }
   #mb-root .tworow{font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--steel);margin-top:12px;}
   #mb-root .dwrap{padding:6px 0 28px;}
   #mb-root .sw.locked{opacity:.4;cursor:not-allowed;}
@@ -609,33 +621,32 @@
               h("button", { className: "arb", onClick: () => doAction(p, "member_only") }, T("Weiter laufen lassen", "Let it run")),
               h("button", { className: "arb close", onClick: () => doAction(p, "close") }, T("Schließen", "Close")),
               h("button", { className: "arb warren", onClick: () => doAction(p, "ask_warren") }, T("Frag Warren", "Ask Warren")))) : null,
-          h("div", { className: "statbars" },
-            h("div", { className: "tlbl" }, T("Thesen-Stärke", "Thesis health")),
-            h(Mini, { p }),
-            (p.position_risk_label || p.position_risk_pct != null) ? h("div", { className: "tlbl", style: { marginTop: 16 } }, T("Positions-Risiko", "Position risk")) : null,
-            (p.position_risk_label || p.position_risk_pct != null) ? h(PosBar, { p }) : null,
+          h("div", { className: "statrow" },
+            h("div", { className: "stcol" }, h("div", { className: "tlbl" }, T("Thesen-Stärke", "Thesis health")), h(Mini, { p })),
+            (p.position_risk_label || p.position_risk_pct != null) ? h("div", { className: "stcol" }, h("div", { className: "tlbl" }, T("Positions-Risiko", "Position risk")), h(PosBar, { p })) : null,
             h("div", { className: "tworow" }, T("Positions-Risiko: misst, wie weit der Kurs vom Entry weg ist und wie nah am Stop. Thesen-Stärke: misst die Story — halten die Annahmen vom Setup? News, Sektor, Catalyst-Status. Beide sind getrennt, denn der Markt kann gegen dich laufen, ohne dass die Story bricht; und die Story kann brechen, bevor der Kurs es zeigt.", "Position risk: measures how far price is from entry and how close to the stop. Thesis health: measures the story — do the assumptions from the setup still hold? News, sector, catalyst status. They are separate, because the market can move against you without the story breaking; and the story can break before price shows it."))),
-          h("div", { className: "dgrid" },
-          h("div", { className: "dcol-act" },
-            h("button", { className: "bline chk", disabled: checkId === p.id, onClick: () => checkThesis(p) }, checkId === p.id ? T("Prüfe…", "Checking…") : T("These prüfen", "Check thesis")),
-            h("button", { className: "bline" + (chartBusy === p.id ? " saving" : ""), disabled: chartBusy === p.id, onClick: () => setChartConfirm(p) }, chartBusy === p.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")),
-            h("button", { className: "bdel", onClick: () => setDelId(p.id) }, T("Topic löschen", "Delete topic"))),
-          h("div", { className: "dcol-these" },
-            h("div", { className: "tlbl", style: { color: "var(--ox-b)" } }, T("Anti-These", "Anti-thesis")),
-            (p.anti_these || p.kill) ? h("div", { className: "antit" }, p.anti_these || p.kill) : h("div", { className: "kill" }, T("— keine Anti-These hinterlegt.", "— no anti-thesis on file.")),
-            h("div", { className: "tlbl" }, T("Kill-Trigger", "Kill triggers")),
-            killTagsOf(p).length >= 3
-              ? h("div", { className: "killpills" }, killTagsOf(p).map((k) => h("span", { key: k, className: "killpill" }, k)))
-              : h("div", { className: "killwarn" },
-                  killTagsOf(p).length ? h("div", { className: "killpills", style: { marginBottom: 8 } }, killTagsOf(p).map((k) => h("span", { key: k, className: "killpill" }, k))) : null,
-                  h("span", null, T("Mindestens 3 Kill-Trigger für breite News-Abdeckung — „Warren fragen“ hilft.", "At least 3 kill-triggers for broad news coverage — try “Ask Warren”.")),
-                  h("button", { className: "killwarn-edit", onClick: () => openEdit(p) }, T("Ergänzen", "Add more"))),
-            h("div", { className: "tlbl" }, T("Deine These", "Your thesis")),
-            h("div", { className: "these" }, p.these),
-            p.einschaetzung ? h("div", { className: "tlbl" }, T("Warrens Einschätzung", "Warren's read")) : null,
-            p.einschaetzung ? h("div", { className: "these", style: { color: "var(--text-secondary)" } }, p.einschaetzung) : null,
-            (p.einschaetzung && p.last_checked_at) ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginTop: 6 } }, T("Geprüft ", "Checked ") + checkedTime(p.last_checked_at)) : null,
-            checkMsg[p.id] ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--ox-b)", marginTop: 8 } }, checkMsg[p.id]) : null)))) : null);
+          h("div", { className: "topgrid" },
+            h("div", { className: "einscol" },
+              p.einschaetzung ? h("div", { className: "einsbox" },
+                h("div", { className: "tlbl" }, T("Warrens Einschätzung", "Warren's read")),
+                h("div", { className: "einstext" }, p.einschaetzung),
+                p.last_checked_at ? h("div", { className: "einschk" }, T("Geprüft ", "Checked ") + checkedTime(p.last_checked_at)) : null) : null,
+              checkMsg[p.id] ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--ox-b)", marginTop: 10 } }, checkMsg[p.id]) : null),
+            h("div", { className: "actcol2" },
+              h("button", { className: "bline chk", disabled: checkId === p.id, onClick: () => checkThesis(p) }, checkId === p.id ? T("Prüfe…", "Checking…") : T("These prüfen", "Check thesis")),
+              h("button", { className: "bline" + (chartBusy === p.id ? " saving" : ""), disabled: chartBusy === p.id, onClick: () => setChartConfirm(p) }, chartBusy === p.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")))),
+          h("div", { className: "tlbl" }, T("Deine These", "Your thesis")),
+          h("div", { className: "these" }, p.these),
+          h("div", { className: "tlbl", style: { color: "var(--ox-b)" } }, T("Anti-These", "Anti-thesis")),
+          (p.anti_these || p.kill) ? h("div", { className: "antit" }, p.anti_these || p.kill) : h("div", { className: "kill" }, T("— keine Anti-These hinterlegt.", "— no anti-thesis on file.")),
+          h("div", { className: "tlbl" }, T("Kill-Trigger", "Kill triggers")),
+          killTagsOf(p).length >= 3
+            ? h("div", { className: "killpills" }, killTagsOf(p).map((k) => h("span", { key: k, className: "killpill" }, k)))
+            : h("div", { className: "killwarn" },
+                killTagsOf(p).length ? h("div", { className: "killpills", style: { marginBottom: 8 } }, killTagsOf(p).map((k) => h("span", { key: k, className: "killpill" }, k))) : null,
+                h("span", null, T("Mindestens 3 Kill-Trigger für breite News-Abdeckung — „Warren fragen“ hilft.", "At least 3 kill-triggers for broad news coverage — try “Ask Warren”.")),
+                h("button", { className: "killwarn-edit", onClick: () => openEdit(p) }, T("Ergänzen", "Add more"))),
+          h("div", { className: "delrow" }, h("button", { className: "bdel", onClick: () => setDelId(p.id) }, T("Topic löschen", "Delete topic"))))) : null);
     };
 
     return h("div", { id: "mb-root" },
