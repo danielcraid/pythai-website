@@ -201,8 +201,8 @@
       window.addEventListener("beforeunload", function () { if (on) saveTime(); });
       setInterval(function () { if (on && !audio.paused) saveTime(); }, 1000); // robust position save (pagehide can miss)
       function fade(to, cb) { clearInterval(fadeT); var step = (to - audio.volume) / 18; fadeT = setInterval(function () { audio.volume = Math.min(1, Math.max(0, audio.volume + step)); if (Math.abs(audio.volume - to) < 0.02) { audio.volume = to; clearInterval(fadeT); if (cb) cb(); } }, 40); }
-      function pref() { try { return localStorage.getItem("py_sound"); } catch (e) { return null; } }
-      function setPref(v) { try { localStorage.setItem("py_sound", v); } catch (e) { } }
+      function pref() { try { var v = localStorage.getItem("py_sound"); if (v) return v; } catch (e) { } try { var m = document.cookie.match("(?:^|; )py_sound=([^;]*)"); return m ? decodeURIComponent(m[1]) : null; } catch (e) { return null; } }
+      function setPref(v) { try { localStorage.setItem("py_sound", v); } catch (e) { } try { document.cookie = "py_sound=" + encodeURIComponent(v) + ";path=/;max-age=31536000;samesite=lax"; } catch (e) { } }
       // Gesture fallback — only used when the browser blocks unmuted autoplay (very first visit).
       function unmute() { if (on && pref() !== "off") { audio.muted = false; (audio.play() || Promise.resolve()).then(function () { fade(TARGET); setHint(false); }).catch(function () { }); } disarm(); }
       function arm() { if (gestureArmed) return; gestureArmed = true; ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.addEventListener(ev, unmute); }); }
