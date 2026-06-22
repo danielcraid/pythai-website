@@ -90,6 +90,8 @@
   #mb-root .orow:hover{background:#13161C;}
   /* Geöffnetes Topic: nur hellerer Hintergrund (die farbige Linie liefert bereits die Gruppe ganz links). */
   #mb-root .topic.open,#mb-root .topic.open>.orow{background:#1E232B;}
+  /* Grau bis zur Gruppenlinie links ziehen (Desktop, ohne Content zu verschieben). */
+  #mb-root .topic.open{box-shadow:-18px 0 0 0 #1E232B;}
   #mb-root .c-mon{display:flex;align-items:center;gap:10px;justify-self:start;}
   #mb-root .c-topic{min-width:0;}
   #mb-root .c-act{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:9px;}
@@ -144,7 +146,8 @@
   #mb-root .einstext{font-family:var(--font-ui);font-size:15px;line-height:1.6;color:var(--parch);margin:8px 0 0;}
   #mb-root .einschk{font-family:var(--font-mono);font-size:10px;color:var(--ash);margin-top:12px;}
   #mb-root .actcol2{display:flex;flex-direction:column;gap:12px;}
-  #mb-root .delrow{display:flex;justify-content:flex-end;margin-top:30px;}
+  #mb-root .delrow{display:flex;justify-content:flex-start;margin-top:30px;}
+  #mb-root .delrow .bdel{width:264px;max-width:100%;}
   @media(max-width:760px){ #mb-root .topgrid{grid-template-columns:1fr;} #mb-root .statrow{gap:18px;} #mb-root .actcol2{flex-direction:row;flex-wrap:wrap;} #mb-root .delrow{justify-content:flex-start;} }
   #mb-root .tworow{font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--steel);margin-top:12px;}
   #mb-root .dwrap{padding:6px 0 28px;}
@@ -249,7 +252,7 @@
     #mb-root .grp{padding-left:9px;}
     #mb-root .orow{padding-right:0;}
     /* Offenes Topic: graue Fläche bis an die Ränder (links bis zur Gruppenlinie, rechts bis zum Bildschirmrand). */
-    #mb-root .topic.open{position:relative;margin-left:-9px;margin-right:-16px;padding-left:12px;padding-right:16px;}
+    #mb-root .topic.open{position:relative;margin-left:-9px;margin-right:-16px;padding-left:12px;padding-right:16px;box-shadow:none;}
     /* X in die obere rechte Ecke, größer. */
     #mb-root .topic.open .det.x{position:absolute;top:4px;right:8px;z-index:3;font-size:28px;padding:6px 10px;}
     #mb-root .topic.open .c-topic{padding-right:40px;}
