@@ -21,18 +21,32 @@
   // Reine Thesen-Stärke als Pill (für die Simple-Ansicht: wackelt vs. intakt auf einen Blick).
   const TH_META = { GEBROCHEN: { l: T("Gebrochen", "Broken"), c: "#E0726B" }, WACKELT: { l: T("Wackelt", "Wobbling"), c: "#CF7A4E" }, NEUTRAL: { l: T("Neutral", "Neutral"), c: "#C9A24E" }, INTAKT: { l: T("Intakt", "Intact"), c: "#6FB07A" }, STARK: { l: T("Stark", "Strong"), c: "#6FCF9A" } };
   const thesisPill = (p) => TH_META[thesisLabelOf(p)] || TH_META.NEUTRAL;
-  const consolidatedStatus = (p) => {
+  // Status-Pill: Backend ist authoritative (p.status.key). Fallback nutzt live>entry (NICHT position_risk_score).
+  const PILLMETA = {
+    STOPPED: { cls: "st-red", l: T("Gestoppt", "Stopped"), t: T("Stop berührt — Position physisch geschlossen.", "Stop touched — position physically closed.") },
+    ACTION: { cls: "st-red", l: T("Aktion erforderlich", "Action required"), t: T("These gebrochen. Du entscheidest.", "Thesis broken. Your call.") },
+    POSITION: { cls: "st-orange", l: T("Positions-Risiko", "Position risk"), t: T("Position läuft gegen dich. Stop-Nähe oder Drawdown ab 5 %.", "Position running against you. Near stop or drawdown 5%+.") },
+    SKIM: { cls: "st-yellow", l: T("Skim-Chance", "Skim chance"), t: T("Im Plus, aber Catalyst wackelt. Klassischer Skim-Moment.", "In profit but the catalyst is wobbling. Classic skim moment.") },
+    DRIFT: { cls: "st-orange", l: T("Drift", "Drift"), t: T("Position negativ + Story bröckelt. Schau hin.", "Position negative + story crumbling. Look.") },
+    STARK: { cls: "st-greenS", l: T("Stark", "Strong"), t: T("Im Plus, Story bestätigt.", "In profit, story confirmed.") },
+    INTAKT: { cls: "st-green", l: T("Intakt", "Intact"), t: T("Story trägt.", "Story holds.") }
+  };
+  const parseDeNum = (s) => { if (s == null) return null; if (typeof s === "number") return isFinite(s) ? s : null; const n = parseFloat(String(s).replace(/\./g, "").replace(",", ".")); return isFinite(n) ? n : null; };
+  const statusKeyOf = (p) => {
+    if (p.status && p.status.key) return String(p.status.key).toUpperCase();
     const thesis = thesisLabelOf(p);
     const pos = String(p.position_risk_label || "").toLowerCase();
-    const ps = (p.position_risk_score != null) ? Number(p.position_risk_score) : null;
-    if (pos === "stopped") return { cls: "st-red", label: T("Gestoppt", "Stopped"), tip: T("Stop berührt — Position physisch geschlossen.", "Stop touched — position physically closed.") };
-    if (thesis === "GEBROCHEN") return { cls: "st-red", label: T("Aktion erforderlich", "Action required"), tip: T("These gebrochen. Du entscheidest.", "Thesis broken. Your call.") };
-    if (pos === "danger") return { cls: "st-orange", label: T("Positions-Risiko", "Position risk"), tip: T("Position läuft gegen dich. Stop-Nähe oder Drawdown ab 5 %.", "Position running against you. Near stop or drawdown 5%+.") };
-    if (thesis === "WACKELT" && ps != null && ps > 0) return { cls: "st-yellow", label: T("Skim-Chance", "Skim chance"), tip: T("Im Plus, aber Catalyst wackelt. Klassischer Skim-Moment.", "In profit but the catalyst is wobbling. Classic skim moment.") };
-    if (thesis === "WACKELT") return { cls: "st-orange", label: T("Drift", "Drift"), tip: T("Position negativ + Story bröckelt. Schau hin.", "Position negative + story crumbling. Look.") };
-    if (thesis === "STARK" && ps != null && ps > 0.3) return { cls: "st-greenS", label: T("Stark", "Strong"), tip: T("Im Plus, Story bestätigt.", "In profit, story confirmed.") };
-    return { cls: "st-green", label: T("Intakt", "Intact"), tip: T("Story trägt.", "Story holds.") };
+    const liveN = parseDeNum(p.live), entryN = parseDeNum(p.entry);
+    const inProfit = (liveN != null && entryN != null && entryN > 0) ? liveN > entryN : null;
+    if (pos === "stopped") return "STOPPED";
+    if (thesis === "GEBROCHEN") return "ACTION";
+    if (pos === "danger") return "POSITION";
+    if (thesis === "WACKELT" && inProfit === true) return "SKIM";
+    if (thesis === "WACKELT") return "DRIFT";
+    if (thesis === "STARK" && inProfit === true) return "STARK";
+    return "INTAKT";
   };
+  const consolidatedStatus = (p) => { const m = PILLMETA[statusKeyOf(p)] || PILLMETA.INTAKT; return { cls: m.cls, label: m.l, tip: m.t }; };
   function PosBar({ p }) {
     const lab = String(p.position_risk_label || "").toLowerCase();
     const idx = POSR.indexOf(lab);
