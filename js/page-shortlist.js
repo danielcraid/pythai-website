@@ -429,7 +429,7 @@
             h("span", { className: "lab" }, T("Setup", "Setup")),
             h("span", { className: "v" }, entryDisp ? entryDisp + " EUR" : "—"),
             h("span", { className: "ar" }, "→"),
-            h("span", { className: "lab" }, T("Live", "Live")),
+            h("span", { className: "lab" }, T("Kurs", "Last")),
             h("span", { className: "v " + trendCls }, liveDisp ? liveDisp + " EUR" : "—")),
           h("div", { className: "dist" },
             todayFmt ? h("span", { className: trendCls === "dn" ? "x" : (trendCls === "up" ? "s" : "f") }, arrow + " " + todayFmt + " " + T("heute", "today")) : null,

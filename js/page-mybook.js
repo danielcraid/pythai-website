@@ -384,7 +384,9 @@
     const toggleMon = (p) => { sfx("button-004-toggle"); if (p.monitored) setMon(p.id, false); else { setMonCh("mail"); setMonModal(p.id); } };
     const confirmMon = () => { setMon(monModal, true, monCh); setMonModal(null); };
     const openEdit = (p) => { setEditingId(p.id); setTagInput(""); resetSuggest(); setAddF({ name: p.name || "", isin: p.isin || "", issuer: p.issuer || "", idx: p.idx || "", art: p.art || "Aktie · Long", venue: p.venue || "Tradegate", currency: p.currency || "EUR", entry: p.entry || "", stop: p.stop || "", skim: p.skim || "", target: p.target || "", these: p.these || "", anti_these: p.anti_these || "", kill_triggers: killTagsOf(p) }); };
-    const checkedTime = (iso) => { try { return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+    const checkedTime = (iso) => { try { if (!iso) return ""; const d = new Date(iso); if (isNaN(d.getTime())) return ""; return d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+    const liveTsOf = (p) => checkedTime(p.updated || p.updated_at || p.live_updated_at || p.quote_updated_at || p.price_updated_at || "");
+    const chkTsOf = (p) => checkedTime(p.last_checked_at || p.lastCheckedAt || p.checked_at || "");
     const checkThesis = (p) => {
       setCheckId(p.id); setCheckMsg((m) => Object.assign({}, m, { [p.id]: "" }));
       fetch(API + "/api/mybook/" + p.id + "/check-thesis", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" })
@@ -631,8 +633,8 @@
             h("span", { className: "badge long" }, p.art),
             p.tracking_source === "oracle" ? h("span", { className: "badge src-oracle" }, T("Orakel", "Oracle")) : (p.tracking_source === "member_only" ? h("span", { className: "badge src-self" }, T("Du trackst", "You track")) : null),
             p.action_required ? h("span", { className: "ar-pill" }, T("Schau hin", "Look")) : null,
-            h("span", { className: "isin" }, p.isin + " · Live " + ((p.live != null && String(p.live) !== "" && String(p.live) !== "null") ? p.live : "—") + (p.currency ? " " + p.currency : "")),
-            p.updated ? h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginLeft: 8 }, title: T("Letztes Live-Preis-Update", "Last live-price update") }, T("Aktualisiert um ", "Updated at ") + checkedTime(p.updated)) : null)),
+            h("span", { className: "isin" }, p.isin + " · " + T("Kurs", "Last") + " " + ((p.live != null && String(p.live) !== "" && String(p.live) !== "null") ? p.live : "—") + (p.currency ? " " + p.currency : "")),
+            liveTsOf(p) ? h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginLeft: 8 }, title: T("Letztes Kurs-Update", "Last price update") }, T("Aktualisiert um ", "Updated at ") + liveTsOf(p)) : null)),
           h("div", { className: "c-stat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label)),
           h("div", { className: "c-trig" }, h(Marks, { p }), p.currency ? h("div", { className: "cur" }, p.currency) : null),
           h("div", { className: "c-act" },
@@ -662,7 +664,7 @@
               p.einschaetzung ? h("div", { className: "einsbox" },
                 h("div", { className: "tlbl" }, T("Warrens Einschätzung", "Warren's read"), h("span", { style: { cursor: "help", color: "var(--text-muted)", marginLeft: 7, fontSize: 11 }, title: T("Warren bewertet die These automatisch, wenn der Kurs deutlich gelaufen ist oder eine Marke berührt wurde. Du kannst jederzeit selbst eine frische Bewertung anfordern.", "Warren re-checks the thesis automatically when price has moved significantly or a level was touched. You can request a fresh read anytime.") }, "(?)")),
                 h("div", { className: "einstext" }, p.einschaetzung),
-                p.last_checked_at ? h("div", { className: "einschk" }, T("Geprüft ", "Checked ") + checkedTime(p.last_checked_at)) : null) : null,
+                chkTsOf(p) ? h("div", { className: "einschk" }, T("Geprüft ", "Checked ") + chkTsOf(p)) : null) : null,
               checkMsg[p.id] ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--ox-b)", marginTop: 10 } }, checkMsg[p.id]) : null),
             h("div", { className: "actcol2" },
               h("button", { className: "bline chk", disabled: checkId === p.id, onClick: () => checkThesis(p) }, checkId === p.id ? T("Prüfe…", "Checking…") : T("These prüfen", "Check thesis")),
