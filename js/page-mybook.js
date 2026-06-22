@@ -54,7 +54,7 @@
   #mb-root .vtog{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
   #mb-root .vtog button{background:none;border:none;padding:7px 13px;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);cursor:pointer;}
   #mb-root .vtog button.on{background:var(--grad-gold);color:var(--text-on-gold);}
-  #mb-root .simplelist{display:flex;flex-direction:column;border-top:1px solid var(--line);max-width:880px;}
+  #mb-root .simplelist{display:flex;flex-direction:column;border-top:1px solid var(--line);}
   #mb-root .srow{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:15px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
   #mb-root .srow:hover{background:#13161C;}
   #mb-root .sleft{display:flex;align-items:center;gap:12px;min-width:0;}
@@ -303,7 +303,7 @@
     const [mirrorModal, setMirrorModal] = useState(null);
     const [delId, setDelId] = useState(null);
     const [summary, setSummary] = useState(true);
-    const [simple, setSimple] = useState(() => { try { return window.innerWidth < 760; } catch (e) { return false; } });
+    const [simple, setSimple] = useState(true);
     const BLANK = { name: "", isin: "", issuer: "", idx: "", art: "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: "", stop: "", skim: "", target: "", these: "", anti_these: "", kill_triggers: [] };
     const KILL_SUGGEST = ["iran_ceasefire", "hormus_resumed", "recession_eu", "capex_cut", "sektor_drift_down", "fed_hawkish_shock", "usd_crash", "china_export_ban", "earnings_miss", "esma_ban", "oil_supply_shock"];
     const normTag = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
