@@ -241,6 +241,24 @@
   #sl-root .disc{margin:40px 0 0;border:1px solid var(--line);border-left:3px solid #8A6526;border-radius:8px;background:var(--card);padding:14px 18px;}
   #sl-root .disc p{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--mist);margin:0;}
   #sl-root .flash{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:300;max-width:90vw;background:var(--raised);border:1px solid var(--border-oracle);border-left:3px solid var(--oracle-b);border-radius:10px;padding:13px 18px;font-family:var(--font-ui);font-size:13.5px;color:var(--parch);box-shadow:0 14px 40px rgba(0,0,0,.5);}
+  #sl-root .toolbar{display:flex;justify-content:flex-end;margin:4px 0 14px;}
+  #sl-root .vtog{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  #sl-root .vtog button{background:none;border:none;padding:7px 13px;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);cursor:pointer;}
+  #sl-root .vtog button.on{background:var(--oracle-b);color:#0B0D11;}
+  #sl-root .simplelist{display:flex;flex-direction:column;border-top:1px solid var(--line);}
+  #sl-root .srow{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:15px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
+  #sl-root .srow:hover{background:#13161C;}
+  #sl-root .sleft{display:flex;align-items:center;gap:12px;min-width:0;}
+  #sl-root .sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  #sl-root .sdot.o{background:var(--oracle);} #sl-root .sdot.s{background:#9F7BCB;}
+  #sl-root .sname{min-width:0;}
+  #sl-root .sname .nm{font-family:var(--font-oracle);font-size:18px;color:var(--parch);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:0;}
+  #sl-root .sname .px{font-family:var(--font-mono);font-size:12px;color:var(--ash);margin-top:2px;}
+  #sl-root .sright{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  #sl-root .slbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
+  #sl-root .spill{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid currentColor;border-radius:999px;padding:5px 12px;white-space:nowrap;}
+  #sl-root .sbestand{font-family:var(--font-mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--oracle-b);border:1px solid rgba(212,169,78,.4);border-radius:999px;padding:3px 8px;white-space:nowrap;}
+  @media(max-width:560px){ #sl-root .slbl{display:none;} }
 
   @media(max-width:820px){
     #sl-root .head{grid-template-columns:minmax(0,1fr) auto;gap:14px 18px;grid-template-areas:"id live" "bm bm";}
@@ -297,6 +315,7 @@
     const [chartConfirm, setChartConfirm] = useState(null);
     const [showArchive, setShowArchive] = useState(false);
     const [showWatch, setShowWatch] = useState(false);
+    const [simple, setSimple] = useState(true);
     const sfx = (n) => { if (typeof window.PYsfx === "function") window.PYsfx(n); };
     const [chartBusy, setChartBusy] = useState(null);
     const [flash, setFlash] = useState("");
@@ -403,7 +422,7 @@
       const newsHitAt = t.news_hit_at_de || "";
       const cs = consolidatedStatus(t);
 
-      return h("div", { key: t.id, className: "card" + (isOpen ? " open" : "") + (t.held_by_me ? " held" : "") },
+      return h("div", { key: t.id, id: "sl-" + t.id, className: "card" + (isOpen ? " open" : "") + (t.held_by_me ? " held" : "") },
         h("div", { className: "head", onClick: () => { sfx(isOpen ? "button-001-itemclose" : "button-002-itemopen"); setOpen(isOpen ? null : t.id); } },
           h("div", { className: "id" },
             h("div", { className: "cat " + (isShort ? "short" : "long") }, t.art || ""),
@@ -548,12 +567,31 @@
       : T("Thesen werden laufend geprüft.", "Theses are checked continuously.");
     const lastChk = meta && (meta.last_thesis_check_de || meta.last_news_check_de);
     const nextChk = meta && (meta.next_news_check_de || meta.next_thesis_refresh_de);
+    const SimpleRow = (t) => {
+      const lab = String(t.waage_label || "").toUpperCase();
+      const tp = { l: ZLAB[lab] || lab || "—", c: zoneColor(lab) };
+      const liveDisp = (typeof t.live === "string" && t.live) ? t.live : (liveNum(t) != null ? deFmt(liveNum(t)) : null);
+      return h("div", { key: t.id, className: "srow", role: "button", tabIndex: 0, onClick: () => { sfx("button-002-itemopen"); setSimple(false); setOpen(t.id); setTimeout(() => { const el = document.getElementById("sl-" + t.id); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 250); } },
+        h("div", { className: "sleft" },
+          h("span", { className: "sdot o" }),
+          h("div", { className: "sname" },
+            h("div", { className: "nm" }, t.asset),
+            liveDisp ? h("div", { className: "px" }, liveDisp + " EUR") : null)),
+        h("span", { className: "sright" },
+          t.held_by_me ? h("span", { className: "sbestand", title: T("Du hältst diese Position in deinem My Book.", "You hold this position in your My Book.") }, T("Bestand", "Held")) : null,
+          h("span", { className: "slbl" }, T("These", "Thesis")),
+          h("span", { className: "spill", style: { color: tp.c, borderColor: tp.c } }, tp.l)));
+    };
     return page(h("div", null,
       Hero(h("div", { className: "hmeta" },
         h("span", { className: "pulse" }),
         h("span", null, h("span", { className: "cnt" }, visible.length), " ", T(visible.length === 1 ? "aktive Position" : "aktive Positionen", visible.length === 1 ? "active position" : "active positions")),
         lastChk ? h("span", { className: "chkmeta", title: cadText }, "· " + T("zuletzt geprüft ", "last checked ") + lastChk + (nextChk ? (T(" · nächste ", " · next ") + nextChk) : "")) : null)),
-      h("div", { className: "list" }, visible.map(Card)),
+      h("div", { className: "toolbar" },
+        h("div", { className: "vtog" },
+          h("button", { className: simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(true); } }, T("Einfach", "Simple")),
+          h("button", { className: !simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(false); } }, T("Detail", "Detail")))),
+      simple ? h("div", { className: "simplelist" }, visible.map(SimpleRow)) : h("div", { className: "list" }, visible.map(Card)),
       watchEl,
       archiveEl));
   }
