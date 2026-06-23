@@ -56,11 +56,23 @@
   }
 
   function Typing() {
+    const phrases = [
+      T("Warren denkt nach…", "Warren is thinking…"),
+      T("Warren prüft die Substanz…", "Warren checks the substance…"),
+      T("Warren liest die Faktoren…", "Warren reads the factors…"),
+      T("Recherche dauert manchmal — gleich.", "Research takes a moment — almost there.")
+    ];
+    const [i, setI] = useState(0);
+    useEffect(() => {
+      const id = setInterval(() => setI((x) => (x < phrases.length - 1 ? x + 1 : x)), 3500);
+      return () => clearInterval(id);
+    }, []);
     return h("div", { style: { display: "flex", gap: 7, marginBottom: 7, alignItems: "center" } },
       h("img", { src: PORTRAIT, alt: "", style: { width: 26, height: 26, borderRadius: "50%", objectFit: "cover", objectPosition: "center 20%", border: "1px solid var(--border-oracle)" } }),
-      h("div", { style: { background: "var(--bg-input)", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "11px 14px" } },
+      h("div", { style: { background: "var(--bg-input)", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 9, maxWidth: "100%" } },
         h("style", null, "@keyframes pyc-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-4px);opacity:1}} .pyc-dot{width:6px;height:6px;border-radius:50%;background:var(--text-oracle);display:inline-block;margin:0 2px;animation:pyc-bounce 1.2s infinite}"),
-        h("span", { className: "pyc-dot" }), h("span", { className: "pyc-dot", style: { animationDelay: ".15s" } }), h("span", { className: "pyc-dot", style: { animationDelay: ".3s" } })));
+        h("span", { style: { flexShrink: 0 } }, h("span", { className: "pyc-dot" }), h("span", { className: "pyc-dot", style: { animationDelay: ".15s" } }), h("span", { className: "pyc-dot", style: { animationDelay: ".3s" } })),
+        h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--text-secondary)", fontStyle: "italic" } }, phrases[i])));
   }
 
   function ChatWidget() {
@@ -241,8 +253,7 @@
       // body
       h("div", { ref: bodyRef, style: { flex: 1, overflowY: "auto", padding: "13px 9px" } },
         msgs.map((m, i) => h(Bubble, { key: i, m, onSignin: () => setAuth({ phase: "email", email: "" }), onReset: resetChat })),
-        busy ? h(Typing, null) : null,
-        busy && soft ? h("div", { style: { textAlign: "center", fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", marginTop: 2 } }, T("Warren denkt nach — Recherche dauert manchmal.", "Warren is thinking — research takes a moment.")) : null),
+        busy ? h(Typing, null) : null),
       // footer / auth
       auth ? h("div", { style: { padding: "12px 14px", borderTop: "1px solid var(--border-subtle)" } },
         auth.phase === "email"
