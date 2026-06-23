@@ -421,6 +421,8 @@
       const newsHit = !!t.recent_news_hit;
       const newsHitAt = t.news_hit_at_de || "";
       const cs = consolidatedStatus(t);
+      // Setup->Kurs-Farbe: grün, wenn der Kurs in Thesen-Richtung über (Long) bzw. unter (Short) dem Setup liegt; sonst rot.
+      const setupCls = (entry != null && live != null && live !== entry) ? ((isShort ? live < entry : live > entry) ? "up" : "dn") : "flat";
 
       return h("div", { key: t.id, id: "sl-" + t.id, className: "card" + (isOpen ? " open" : "") + (t.held_by_me ? " held" : "") },
         h("div", { className: "head", onClick: () => { sfx(isOpen ? "button-001-itemclose" : "button-002-itemopen"); setOpen(isOpen ? null : t.id); } },
@@ -449,7 +451,7 @@
             h("span", { className: "v" }, entryDisp ? entryDisp + " EUR" : "—"),
             h("span", { className: "ar" }, "→"),
             h("span", { className: "lab" }, T("Kurs", "Last")),
-            h("span", { className: "v " + trendCls }, liveDisp ? liveDisp + " EUR" : "—")),
+            h("span", { className: "v " + setupCls }, liveDisp ? liveDisp + " EUR" : "—")),
           h("div", { className: "dist" },
             todayFmt ? h("span", { className: trendCls === "dn" ? "x" : (trendCls === "up" ? "s" : "f") }, arrow + " " + todayFmt + " " + T("heute", "today")) : null,
             dol != null ? h("span", { className: "f" }, dol + (dol === 1 ? T(" Tag auf der Liste", "d on the list") : T(" Tage auf der Liste", "d on the list"))) : (t.origin ? h("span", { className: "f" }, T("seit ", "since ") + t.origin) : null)),
