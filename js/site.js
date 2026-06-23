@@ -51,7 +51,7 @@
     ["Rituals", "rituals.html"],
     ["Chartomat", "chartomat.html"],
     ["Shortlist", "shortlist.html"],
-    ["My Book", "mybook.html"]
+    ["MyBook", "mybook.html"]
   ];
   const MEMBER_AREA = ["shortlist.html", "chartomat.html", "playbook.html", "rituals.html", "methodik.html", "mybook.html"]; // hell-gold getoent wenn eingeloggt
   const PRIV = ["inner-circle", "circle-of-trust", "syndicate", "admin"]; // Playbook + Rituals nur fuer diese Tiers
@@ -140,7 +140,7 @@
     const items = navItems(me);
     const loggedIn = !!me;
     const linkColor = function (href) {
-      if (active === href) return "var(--oxblood-bright)";
+      if (active === href) return "#E0726B";
       if (loggedIn && MEMBER_AREA.indexOf(href) !== -1) return "var(--oracle-pale)";
       return "var(--text-secondary)";
     };
