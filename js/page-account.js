@@ -248,6 +248,7 @@
   function AccountSettings({ a }) {
     const tier = a.tier || "observer";
     const paying = tier === "inner-circle" || tier === "syndicate";
+    const synd = tier === "syndicate" || tier === "admin";
     const [mails, setMails] = useState(a.mailsActive !== false);
     const [nick, setNick] = useState(a.nickname || "");
     const [nickSaved, setNickSaved] = useState(false);
@@ -265,6 +266,7 @@
     const [editingMobile, setEditingMobile] = useState(false);
     const [mobileErr, setMobileErr] = useState("");
     const [mobileBusy, setMobileBusy] = useState(false);
+    const [phoneConsent, setPhoneConsent] = useState(!!(a.phoneRecordingConsent || a.phone_recording_consent));
     const [emailBusy, setEmailBusy] = useState(false);
     const [emailErr, setEmailErr] = useState("");
     const emailErrMsg = (status, e) => { const c = String(e || "").toLowerCase(); if (c === "invalid_email") return T("Ungültige E-Mail-Adresse.", "Invalid email address."); if (c === "same_email") return T("Das ist bereits deine Adresse.", "That's already your address."); if (c === "email_in_use" || status === 409) return T("Diese Adresse wird bereits verwendet.", "This address is already in use."); if (c === "rate_limited" || status === 429) return T("Zu viele Versuche — bitte später nochmal (max. 3/Stunde).", "Too many attempts — try again later (max 3/hour)."); if (c === "send_failed" || status === 502) return T("Die Bestätigungsmail konnte nicht gesendet werden. Bitte gleich nochmal versuchen.", "The confirmation email couldn't be sent. Please try again shortly."); if (c === "unauthorized" || status === 401) { if (window.PYsessionExpired) window.PYsessionExpired(); return ""; } return T("Hat nicht geklappt — versuch es gleich nochmal.", "That didn't work — try again shortly."); };
@@ -290,6 +292,7 @@
     function toggleMails(v) { setMails(v); post("/api/mail-prefs", { mailsActive: v }); }
     function toggleCompass(v) { setCompass(v); post("/api/mail-prefs", { report: "morning-compass", on: v }); post("/api/mail-prefs", { report: "markt-vibe", on: v }); }
     function toggleMobile(v) { setMobileErr(""); setMobileOn(v); if (!v) { setSent(false); setVerified(false); post("/api/mobile/disable", {}); } }
+    function togglePhoneConsent(v) { setPhoneConsent(v); post("/api/phone-consent", { granted: v }); }
     function sendCode() {
       if (!phone || mobileBusy) return;
       setMobileErr(""); setMobileBusy(true);
@@ -330,6 +333,10 @@
             : h(React.Fragment, null,
                 h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--text-oracle)", margin: 0, lineHeight: 1.5 } }, T("Code verschickt an ", "Code sent to ") + (phone || "") + T(" — gib ihn ein. Die Nummer gilt erst nach Bestätigung als verifiziert.", " — enter it. The number counts as verified only after confirmation.")),
                 h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, h(Input, { placeholder: T("SMS-Code", "SMS code"), value: code, onChange: (e) => setCode(e.target.value), style: { flex: 1, minWidth: 140 } }), h(Button, { variant: "oracle", onClick: verify, disabled: !code || mobileBusy }, mobileBusy ? T("pr\xFCfe…", "checking…") : T("Best\xE4tigen", "Verify")))), mobileErr ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--text-warn, #d8a34a)" } }, mobileErr) : null),
+        synd && h(React.Fragment, null,
+          h(Divider),
+          h(SetRow, { title: T("Telefon mit Warren — Aufnahme-Einwilligung", "Phone with Warren — recording consent"), sub: T("Pflicht, um Warren anzurufen. Ohne Einwilligung ist kein Telefonat möglich.", "Required to call Warren. Without consent no call is possible."), control: h(Switch, { checked: phoneConsent, onChange: togglePhoneConsent }) }),
+          h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, lineHeight: 1.55, color: "var(--text-muted)", margin: "0 0 4px", maxWidth: "64ch" } }, T("Ich willige ein, dass meine Telefonate mit Warren zur Qualitätssicherung und §32-Compliance aufgezeichnet und transkribiert werden. Aufnahmen werden 6 Monate gespeichert und auf Anfrage gelöscht. Ich kann diese Einwilligung jederzeit hier widerrufen — dann ist kein Warren-Telefonat mehr möglich.", "I consent to my calls with Warren being recorded and transcribed for quality assurance and §32 compliance. Recordings are stored for 6 months and deleted on request. I can withdraw this consent here anytime — after which calling Warren is no longer possible."))),
         paying && h(React.Fragment, null, h(Divider), h(SetRow, { title: T("Subscription downgraden", "Downgrade subscription"), sub: T("L\xE4uft bis zum Periodenende weiter.", "Stays active until the end of the period."), control: confirming === "downgrade" ? h("div", { style: { display: "flex", gap: 8 } }, h(Button, { variant: "oxblood", size: "sm", onClick: doDowngrade }, T("Sicher?", "Sure?")), h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming(null) }, T("Abbrechen", "Cancel"))) : h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming("downgrade") }, T("Downgrade", "Downgrade")) })),
         h(Divider),
         h(SetRow, { title: T("Account l\xF6schen", "Delete account"), sub: T("Unwiderruflich. Per Magic-Link-Best\xE4tigung.", "Irreversible. Confirmed via magic link."), control: confirming === "delete" ? h("div", { style: { display: "flex", gap: 8 } }, h(Button, { variant: "oxblood", size: "sm", "data-sfx": "delete", onClick: doDelete }, T("Sicher?", "Sure?")), h(Button, { variant: "ghost", size: "sm", onClick: () => setConfirming(null) }, T("Abbrechen", "Cancel"))) : h(Button, { variant: "ghost", size: "sm", "data-sfx": "delete", onClick: () => setConfirming("delete") }, T("L\xF6schen", "Delete")) })),
