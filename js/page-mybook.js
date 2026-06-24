@@ -450,7 +450,7 @@
     // Action-Required-Buttons (Soll-Mapping → PATCH; VC bestätigt Feld-Namen)
     const doAction = (p, act) => {
       if (act === "edit") { openEdit(p); return; }
-      if (act === "ask_warren") { if (typeof window.PYchatOpen === "function") window.PYchatOpen("Zu meinem Topic „" + p.name + "“: " + (p.action_reason || "Was meinst du?")); return; }
+      if (act === "ask_warren") { if (typeof window.PYchatOpen === "function") { var lbl = thesisPill(p).l; window.PYchatOpen(T("Mein Topic „" + p.name + "“ wurde vom Orakel als „" + lbl + "“ gemeldet. Was ist da genau los, und was sollte ich jetzt beachten?", "The oracle flagged my topic „" + p.name + "“ as „" + lbl + "“. What exactly is going on, and what should I consider now?")); } return; }
       if (act === "close") { api("/api/mybook/" + p.id, { state: "closed" }, "PATCH"); setRows((rs) => rs.filter((r) => r.id !== p.id)); return; }
       if (act === "member_only") { patch(p.id, { tracking_source: "member_only", action_required: false }); setRows((rs) => rs.map((r) => r.id === p.id ? Object.assign({}, r, { tracking_source: "member_only", action_required: false }) : r)); return; }
       // keep
