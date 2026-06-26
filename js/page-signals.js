@@ -51,9 +51,9 @@
     const ts = EMO_SENT[t.sentiment] || EMO_SENT.neutral;
     const title = t.short_label_de || t.name_de;
     return h("div", { key: i, className: "emo-grid emo-row" },
-      h("div", { style: { minWidth: 0 } },
-        h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 17, color: "var(--text-primary)", lineHeight: 1.2 } }, title),
-        t.note_de ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.5, color: "var(--text-secondary)", marginTop: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, t.note_de) : null),
+      h("div", { className: "emo-main", style: { minWidth: 0 } },
+        h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 17, color: "var(--text-primary)", lineHeight: 1.25 } }, title),
+        t.note_de ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.55, color: "var(--text-secondary)", marginTop: 5 } }, t.note_de) : null),
       h(Badge, { tone: ts.tone }, (ts.label || "").toUpperCase()),
       h("span", { className: "emo-rel", style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-secondary)" } }, EMO_REL[t.relevance] || t.relevance),
       h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, textAlign: "center", color: t.trend ? "var(--text-secondary)" : "var(--text-muted)" } }, emoTrendGlyph(t.trend)));
@@ -86,7 +86,7 @@
             h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" } }, "· " + sent.label + "-Tilt · " + emoScore(a.score))),
           EmoScale(a.score),
           a.reading_de ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16.5, lineHeight: 1.62, color: "var(--text-primary)", margin: "18px 0 0" } }, a.reading_de) : null),
-        h("div", { className: "emo-grid", style: { marginTop: 22, paddingBottom: 8, borderBottom: "1px solid var(--border-subtle)" } },
+        h("div", { className: "emo-grid emo-headrow", style: { marginTop: 22, paddingBottom: 8, borderBottom: "1px solid var(--border-subtle)" } },
           h("span", { style: emoHead }, T("Thema", "Topic")),
           h("span", { style: emoHead }, T("Sentiment", "Sentiment")),
           h("span", { className: "emo-rel", style: emoHead }, T("Relevanz", "Relevance")),

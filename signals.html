@@ -48,7 +48,13 @@
   /* Emometer-Tabelle */
   .emo-grid { display:grid; grid-template-columns:1fr 112px 84px 30px; gap:0 16px; align-items:center; }
   .emo-row { padding:13px 0; border-top:1px solid var(--border-subtle); }
-  @media (max-width:640px){ .emo-grid { grid-template-columns:1fr auto 30px; } .emo-rel { display:none; } }
+  .emo-main { min-width:0; overflow-wrap:anywhere; }
+  @media (max-width:640px){
+    .emo-grid { grid-template-columns:1fr auto; gap:6px 12px; }
+    .emo-headrow { display:none; }
+    .emo-row > .emo-main { grid-column:1 / -1; }
+    .emo-rel { display:none; }
+  }
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://pythai.ch/#org","name":"PYTHAI","url":"https://pythai.ch/","logo":"https://pythai.ch/assets/logo/pythai-oculus.svg","description":"PYTHAI is a finance-intelligence publisher. An AI persona, Warren, issues one scored market reading each dawn \u2014 editorial market commentary, not investment advice.","email":"hello@pythai.ch","slogan":"Market, Wisdom, Foretold."},{"@type":"WebSite","@id":"https://pythai.ch/#website","url":"https://pythai.ch/","name":"PYTHAI","publisher":{"@id":"https://pythai.ch/#org"},"inLanguage":["de","en"]}]}</script>
 </head>
@@ -64,7 +70,7 @@
 <script src="js/site.js?v=19"></script>
 <script src="js/chat.js?v=12"></script>
 <script src="js/pagekit.js?v=3"></script>
-<script src="js/page-signals.js?v=11"></script>
+<script src="js/page-signals.js?v=12"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
