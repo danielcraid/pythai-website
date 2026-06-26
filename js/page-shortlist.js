@@ -67,6 +67,33 @@
     return "INTAKT";
   };
   const consolidatedStatus = (t) => { const m = PILLMETA[statusKeyOf(t)] || PILLMETA.INTAKT; return { cls: m.cls, label: m.l, tip: m.t }; };
+  // L5 Lifecycle-Karten (gelb/rot) + Verwarnungs-/Erholungs-Countdown · Felder aus deriveCard() im API
+  const CARD_COL = { verwarnt: "#CF7A4E", gelb: "#E8C547", rot: "#E0726B", rehab: "#6FCF9A" };
+  const cardKind = (t) => {
+    const dir = t.card_streak && t.card_streak.direction;
+    if (dir === "rehab") return "rehab";
+    if (t.card === "verwarnt" || t.card === "gelb" || t.card === "rot") return t.card;
+    return null;
+  };
+  const CARDTAG_BASE = { display: "inline-flex", alignItems: "center", border: "1px solid", borderRadius: 999, padding: "1px 8px", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.04em", marginLeft: 6, whiteSpace: "nowrap" };
+  const cardTag = (t) => {
+    const k = cardKind(t); if (!k) return null;
+    const col = CARD_COL[k], st = t.card_streak, sty = Object.assign({}, CARDTAG_BASE, { color: col, borderColor: col });
+    if (k === "verwarnt") return h("span", { style: sty, title: t.card_reason || "" }, T("Verwarnt", "Warned") + (st ? " " + st.days + "/" + st.threshold : ""));
+    if (k === "rehab") return h("span", { style: sty, title: t.card_reason || "" }, T("Erholung", "Recovering") + (st ? " " + st.days + "/" + st.threshold : ""));
+    return h("span", { style: sty, title: t.card_reason || "" },
+      h("span", { style: { display: "inline-block", width: 8, height: 11, borderRadius: 2, background: col, marginRight: 5 } }),
+      k === "gelb" ? T("Gelbe Karte", "Yellow card") : T("Rote Karte", "Red card"));
+  };
+  const cardLine = (t) => {
+    const k = cardKind(t); if (!k) return null;
+    const at = t.card_at ? (" " + T("am ", "on ") + new Date(t.card_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })) : "";
+    const r = t.card_reason || "", thr = (t.card_streak && t.card_streak.threshold) || 3;
+    if (k === "gelb") return T("Gelbe Karte", "Yellow card") + at + " · " + r + T(" → auf Watchlist", " → moved to watchlist");
+    if (k === "rot") return T("Rote Karte", "Red card") + at + " · " + r + T(" → archiviert", " → archived");
+    if (k === "rehab") return T("Erholung", "Recovering") + " · " + r + T(" — bei " + thr + " Handelstagen zurück zu aktiv", " — back to active at " + thr + " trading days");
+    return r + T(" — bei " + thr + " Handelstagen folgt die gelbe Karte (Watchlist)", " — yellow card (watchlist) at " + thr + " trading days");
+  };
   function PosBar(t) {
     const lab = String(t.position_risk_label || "").toLowerCase();
     const idx = POSR.indexOf(lab);
@@ -440,7 +467,7 @@
               (dol != null ? (T("Auf der Liste seit ", "On the list for ") + dol + (dol === 1 ? T(" Tag", "d") : T(" Tagen", "d"))) : "") +
               (t.last_checked_at_de ? (" · " + T("zuletzt gepflegt ", "last updated ") + t.last_checked_at_de) : "") +
               (overdue ? T(" · überfällig?", " · overdue?") : "")) : null),
-          h("div", { className: "cstat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label)),
+          h("div", { className: "cstat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label), cardTag(t)),
           h("div", { className: "live" },
             liveDisp ? h("div", null, h("span", { className: "px" }, liveDisp), h("span", { className: "cur" }, "EUR")) : h("div", null, h("span", { className: "px na" }, "—")),
             todayFmt ? h("span", { className: "chg " + trendCls }, arrow + " " + todayFmt + " " + T("heute", "today")) : null),
@@ -460,6 +487,7 @@
 
           h("div", { className: "secl", style: { marginTop: 22 } }, T("Thesen-Stärke", "Thesis health")),
           Barometer(t, true),
+          cardKind(t) ? h("div", { style: { marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 11.5, lineHeight: 1.5, color: CARD_COL[cardKind(t)] } }, cardLine(t)) : null,
           (t.position_risk_label || t.position_risk_pct != null) ? h("div", { className: "secl", style: { marginTop: 20 } }, T("Positions-Risiko", "Position risk")) : null,
           (t.position_risk_label || t.position_risk_pct != null) ? PosBar(t) : null,
           h("div", { className: "tworow" }, T("Positions-Risiko: misst, wie weit der Kurs vom Entry weg ist und wie nah am Stop. Thesen-Stärke: misst die Story — halten die Annahmen vom Setup? News, Sektor, Catalyst-Status. Beide sind getrennt, denn der Markt kann gegen dich laufen, ohne dass die Story bricht; und die Story kann brechen, bevor der Kurs es zeigt.", "Position risk: measures how far price is from entry and how close to the stop. Thesis health: measures the story — do the assumptions from the setup still hold? News, sector, catalyst status. They are separate, because the market can move against you without the story breaking; and the story can break before price shows it.")),
