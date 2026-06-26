@@ -700,6 +700,10 @@
         rows.length ? (simple ? h("div", { className: "simplelist" }, rows.map((p) => {
           const tp = thesisPill(p);
           const oracle = p.tracking_source === "oracle";
+          const _lv = parseDeNum(p.live), _en = parseDeNum(p.entry);
+          const _pnl = (_lv != null && _en != null && _en > 0) ? (_lv - _en) / _en * 100 : null;
+          const pnlStr = _pnl == null ? "—" : (_pnl >= 0 ? "+" : "−") + Math.abs(_pnl).toFixed(1).replace(".", ",") + " %";
+          const pnlCol = _pnl == null ? "var(--ash)" : (_pnl >= 0 ? "var(--bull)" : "var(--ox-b)");
           return h("div", { key: p.id, className: "srow", role: "button", tabIndex: 0, onClick: () => { sfx("button-002-itemopen"); setSimple(false); setOpen(p.id); setTimeout(() => { const el = document.getElementById("mb-" + p.id); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 250); } },
             h("div", { className: "sleft" },
               h("span", { className: "sdot " + (oracle ? "o" : "s"), title: oracle ? T("Orakel-Shortlist", "Oracle shortlist") : T("Meine These", "My thesis") }),
@@ -707,6 +711,7 @@
                 h("div", { className: "nm" }, p.name),
                 p.live ? h("div", { className: "px" }, (typeof p.live === "string" ? p.live : String(p.live)) + " " + (p.currency || "EUR")) : null)),
             h("span", { className: "sright" },
+              h("span", { title: T("Stand seit Entry", "Since entry"), style: { fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700, color: pnlCol, marginRight: 16, whiteSpace: "nowrap" } }, pnlStr),
               h("span", { className: "slbl" }, T("These", "Thesis")),
               h("span", { className: "spill", style: { color: tp.c, borderColor: tp.c } }, tp.l)));
         })) : (function () {
