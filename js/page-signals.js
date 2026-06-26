@@ -24,31 +24,38 @@
     risk_on: { label: T("Risiko-On", "Risk-On"), tone: "bull" }
   };
   const EMO_REL = { sehr_hoch: T("Sehr hoch", "Very high"), hoch: T("Hoch", "High"), mittel: T("Mittel", "Medium"), niedrig: T("Niedrig", "Low") };
-  const EMO_TREND = { eskalierend: T("eskalierend", "escalating"), anhaltend: T("anhaltend", "persistent"), abklingend: T("abklingend", "fading") };
   const emoScore = (s) => { const n = Number(s); const sign = n > 0 ? "+" : n < 0 ? "−" : ""; return sign + Math.abs(n).toFixed(2).replace(".", ","); };
   const emoStand = (iso) => { try { return new Date(iso).toLocaleString([], { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+  const emoMood = (s) => { const n = Number(s); return n <= -0.6 ? T("Deutlich negativ", "Clearly negative") : n <= -0.3 ? T("Vorsichtig negativ", "Cautiously negative") : n < 0.3 ? T("Gemischt", "Mixed") : n < 0.6 ? T("Vorsichtig positiv", "Cautiously positive") : T("Deutlich positiv", "Clearly positive"); };
+  const emoTrendGlyph = (tr) => tr === "eskalierend" ? "▲" : tr === "abklingend" ? "▼" : "—";
+  const emoHead = { fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)" };
 
+  // 3-Zonen-Balken (Risiko-Off · Neutral · Risiko-On); Zonengrenzen = Label-Schwellen ±0,3
   function EmoScale(score) {
     const pct = Math.max(2, Math.min(98, (Number(score) + 1) / 2 * 100));
     return h("div", null,
-      h("div", { className: "swg-mk" }, h("span", { className: "swg-arrow", style: { left: pct + "%" } }, "▼")),
-      h("div", { className: "swg-bar" }, Z.map((c, i) => h("span", { key: i, style: { background: c } }))),
-      h("div", { className: "swg-zones" },
-        h("span", { style: { textAlign: "left" } }, T("Risiko-Off", "Risk-Off")),
-        h("span", { style: { textAlign: "center" } }, T("Neutral", "Neutral")),
-        h("span", { style: { textAlign: "right" } }, T("Risiko-On", "Risk-On"))));
+      h("div", { style: { position: "relative", height: 13 } },
+        h("span", { style: { position: "absolute", left: pct + "%", bottom: 0, transform: "translateX(-50%)", color: "var(--parchment)", fontSize: 12, lineHeight: 1 } }, "▲")),
+      h("div", { style: { display: "flex", height: 9, borderRadius: 999, overflow: "hidden" } },
+        h("span", { style: { flex: "0 0 35%", background: "var(--oxblood-bright)" } }),
+        h("span", { style: { flex: "0 0 30%", background: "var(--border-strong, #3b414c)" } }),
+        h("span", { style: { flex: "1 1 35%", background: "var(--bull-bright)" } })),
+      h("div", { style: { display: "flex", justifyContent: "space-between", marginTop: 7, fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.1em", color: "var(--text-muted)" } },
+        h("span", null, T("RISIKO-OFF", "RISK-OFF")),
+        h("span", null, T("NEUTRAL", "NEUTRAL")),
+        h("span", null, T("RISIKO-ON", "RISK-ON"))));
   }
 
   const emoTopicRow = (t, i) => {
     const ts = EMO_SENT[t.sentiment] || EMO_SENT.neutral;
-    return h("div", { key: i, style: { padding: "14px 0", borderTop: "1px solid var(--border-subtle)" } },
-      h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" } },
-        h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 17, color: "var(--text-primary)" } }, t.name_de),
-        h("div", { style: { display: "flex", alignItems: "center", gap: 10, flexShrink: 0 } },
-          h(Badge, { tone: ts.tone }, ts.label),
-          h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)" } }, EMO_REL[t.relevance] || t.relevance),
-          t.trend ? h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-oracle)" } }, EMO_TREND[t.trend] || t.trend) : null)),
-      t.note_de ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.6, color: "var(--text-secondary)", margin: "7px 0 0" } }, t.note_de) : null);
+    const title = t.short_label_de || t.name_de;
+    return h("div", { key: i, className: "emo-grid emo-row" },
+      h("div", { style: { minWidth: 0 } },
+        h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 17, color: "var(--text-primary)", lineHeight: 1.2 } }, title),
+        t.note_de ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-muted)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, t.note_de) : null),
+      h(Badge, { tone: ts.tone }, (ts.label || "").toUpperCase()),
+      h("span", { className: "emo-rel", style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-secondary)" } }, EMO_REL[t.relevance] || t.relevance),
+      h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, textAlign: "center", color: t.trend ? "var(--text-secondary)" : "var(--text-muted)" } }, emoTrendGlyph(t.trend)));
   };
 
   function Emometer() {
@@ -65,21 +72,31 @@
     const a = data.aggregate || {};
     const sent = EMO_SENT[a.sentiment] || EMO_SENT.neutral;
     return h(PySection, null,
-      h("div", { style: { marginBottom: 24 } },
-        h(PyEyebrow, null, T("Emometer", "Emometer")),
-        h(PyH2, null, T("Die Stimmung der Welt — heute.", "The world's mood — today.")),
-        h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.65, color: "var(--text-secondary)", margin: "10px 0 0", maxWidth: "70ch" } }, T("Das Sentiment der globalen Hot-Topics, relevanz-gewichtet. Eine Kontext-Anzeige — kein Handelssignal.", "The sentiment of the global hot topics, relevance-weighted. A context display — not a trading signal."))),
-      h(Card, { variant: "oracle", padding: "28px" },
-        h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 18, flexWrap: "wrap" } },
-          h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--text-oracle)" } }, T("Globale Stimmung", "Global sentiment")),
-          h("div", { style: { display: "flex", alignItems: "center", gap: 10 } },
-            h(Badge, { tone: sent.tone }, sent.label),
-            h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-primary)" } }, emoScore(a.score)))),
-        EmoScale(a.score),
-        a.reading_de ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 15, lineHeight: 1.65, color: "var(--text-secondary)", margin: "18px 0 0" } }, a.reading_de) : null,
-        h("div", { style: { marginTop: 20 } }, data.topics.map((t, i) => emoTopicRow(t, i))),
-        h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6, marginTop: 18 } }, T("Kontext-Anzeige aus Tagesthemen. Kein Trade-Signal, kein Anlage-Rat.", "Context display from daily themes. Not a trade signal, not investment advice.")),
-        data.generated_at ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginTop: 6 } }, T("Stand", "As of") + " " + emoStand(data.generated_at)) : null));
+      h(Card, { variant: "oracle", padding: "30px 30px 22px" },
+        h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", paddingBottom: 18, borderBottom: "1px solid var(--border-subtle)" } },
+          h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 19, fontWeight: 700, letterSpacing: "0.24em", color: "var(--parchment)" } }, "EMOMETER"),
+          h("div", { style: { textAlign: "right", fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 } },
+            h("div", null, T("Sentiment der globalen Hot-Topics", "Sentiment of the global hot topics")),
+            data.generated_at ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, T("Stand", "As of") + " " + emoStand(data.generated_at)) : null)),
+        h("div", { style: { padding: "22px 0 2px" } },
+          h("div", { style: Object.assign({ marginBottom: 8 }, emoHead) }, T("Gesamt-Stimmung", "Overall sentiment")),
+          h("div", { style: { display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 18 } },
+            h("div", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: "clamp(26px,4vw,38px)", lineHeight: 1.04, color: "var(--parchment)" } }, emoMood(a.score).toUpperCase()),
+            h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" } }, "· " + sent.label + "-Tilt · " + emoScore(a.score))),
+          EmoScale(a.score),
+          a.reading_de ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 15, lineHeight: 1.6, color: "var(--text-secondary)", margin: "18px 0 0" } }, a.reading_de) : null),
+        h("div", { className: "emo-grid", style: { marginTop: 22, paddingBottom: 8, borderBottom: "1px solid var(--border-subtle)" } },
+          h("span", { style: emoHead }, T("Thema", "Topic")),
+          h("span", { style: emoHead }, T("Sentiment", "Sentiment")),
+          h("span", { className: "emo-rel", style: emoHead }, T("Relevanz", "Relevance")),
+          h("span", { style: Object.assign({ textAlign: "center" }, emoHead) }, T("Trend", "Trend"))),
+        data.topics.map((t, i) => emoTopicRow(t, i)),
+        h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--border-subtle)", fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-muted)" } },
+          h("div", { style: { display: "flex", gap: 16, flexWrap: "wrap" } },
+            h("span", null, "▲ " + T("eskalierend", "escalating")),
+            h("span", null, "— " + T("anhaltend", "persistent")),
+            h("span", null, "▼ " + T("abklingend", "fading"))),
+          h("span", null, T("Kontext-Anzeige · kein Handelssignal", "Context display · not a trading signal")))));
   }
 
   function SignalsHero() {
