@@ -451,6 +451,9 @@
       const cs = consolidatedStatus(t);
       // Setup->Kurs-Farbe: grün, wenn der Kurs in Thesen-Richtung über (Long) bzw. unter (Short) dem Setup liegt; sonst rot.
       const setupCls = (entry != null && live != null && live !== entry) ? ((isShort ? live < entry : live > entry) ? "up" : "dn") : "flat";
+      const _pnl = (entry != null && live != null && entry > 0) ? (isShort ? (entry - live) / entry : (live - entry) / entry) * 100 : null;
+      const pnlStr = _pnl == null ? null : (_pnl >= 0 ? "+" : "−") + Math.abs(_pnl).toFixed(1).replace(".", ",") + " %";
+      const pnlCls = _pnl == null ? "flat" : (_pnl >= 0 ? "up" : "dn");
 
       return h("div", { key: t.id, id: "sl-" + t.id, className: "card" + (isOpen ? " open" : "") + (t.held_by_me ? " held" : "") },
         h("div", { className: "head", onClick: () => { sfx(isOpen ? "button-001-itemclose" : "button-002-itemopen"); setOpen(isOpen ? null : t.id); } },
@@ -470,7 +473,8 @@
           h("div", { className: "cstat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label), cardTag(t)),
           h("div", { className: "live" },
             liveDisp ? h("div", null, h("span", { className: "px" }, liveDisp), h("span", { className: "cur" }, "EUR")) : h("div", null, h("span", { className: "px na" }, "—")),
-            todayFmt ? h("span", { className: "chg " + trendCls }, arrow + " " + todayFmt + " " + T("heute", "today")) : null),
+            todayFmt ? h("span", { className: "chg " + trendCls }, arrow + " " + todayFmt + " " + T("heute", "today")) : null,
+            pnlStr ? h("span", { className: "chg " + pnlCls, title: T("seit Setup-Niveau", "since setup level") }, pnlStr + " " + T("seit Setup", "since setup")) : null),
           h("div", { className: "chev" }, "▼")),
 
         isOpen ? h("div", { className: "det" },
