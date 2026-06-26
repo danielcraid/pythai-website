@@ -7,7 +7,8 @@
   const h = React.createElement;
   const PRIV = ["syndicate", "admin"];
   const MAX = 12;
-  const Z = ["#C4524C", "#CF7A4E", "#C9A24E", "#6FB07A", "#6FCF9A"];
+  // Thesen-Health-Farben · spiegelt config/thesis_label_enum.json (GEBROCHEN..STARK)
+  const Z = ["#E0726B", "#F2CE7A", "#9BA3B2", "#6FCF9A", "#7DD49A"];
   const ZONE = ["GEBROCHEN", "WACKELT", "NEUTRAL", "INTAKT", "STARK"];
   const wpct = (s) => Math.max(3, Math.min(97, Math.round((s + 1) / 2 * 100)));
   // deutsche Zahl-Strings ("1.218,80") → Number fürs Backend; leer → null
@@ -19,7 +20,7 @@
   const posLabel = (l) => ({ stopped: T("Gestoppt", "Stopped"), danger: T("Gefahr", "Danger"), caution: T("Vorsicht", "Caution"), safe: T("Sicher", "Safe") }[String(l || "").toLowerCase()] || (l || "—"));
   const thesisLabelOf = (p) => String(p.waage_label || ZONE[((p.zone || 3) - 1)] || "").toUpperCase();
   // Reine Thesen-Stärke als Pill (für die Simple-Ansicht: wackelt vs. intakt auf einen Blick).
-  const TH_META = { GEBROCHEN: { l: T("Gebrochen", "Broken"), c: "#E0726B" }, WACKELT: { l: T("Wackelt", "Wobbling"), c: "#CF7A4E" }, NEUTRAL: { l: T("Neutral", "Neutral"), c: "#C9A24E" }, INTAKT: { l: T("Intakt", "Intact"), c: "#6FB07A" }, STARK: { l: T("Stark", "Strong"), c: "#6FCF9A" } };
+  const TH_META = { GEBROCHEN: { l: T("Gebrochen", "Broken"), c: "#E0726B" }, WACKELT: { l: T("Wackelt", "Wobbling"), c: "#F2CE7A" }, NEUTRAL: { l: T("Neutral", "Neutral"), c: "#9BA3B2" }, INTAKT: { l: T("Intakt", "Intact"), c: "#6FCF9A" }, STARK: { l: T("Stark", "Strong"), c: "#7DD49A" } };
   const thesisPill = (p) => TH_META[thesisLabelOf(p)] || TH_META.NEUTRAL;
   // Status-Pill: Backend ist authoritative (p.status.key). Fallback nutzt live>entry (NICHT position_risk_score).
   const PILLMETA = {
@@ -27,7 +28,7 @@
     ACTION: { cls: "st-red", l: T("Aktion erforderlich", "Action required"), t: T("These gebrochen. Du entscheidest.", "Thesis broken. Your call.") },
     POSITION: { cls: "st-orange", l: T("Positions-Risiko", "Position risk"), t: T("Position läuft gegen dich. Stop-Nähe oder Drawdown ab 5 %.", "Position running against you. Near stop or drawdown 5%+.") },
     SKIM: { cls: "st-yellow", l: T("Skim-Chance", "Skim chance"), t: T("Im Plus, aber Catalyst wackelt. Klassischer Skim-Moment.", "In profit but the catalyst is wobbling. Classic skim moment.") },
-    DRIFT: { cls: "st-orange", l: T("Drift", "Drift"), t: T("Position negativ + Story bröckelt. Schau hin.", "Position negative + story crumbling. Look.") },
+    DRIFT: { cls: "st-orange", l: T("Wackelt", "Wobbling"), t: T("Position negativ + Story bröckelt. Schau hin.", "Position negative + story crumbling. Look.") },
     STARK: { cls: "st-greenS", l: T("Stark", "Strong"), t: T("Im Plus, Story bestätigt.", "In profit, story confirmed.") },
     INTAKT: { cls: "st-green", l: T("Intakt", "Intact"), t: T("Story trägt.", "Story holds.") }
   };

@@ -8,7 +8,8 @@
   const PRIV = ["syndicate", "admin"];                                  // darf "In My Book" klicken
   const VIEW = ["inner-circle", "circle-of-trust", "syndicate", "admin"]; // darf die Shortlist sehen
 
-  const Z = ["#C4524C", "#CF7A4E", "#C9A24E", "#6FB07A", "#6FCF9A"];
+  // Thesen-Health-Farben · spiegelt config/thesis_label_enum.json (GEBROCHEN..STARK)
+  const Z = ["#E0726B", "#F2CE7A", "#9BA3B2", "#6FCF9A", "#7DD49A"];
   const ZONE = ["GEBROCHEN", "WACKELT", "NEUTRAL", "INTAKT", "STARK"];
   const ZLAB = { GEBROCHEN: T("Gebrochen", "Broken"), WACKELT: T("Wackelt", "Wobbling"), NEUTRAL: T("Neutral", "Neutral"), INTAKT: T("Intakt", "Intact"), STARK: T("Stark", "Strong") };
   const wpct = (s) => Math.max(3, Math.min(97, Math.round((s + 1) / 2 * 100)));
@@ -46,7 +47,7 @@
     ACTION: { cls: "st-red", l: T("Aktion erforderlich", "Action required"), t: T("These gebrochen. Du entscheidest.", "Thesis broken. Your call.") },
     POSITION: { cls: "st-orange", l: T("Positions-Risiko", "Position risk"), t: T("Position läuft gegen dich. Stop-Nähe oder Drawdown ab 5 %.", "Position running against you. Near stop or drawdown 5%+.") },
     SKIM: { cls: "st-yellow", l: T("Skim-Chance", "Skim chance"), t: T("Im Plus, aber Catalyst wackelt. Klassischer Skim-Moment.", "In profit but the catalyst is wobbling. Classic skim moment.") },
-    DRIFT: { cls: "st-orange", l: T("Drift", "Drift"), t: T("Position negativ + Story bröckelt. Schau hin.", "Position negative + story crumbling. Look.") },
+    DRIFT: { cls: "st-orange", l: T("Wackelt", "Wobbling"), t: T("Position negativ + Story bröckelt. Schau hin.", "Position negative + story crumbling. Look.") },
     STARK: { cls: "st-greenS", l: T("Stark", "Strong"), t: T("Im Plus, Story bestätigt.", "In profit, story confirmed.") },
     INTAKT: { cls: "st-green", l: T("Intakt", "Intact"), t: T("Story trägt.", "Story holds.") }
   };
