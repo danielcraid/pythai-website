@@ -3,7 +3,7 @@
   const { SiteNav, SiteFooter, PySection, PyH2, PyEyebrow } = window;
   const T = (de, en) => window.PYi18n.t(de, en);
   const h = React.createElement;
-  const Z = ["#C4524C", "#CF7A4E", "#C9A24E", "#6FB07A", "#6FCF9A"];
+  const Z = ["#E0726B", "#CF7A4E", "#9BA3B2", "#6FCF9A", "#7DD49A"];
   const ZL = ["GEBROCHEN", "WACKELT", "NEUTRAL", "INTAKT", "STARK"];
   function Waage(pct, zone, label) {
     return h("div", null,

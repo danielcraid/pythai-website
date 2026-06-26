@@ -8,7 +8,7 @@
   const PRIV = ["syndicate", "admin"];
   const MAX = 12;
   // Thesen-Health-Farben · spiegelt config/thesis_label_enum.json (GEBROCHEN..STARK)
-  const Z = ["#E0726B", "#F2CE7A", "#9BA3B2", "#6FCF9A", "#7DD49A"];
+  const Z = ["#E0726B", "#CF7A4E", "#9BA3B2", "#6FCF9A", "#7DD49A"];
   const ZONE = ["GEBROCHEN", "WACKELT", "NEUTRAL", "INTAKT", "STARK"];
   const wpct = (s) => Math.max(3, Math.min(97, Math.round((s + 1) / 2 * 100)));
   // deutsche Zahl-Strings ("1.218,80") → Number fürs Backend; leer → null
@@ -20,7 +20,7 @@
   const posLabel = (l) => ({ stopped: T("Gestoppt", "Stopped"), danger: T("Gefahr", "Danger"), caution: T("Vorsicht", "Caution"), safe: T("Sicher", "Safe") }[String(l || "").toLowerCase()] || (l || "—"));
   const thesisLabelOf = (p) => String(p.waage_label || ZONE[((p.zone || 3) - 1)] || "").toUpperCase();
   // Reine Thesen-Stärke als Pill (für die Simple-Ansicht: wackelt vs. intakt auf einen Blick).
-  const TH_META = { GEBROCHEN: { l: T("Gebrochen", "Broken"), c: "#E0726B" }, WACKELT: { l: T("Wackelt", "Wobbling"), c: "#F2CE7A" }, NEUTRAL: { l: T("Neutral", "Neutral"), c: "#9BA3B2" }, INTAKT: { l: T("Intakt", "Intact"), c: "#6FCF9A" }, STARK: { l: T("Stark", "Strong"), c: "#7DD49A" } };
+  const TH_META = { GEBROCHEN: { l: T("Gebrochen", "Broken"), c: "#E0726B" }, WACKELT: { l: T("Wackelt", "Wobbling"), c: "#CF7A4E" }, NEUTRAL: { l: T("Neutral", "Neutral"), c: "#9BA3B2" }, INTAKT: { l: T("Intakt", "Intact"), c: "#6FCF9A" }, STARK: { l: T("Stark", "Strong"), c: "#7DD49A" } };
   const thesisPill = (p) => TH_META[thesisLabelOf(p)] || TH_META.NEUTRAL;
   // Status-Pill: Backend ist authoritative (p.status.key). Fallback nutzt live>entry (NICHT position_risk_score).
   const PILLMETA = {

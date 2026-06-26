@@ -9,7 +9,7 @@
   const VIEW = ["inner-circle", "circle-of-trust", "syndicate", "admin"]; // darf die Shortlist sehen
 
   // Thesen-Health-Farben · spiegelt config/thesis_label_enum.json (GEBROCHEN..STARK)
-  const Z = ["#E0726B", "#F2CE7A", "#9BA3B2", "#6FCF9A", "#7DD49A"];
+  const Z = ["#E0726B", "#CF7A4E", "#9BA3B2", "#6FCF9A", "#7DD49A"];
   const ZONE = ["GEBROCHEN", "WACKELT", "NEUTRAL", "INTAKT", "STARK"];
   const ZLAB = { GEBROCHEN: T("Gebrochen", "Broken"), WACKELT: T("Wackelt", "Wobbling"), NEUTRAL: T("Neutral", "Neutral"), INTAKT: T("Intakt", "Intact"), STARK: T("Stark", "Strong") };
   const wpct = (s) => Math.max(3, Math.min(97, Math.round((s + 1) / 2 * 100)));
