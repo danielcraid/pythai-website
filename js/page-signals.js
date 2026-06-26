@@ -26,6 +26,7 @@
   const EMO_REL = { sehr_hoch: T("Sehr hoch", "Very high"), hoch: T("Hoch", "High"), mittel: T("Mittel", "Medium"), niedrig: T("Niedrig", "Low") };
   const emoScore = (s) => { const n = Number(s); const sign = n > 0 ? "+" : n < 0 ? "−" : ""; return sign + Math.abs(n).toFixed(2).replace(".", ","); };
   const emoStand = (iso) => { try { return new Date(iso).toLocaleString([], { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+  const emoStampBig = (iso) => { try { const d = new Date(iso); return d.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" }) + " · " + d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " " + T("Uhr", ""); } catch (e) { return ""; } };
   const emoMood = (s) => { const n = Number(s); return n <= -0.6 ? T("Deutlich negativ", "Clearly negative") : n <= -0.3 ? T("Vorsichtig negativ", "Cautiously negative") : n < 0.3 ? T("Gemischt", "Mixed") : n < 0.6 ? T("Vorsichtig positiv", "Cautiously positive") : T("Deutlich positiv", "Clearly positive"); };
   const emoTrendGlyph = (tr) => tr === "eskalierend" ? "▲" : tr === "abklingend" ? "▼" : "—";
   const emoHead = { fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)" };
@@ -35,7 +36,7 @@
     const pct = Math.max(2, Math.min(98, (Number(score) + 1) / 2 * 100));
     return h("div", null,
       h("div", { style: { position: "relative", height: 13 } },
-        h("span", { style: { position: "absolute", left: pct + "%", bottom: 0, transform: "translateX(-50%)", color: "var(--parchment)", fontSize: 12, lineHeight: 1 } }, "▲")),
+        h("span", { style: { position: "absolute", left: pct + "%", bottom: 0, transform: "translateX(-50%)", color: "var(--oracle)", fontSize: 14, lineHeight: 1 } }, "▼")),
       h("div", { style: { display: "flex", height: 9, borderRadius: 999, overflow: "hidden" } },
         h("span", { style: { flex: "0 0 35%", background: "var(--oxblood-bright)" } }),
         h("span", { style: { flex: "0 0 30%", background: "var(--border-strong, #3b414c)" } }),
@@ -52,7 +53,7 @@
     return h("div", { key: i, className: "emo-grid emo-row" },
       h("div", { style: { minWidth: 0 } },
         h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 17, color: "var(--text-primary)", lineHeight: 1.2 } }, title),
-        t.note_de ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-muted)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, t.note_de) : null),
+        t.note_de ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 14.5, lineHeight: 1.5, color: "var(--text-secondary)", marginTop: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, t.note_de) : null),
       h(Badge, { tone: ts.tone }, (ts.label || "").toUpperCase()),
       h("span", { className: "emo-rel", style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-secondary)" } }, EMO_REL[t.relevance] || t.relevance),
       h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, textAlign: "center", color: t.trend ? "var(--text-secondary)" : "var(--text-muted)" } }, emoTrendGlyph(t.trend)));
@@ -74,17 +75,17 @@
     return h(PySection, null,
       h(Card, { variant: "oracle", padding: "30px 30px 22px" },
         h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", paddingBottom: 18, borderBottom: "1px solid var(--border-subtle)" } },
-          h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 19, fontWeight: 700, letterSpacing: "0.24em", color: "var(--parchment)" } }, "EMOMETER"),
-          h("div", { style: { textAlign: "right", fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 } },
-            h("div", null, T("Sentiment der globalen Hot-Topics", "Sentiment of the global hot topics")),
-            data.generated_at ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" } }, T("Stand", "As of") + " " + emoStand(data.generated_at)) : null)),
+          h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, letterSpacing: "0.26em", color: "var(--oracle)" } }, "EMOMETER"),
+          h("div", { style: { textAlign: "right" } },
+            h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--text-secondary)" } }, T("Sentiment der globalen Hot-Topics", "Sentiment of the global hot topics")),
+            data.generated_at ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: "clamp(17px,2.4vw,22px)", color: "var(--parchment)", letterSpacing: "0.03em", marginTop: 5 } }, emoStampBig(data.generated_at)) : null)),
         h("div", { style: { padding: "22px 0 2px" } },
           h("div", { style: Object.assign({ marginBottom: 8 }, emoHead) }, T("Gesamt-Stimmung", "Overall sentiment")),
           h("div", { style: { display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 18 } },
             h("div", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: "clamp(26px,4vw,38px)", lineHeight: 1.04, color: "var(--parchment)" } }, emoMood(a.score).toUpperCase()),
             h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" } }, "· " + sent.label + "-Tilt · " + emoScore(a.score))),
           EmoScale(a.score),
-          a.reading_de ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 15, lineHeight: 1.6, color: "var(--text-secondary)", margin: "18px 0 0" } }, a.reading_de) : null),
+          a.reading_de ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16.5, lineHeight: 1.62, color: "var(--text-primary)", margin: "18px 0 0" } }, a.reading_de) : null),
         h("div", { className: "emo-grid", style: { marginTop: 22, paddingBottom: 8, borderBottom: "1px solid var(--border-subtle)" } },
           h("span", { style: emoHead }, T("Thema", "Topic")),
           h("span", { style: emoHead }, T("Sentiment", "Sentiment")),
