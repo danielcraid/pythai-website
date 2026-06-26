@@ -5,6 +5,16 @@
   const API = "https://api.pythai.ch";
   const { useState, useEffect, useRef } = React;
   const h = React.createElement;
+  // Auto-Refresh nur während Börsenzeiten (Europe/Berlin), TZ-robust
+  const inMarketHours = () => {
+    try {
+      const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Berlin", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date());
+      const wd = p.find((x) => x.type === "weekday").value;
+      if (wd === "Sat" || wd === "Sun") return false;
+      const t = parseInt(p.find((x) => x.type === "hour").value, 10) * 60 + parseInt(p.find((x) => x.type === "minute").value, 10);
+      return t >= 480 && t <= 1350; // 08:00–22:30
+    } catch (e) { return true; }
+  };
   const PRIV = ["syndicate", "admin"];
   const MAX = 12;
   // Thesen-Health-Farben · spiegelt config/thesis_label_enum.json (GEBROCHEN..STARK)
@@ -372,6 +382,19 @@
         }
         setLoaded(true);
       }).catch(() => setLoaded(true));
+    }, [gate]);
+    // Auto-Refresh: hält Live-Kurs + P&L frisch, ohne Reload (pausiert bei Hintergrund-Tab / außerhalb Börsenzeit)
+    useEffect(() => {
+      if (gate !== "ok") return;
+      const tick = () => {
+        if (document.hidden || !inMarketHours()) return;
+        fetch(API + "/api/mybook", { credentials: "include" })
+          .then((r) => (r && r.ok ? r.json() : null))
+          .then((d) => { if (d && d.ok && Array.isArray(d.topics)) setRows(d.topics); })
+          .catch(() => { });
+      };
+      const iv = setInterval(tick, 90000);
+      return () => clearInterval(iv);
     }, [gate]);
 
     if (gate === "loading") return h("div", null, h(SiteNav, { active: "mybook.html" }), h("div", { style: { minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 22, color: "var(--text-oracle)" } }, T("Das Orakel prüft deinen Zugang…", "The oracle checks your access…")), h(SiteFooter, null));

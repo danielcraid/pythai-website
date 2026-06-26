@@ -5,6 +5,16 @@
   const API = "https://api.pythai.ch";
   const { useState, useEffect } = React;
   const h = React.createElement;
+  // Auto-Refresh nur während Börsenzeiten (Europe/Berlin), TZ-robust
+  const inMarketHours = () => {
+    try {
+      const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Berlin", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date());
+      const wd = p.find((x) => x.type === "weekday").value;
+      if (wd === "Sat" || wd === "Sun") return false;
+      const t = parseInt(p.find((x) => x.type === "hour").value, 10) * 60 + parseInt(p.find((x) => x.type === "minute").value, 10);
+      return t >= 480 && t <= 1350; // 08:00–22:30
+    } catch (e) { return true; }
+  };
   const PRIV = ["syndicate", "admin"];                                  // darf "In My Book" klicken
   const VIEW = ["inner-circle", "circle-of-trust", "syndicate", "admin"]; // darf die Shortlist sehen
 
@@ -368,6 +378,19 @@
         setTrades(d && d.ok && Array.isArray(d.trades) ? d.trades : []);
         if (d && d.meta) setMeta(d.meta);
       }).catch(() => setTrades([]));
+    }, [gate]);
+    // Auto-Refresh: hält Live-Kurs + P&L frisch, ohne Reload (pausiert bei Hintergrund-Tab / außerhalb Börsenzeit)
+    useEffect(() => {
+      if (gate !== "ok") return;
+      const tick = () => {
+        if (document.hidden || !inMarketHours()) return;
+        fetch(API + "/api/mybook/hunter-shortlist?include_archived=1", { credentials: "include" })
+          .then((r) => (r && r.ok ? r.json() : null))
+          .then((d) => { if (d && d.ok && Array.isArray(d.trades)) { setTrades(d.trades); if (d.meta) setMeta(d.meta); } })
+          .catch(() => { });
+      };
+      const iv = setInterval(tick, 90000);
+      return () => clearInterval(iv);
     }, [gate]);
 
     const addToBook = (t) => {
