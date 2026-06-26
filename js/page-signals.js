@@ -13,6 +13,75 @@
       label ? h("div", { className: "swg-lab", style: { color: Z[zone - 1] } }, label) : null);
   }
 
+  // ── EM3: Emometer (Welt-Sentiment der globalen Hot-Topics) ──────────────
+  // Live gegen GET /api/public/emometer/latest (byte-identisch zum gelockten Schema,
+  // CORS *, Cache-Control 300s). Kontext-Anzeige, kein Gate/Edge. Override via
+  // window.PY_EMOMETER_URL. Rendert null bis Daten da sind (graceful degrade).
+  const EMO_URL = window.PY_EMOMETER_URL || "https://api.pythai.ch/api/public/emometer/latest";
+  const EMO_SENT = {
+    risk_off: { label: T("Risiko-Off", "Risk-Off"), tone: "bear" },
+    neutral: { label: T("Neutral", "Neutral"), tone: "neutral" },
+    risk_on: { label: T("Risiko-On", "Risk-On"), tone: "bull" }
+  };
+  const EMO_REL = { sehr_hoch: T("Sehr hoch", "Very high"), hoch: T("Hoch", "High"), mittel: T("Mittel", "Medium"), niedrig: T("Niedrig", "Low") };
+  const EMO_TREND = { eskalierend: T("eskalierend", "escalating"), anhaltend: T("anhaltend", "persistent"), abklingend: T("abklingend", "fading") };
+  const emoScore = (s) => { const n = Number(s); const sign = n > 0 ? "+" : n < 0 ? "−" : ""; return sign + Math.abs(n).toFixed(2).replace(".", ","); };
+  const emoStand = (iso) => { try { return new Date(iso).toLocaleString([], { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+
+  function EmoScale(score) {
+    const pct = Math.max(2, Math.min(98, (Number(score) + 1) / 2 * 100));
+    return h("div", null,
+      h("div", { className: "swg-mk" }, h("span", { className: "swg-arrow", style: { left: pct + "%" } }, "▼")),
+      h("div", { className: "swg-bar" }, Z.map((c, i) => h("span", { key: i, style: { background: c } }))),
+      h("div", { className: "swg-zones" },
+        h("span", { style: { textAlign: "left" } }, T("Risiko-Off", "Risk-Off")),
+        h("span", { style: { textAlign: "center" } }, T("Neutral", "Neutral")),
+        h("span", { style: { textAlign: "right" } }, T("Risiko-On", "Risk-On"))));
+  }
+
+  const emoTopicRow = (t, i) => {
+    const ts = EMO_SENT[t.sentiment] || EMO_SENT.neutral;
+    return h("div", { key: i, style: { padding: "14px 0", borderTop: "1px solid var(--border-subtle)" } },
+      h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" } },
+        h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 17, color: "var(--text-primary)" } }, t.name_de),
+        h("div", { style: { display: "flex", alignItems: "center", gap: 10, flexShrink: 0 } },
+          h(Badge, { tone: ts.tone }, ts.label),
+          h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)" } }, EMO_REL[t.relevance] || t.relevance),
+          t.trend ? h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-oracle)" } }, EMO_TREND[t.trend] || t.trend) : null)),
+      t.note_de ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.6, color: "var(--text-secondary)", margin: "7px 0 0" } }, t.note_de) : null);
+  };
+
+  function Emometer() {
+    const [data, setData] = React.useState(null);
+    React.useEffect(() => {
+      let alive = true;
+      fetch(EMO_URL, { credentials: "omit" })
+        .then((r) => (r && r.ok ? r.json() : null))
+        .then((d) => { if (alive && d && d.aggregate && Array.isArray(d.topics) && d.topics.length) setData(d); })
+        .catch(() => { });
+      return () => { alive = false; };
+    }, []);
+    if (!data) return null;
+    const a = data.aggregate || {};
+    const sent = EMO_SENT[a.sentiment] || EMO_SENT.neutral;
+    return h(PySection, null,
+      h("div", { style: { marginBottom: 24 } },
+        h(PyEyebrow, null, T("Emometer", "Emometer")),
+        h(PyH2, null, T("Die Stimmung der Welt — heute.", "The world's mood — today.")),
+        h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.65, color: "var(--text-secondary)", margin: "10px 0 0", maxWidth: "70ch" } }, T("Das Sentiment der globalen Hot-Topics, relevanz-gewichtet. Eine Kontext-Anzeige — kein Handelssignal.", "The sentiment of the global hot topics, relevance-weighted. A context display — not a trading signal."))),
+      h(Card, { variant: "oracle", padding: "28px" },
+        h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 18, flexWrap: "wrap" } },
+          h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--text-oracle)" } }, T("Globale Stimmung", "Global sentiment")),
+          h("div", { style: { display: "flex", alignItems: "center", gap: 10 } },
+            h(Badge, { tone: sent.tone }, sent.label),
+            h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-primary)" } }, emoScore(a.score)))),
+        EmoScale(a.score),
+        a.reading_de ? h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 15, lineHeight: 1.65, color: "var(--text-secondary)", margin: "18px 0 0" } }, a.reading_de) : null,
+        h("div", { style: { marginTop: 20 } }, data.topics.map((t, i) => emoTopicRow(t, i))),
+        h("p", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6, marginTop: 18 } }, T("Kontext-Anzeige aus Tagesthemen. Kein Trade-Signal, kein Anlage-Rat.", "Context display from daily themes. Not a trade signal, not investment advice.")),
+        data.generated_at ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", marginTop: 6 } }, T("Stand", "As of") + " " + emoStand(data.generated_at)) : null));
+  }
+
   function SignalsHero() {
     return h("header", { style: { position: "relative", overflow: "hidden", borderBottom: "1px solid var(--border-subtle)", minHeight: "min(70vh, 600px)", display: "flex", alignItems: "center" } },
       h("video", { autoPlay: true, muted: true, loop: true, playsInline: true, preload: "auto", poster: "assets/imagery/pythai-computer.png", "aria-hidden": "true", style: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.55 } }, h("source", { src: "assets/imagery/pythai-computer.mp4", type: "video/mp4" })),
@@ -77,6 +146,9 @@
     return h("div", null,
       h(SiteNav, { active: "signals.html" }),
       h(SignalsHero, null),
+
+      // EM3: Live-Emometer (Welt-Sentiment) — oberer Bereich, gleich nach dem Hero
+      h(Emometer, null),
 
       // Honest stats
       h(PySection, null, h("div", { className: "pk-grid3" },
