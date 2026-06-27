@@ -114,7 +114,7 @@
     const prof = (p) => (isShort ? entry - p : p - entry);
     const fmtPct = (p) => { const v = prof(p) / entry * 100; return (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(1).replace(".", ",") + " %"; };
     const fmtR = (p) => { if (!R) return "—"; const v = prof(p) / R; return (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2).replace(".", ",") + " R"; };
-    const skims = parseSkims(t.skim_levels || t.skim);
+    const skims = parseSkims(t.skim_levels || t.skim).filter((x) => x > 0);
     const rows = [];
     if (target != null) rows.push({ k: "tgt", lab: T("Target", "Target"), price: target, kind: "win" });
     skims.forEach((s, i) => rows.push({ k: "sk" + i, lab: "Skim " + (i + 1), price: s, kind: "win" }));
@@ -127,15 +127,15 @@
     const N = rows.length;
     return h("div", { style: { margin: "6px 0 10px" } },
       R ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ash, #8b93a1)", padding: "0 2px 10px", letterSpacing: "0.02em" } }, "R = " + deFmt(R) + " " + (t.currency || "EUR") + (t.expected_move ? "  ·  " + t.expected_move : "")) : null,
-      rows.map((r, i) => h("div", { key: r.k, style: { display: "grid", gridTemplateColumns: "26px minmax(48px,1fr) 88px 64px 74px", alignItems: "center", height: 40, padding: "0 6px", borderRadius: 7, background: r.kind === "now" ? "rgba(212,169,78,0.12)" : "transparent", boxShadow: r.kind === "now" ? "inset 0 0 0 1px var(--oracle-b, #D4A94E)" : "none" } },
-        h("div", { style: { position: "relative", height: "100%" } },
+      rows.map((r, i) => h("div", { key: r.k, style: { display: "flex", alignItems: "center", gap: 8, height: 40, padding: "0 7px", borderRadius: 7, background: r.kind === "now" ? "rgba(212,169,78,0.12)" : "transparent", boxShadow: r.kind === "now" ? "inset 0 0 0 1px var(--oracle-b, #D4A94E)" : "none" } },
+        h("div", { style: { position: "relative", flex: "0 0 18px", alignSelf: "stretch" } },
           i > 0 ? h("div", { style: { position: "absolute", left: "50%", top: 0, height: "50%", width: 2, transform: "translateX(-50%)", background: "var(--line, #242a33)" } }) : null,
           i < N - 1 ? h("div", { style: { position: "absolute", left: "50%", top: "50%", bottom: 0, width: 2, transform: "translateX(-50%)", background: "var(--line, #242a33)" } }) : null,
           h("div", { style: { position: "absolute", left: "50%", top: "50%", width: r.kind === "now" ? 11 : 8, height: r.kind === "now" ? 11 : 8, borderRadius: "50%", background: dotc(r), transform: "translate(-50%,-50%)" } })),
-        h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: r.kind === "now" ? "var(--oracle-b, #D4A94E)" : "var(--parch, #e8e4da)", fontWeight: (r.kind === "now" || r.kind === "entry") ? 700 : 400 } }, r.lab),
-        h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--ash, #8b93a1)", textAlign: "right" } }, deFmt(r.price)),
-        h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: col(r), textAlign: "right" } }, r.kind === "entry" ? "0 %" : fmtPct(r.price)),
-        h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: col(r), textAlign: "right", fontWeight: 700 } }, r.kind === "entry" ? "0 R" : fmtR(r.price)))));
+        h("span", { style: { flex: "1 1 auto", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-ui)", fontSize: 14, color: r.kind === "now" ? "var(--oracle-b, #D4A94E)" : "var(--parch, #e8e4da)", fontWeight: (r.kind === "now" || r.kind === "entry") ? 700 : 400 } }, r.lab),
+        h("span", { style: { flex: "0 0 auto", minWidth: 56, textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--ash, #8b93a1)" } }, deFmt(r.price)),
+        h("span", { style: { flex: "0 0 auto", minWidth: 52, textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 12.5, color: col(r) } }, r.kind === "entry" ? "0 %" : fmtPct(r.price)),
+        h("span", { style: { flex: "0 0 auto", minWidth: 52, textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 700, color: col(r) } }, r.kind === "entry" ? "0 R" : fmtR(r.price)))));
   }
   function PosBar(t) {
     const lab = String(t.position_risk_label || "").toLowerCase();
