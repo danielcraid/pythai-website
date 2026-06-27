@@ -58,6 +58,39 @@
     return "INTAKT";
   };
   const consolidatedStatus = (p) => { const m = PILLMETA[statusKeyOf(p)] || PILLMETA.INTAKT; return { cls: m.cls, label: m.l, tip: m.t }; };
+  // Exit-Leiter (Edge-Out): Entry/Stop/Ziel/Skim als R-Vielfache + % mit "Stand"-Marker
+  function MbLadder(p) {
+    const entry = parseDeNum(p.entry), stop = parseDeNum(p.stop), live = parseDeNum(p.live), target = parseDeNum(p.target);
+    if (entry == null || entry <= 0) return h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--ash, #8b93a1)", padding: "4px 2px" } }, T("Kein Entry hinterlegt — trag Entry/Stop/Ziel ein, dann erscheint die Leiter.", "No entry on file — add entry/stop/target and the ladder appears."));
+    const isShort = /short/i.test(p.art || "");
+    const R = (stop != null) ? Math.abs(entry - stop) : null;
+    const prof = (x) => (isShort ? entry - x : x - entry);
+    const fmtNum = (x) => Number(x).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtPct = (x) => { const v = prof(x) / entry * 100; return (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(1).replace(".", ",") + " %"; };
+    const fmtR = (x) => { if (!R) return "—"; const v = prof(x) / R; return (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2).replace(".", ",") + " R"; };
+    const skims = String(p.skim_levels || p.skim || "").split(/[,;·\/]/).map((s) => parseDeNum(s)).filter((x) => x != null);
+    const rows = [];
+    if (target != null) rows.push({ k: "tgt", lab: T("Ziel", "Target"), price: target, kind: "win" });
+    skims.forEach((s, i) => rows.push({ k: "sk" + i, lab: "Skim " + (i + 1), price: s, kind: "win" }));
+    rows.push({ k: "en", lab: "Entry", price: entry, kind: "entry" });
+    if (stop != null) rows.push({ k: "st", lab: "Stop", price: stop, kind: "stop" });
+    if (live != null) rows.push({ k: "now", lab: T("Stand", "Now"), price: live, kind: "now" });
+    rows.sort((a, b) => prof(b.price) - prof(a.price));
+    const col = (r) => r.kind === "now" ? "var(--oracle-b, #D4A94E)" : r.kind === "stop" ? "#E0726B" : r.kind === "entry" ? "var(--ash, #8b93a1)" : "#67B07E";
+    const dotc = (r) => r.kind === "now" ? "var(--oracle-b, #D4A94E)" : r.kind === "stop" ? "#E0726B" : r.kind === "entry" ? "var(--steel, #6b7280)" : "#67B07E";
+    const N = rows.length;
+    return h("div", { style: { margin: "6px 0 10px" } },
+      R ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ash, #8b93a1)", padding: "0 2px 10px", letterSpacing: "0.02em" } }, "R = " + fmtNum(R) + " " + (p.currency || "EUR")) : null,
+      rows.map((r, i) => h("div", { key: r.k, style: { display: "grid", gridTemplateColumns: "26px minmax(48px,1fr) 88px 64px 74px", alignItems: "center", height: 40, padding: "0 6px", borderRadius: 7, background: r.kind === "now" ? "rgba(212,169,78,0.12)" : "transparent", boxShadow: r.kind === "now" ? "inset 0 0 0 1px var(--oracle-b, #D4A94E)" : "none" } },
+        h("div", { style: { position: "relative", height: "100%" } },
+          i > 0 ? h("div", { style: { position: "absolute", left: "50%", top: 0, height: "50%", width: 2, transform: "translateX(-50%)", background: "var(--line, #242a33)" } }) : null,
+          i < N - 1 ? h("div", { style: { position: "absolute", left: "50%", top: "50%", bottom: 0, width: 2, transform: "translateX(-50%)", background: "var(--line, #242a33)" } }) : null,
+          h("div", { style: { position: "absolute", left: "50%", top: "50%", width: r.kind === "now" ? 11 : 8, height: r.kind === "now" ? 11 : 8, borderRadius: "50%", background: dotc(r), transform: "translate(-50%,-50%)" } })),
+        h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: r.kind === "now" ? "var(--oracle-b, #D4A94E)" : "var(--parch, #e8e4da)", fontWeight: (r.kind === "now" || r.kind === "entry") ? 700 : 400 } }, r.lab),
+        h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--ash, #8b93a1)", textAlign: "right" } }, fmtNum(r.price)),
+        h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: col(r), textAlign: "right" } }, r.kind === "entry" ? "0 %" : fmtPct(r.price)),
+        h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: col(r), textAlign: "right", fontWeight: 700 } }, r.kind === "entry" ? "0 R" : fmtR(r.price)))));
+  }
   function PosBar({ p }) {
     const lab = String(p.position_risk_label || "").toLowerCase();
     const idx = POSR.indexOf(lab);
@@ -329,6 +362,7 @@
     const [delId, setDelId] = useState(null);
     const [summary, setSummary] = useState(true);
     const [simple, setSimple] = useState(true);
+    const [ladderOpen, setLadderOpen] = useState(null);
     const BLANK = { name: "", isin: "", issuer: "", idx: "", art: "Aktie · Long", venue: "Tradegate", currency: "EUR", entry: "", stop: "", skim: "", target: "", these: "", anti_these: "", kill_triggers: [] };
     const KILL_SUGGEST = ["iran_ceasefire", "hormus_resumed", "recession_eu", "capex_cut", "sektor_drift_down", "fed_hawkish_shock", "usd_crash", "china_export_ban", "earnings_miss", "esma_ban", "oil_supply_shock"];
     const normTag = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
@@ -693,6 +727,10 @@
             h("div", { className: "actcol2" },
               h("button", { className: "bline chk", disabled: checkId === p.id, onClick: () => checkThesis(p) }, checkId === p.id ? T("Prüfe…", "Checking…") : T("These prüfen", "Check thesis")),
               h("button", { className: "bline" + (chartBusy === p.id ? " saving" : ""), disabled: chartBusy === p.id, onClick: () => setChartConfirm(p) }, chartBusy === p.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")))),
+          h("div", { className: "tlbl", style: { display: "flex", alignItems: "center", justifyContent: "space-between" } },
+            h("span", null, T("Exit-Plan · R-Leiter", "Exit plan · R-ladder")),
+            h("button", { onClick: (e) => { e.stopPropagation(); sfx("button-004-toggle"); setLadderOpen(ladderOpen === p.id ? null : p.id); }, style: { background: "none", border: "1px solid var(--border-strong, #2a2f39)", borderRadius: 6, color: "var(--oracle-b, #D4A94E)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.04em", padding: "3px 11px", cursor: "pointer" } }, ladderOpen === p.id ? T("schließen ▴", "close ▴") : T("öffnen ▾", "open ▾"))),
+          ladderOpen === p.id ? MbLadder(p) : null,
           h("div", { className: "tlbl" }, T("Deine These", "Your thesis")),
           h("div", { className: "these" }, p.these),
           h("div", { className: "tlbl", style: { color: "var(--ox-b)" } }, T("Anti-These", "Anti-thesis")),

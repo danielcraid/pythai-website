@@ -123,13 +123,19 @@
     if (live != null) rows.push({ k: "now", lab: T("Stand", "Now"), price: live, kind: "now" });
     rows.sort((a, b) => prof(b.price) - prof(a.price));
     const col = (r) => r.kind === "now" ? "var(--oracle-b, #D4A94E)" : r.kind === "stop" ? "#E0726B" : r.kind === "entry" ? "var(--ash, #8b93a1)" : (prof(r.price) >= 0 ? "#67B07E" : "#E0726B");
-    return h("div", { style: { margin: "4px 0 8px", border: "1px solid var(--line, #1f242c)", borderRadius: 10, overflow: "hidden" } },
-      R ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ash, #8b93a1)", padding: "9px 9px 7px" } }, "R = " + deFmt(R) + " " + (t.currency || "EUR") + (t.expected_move ? "  ·  " + t.expected_move : "")) : null,
-      rows.map((r) => h("div", { key: r.k, style: { display: "grid", gridTemplateColumns: "minmax(54px,1fr) 86px 70px 76px", gap: "0 10px", alignItems: "center", padding: "7px 9px", borderTop: "1px solid var(--line, #1f242c)", fontFamily: "var(--font-mono)", fontSize: 12.5, background: r.kind === "now" ? "rgba(212,169,78,0.10)" : "transparent" } },
-        h("span", { style: { color: r.kind === "now" ? "var(--oracle-b, #D4A94E)" : "var(--parch, #e8e4da)", fontWeight: (r.kind === "now" || r.kind === "entry") ? 700 : 400 } }, r.lab),
-        h("span", { style: { color: "var(--ash, #8b93a1)", textAlign: "right" } }, deFmt(r.price)),
-        h("span", { style: { color: col(r), textAlign: "right" } }, r.kind === "entry" ? "0 %" : fmtPct(r.price)),
-        h("span", { style: { color: col(r), textAlign: "right", fontWeight: 700 } }, r.kind === "entry" ? "0 R" : fmtR(r.price)))));
+    const dotc = (r) => r.kind === "now" ? "var(--oracle-b, #D4A94E)" : r.kind === "stop" ? "#E0726B" : r.kind === "entry" ? "var(--steel, #6b7280)" : "#67B07E";
+    const N = rows.length;
+    return h("div", { style: { margin: "6px 0 10px" } },
+      R ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ash, #8b93a1)", padding: "0 2px 10px", letterSpacing: "0.02em" } }, "R = " + deFmt(R) + " " + (t.currency || "EUR") + (t.expected_move ? "  ·  " + t.expected_move : "")) : null,
+      rows.map((r, i) => h("div", { key: r.k, style: { display: "grid", gridTemplateColumns: "26px minmax(48px,1fr) 88px 64px 74px", alignItems: "center", height: 40, padding: "0 6px", borderRadius: 7, background: r.kind === "now" ? "rgba(212,169,78,0.12)" : "transparent", boxShadow: r.kind === "now" ? "inset 0 0 0 1px var(--oracle-b, #D4A94E)" : "none" } },
+        h("div", { style: { position: "relative", height: "100%" } },
+          i > 0 ? h("div", { style: { position: "absolute", left: "50%", top: 0, height: "50%", width: 2, transform: "translateX(-50%)", background: "var(--line, #242a33)" } }) : null,
+          i < N - 1 ? h("div", { style: { position: "absolute", left: "50%", top: "50%", bottom: 0, width: 2, transform: "translateX(-50%)", background: "var(--line, #242a33)" } }) : null,
+          h("div", { style: { position: "absolute", left: "50%", top: "50%", width: r.kind === "now" ? 11 : 8, height: r.kind === "now" ? 11 : 8, borderRadius: "50%", background: dotc(r), transform: "translate(-50%,-50%)" } })),
+        h("span", { style: { fontFamily: "var(--font-ui)", fontSize: 14, color: r.kind === "now" ? "var(--oracle-b, #D4A94E)" : "var(--parch, #e8e4da)", fontWeight: (r.kind === "now" || r.kind === "entry") ? 700 : 400 } }, r.lab),
+        h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--ash, #8b93a1)", textAlign: "right" } }, deFmt(r.price)),
+        h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: col(r), textAlign: "right" } }, r.kind === "entry" ? "0 %" : fmtPct(r.price)),
+        h("span", { style: { fontFamily: "var(--font-mono)", fontSize: 13, color: col(r), textAlign: "right", fontWeight: 700 } }, r.kind === "entry" ? "0 R" : fmtR(r.price)))));
   }
   function PosBar(t) {
     const lab = String(t.position_risk_label || "").toLowerCase();
