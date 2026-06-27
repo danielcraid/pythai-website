@@ -104,6 +104,33 @@
     if (k === "rehab") return T("Erholung", "Recovering") + " · " + r + T(" — bei " + thr + " Handelstagen zurück zu aktiv", " — back to active at " + thr + " trading days");
     return r + T(" — bei " + thr + " Handelstagen folgt die gelbe Karte (Watchlist)", " — yellow card (watchlist) at " + thr + " trading days");
   };
+
+  // Exit-Leiter (Edge-Out): skim_levels + Entry/Stop/Target als R-Vielfache + % mit "Stand"-Marker
+  function ExitLadder(t) {
+    const entry = num(t.entry), stop = num(t.stop), live = liveNum(t), target = num(t.target);
+    if (entry == null || entry <= 0) return h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--ash, #8b93a1)", padding: "6px 4px 2px" } }, T("Kein Setup-Niveau hinterlegt — die Leiter folgt, sobald das Orakel die Idee scharf stellt.", "No setup level yet — the ladder follows once the oracle arms the idea."));
+    const isShort = /short/i.test(t.art || "");
+    const R = (stop != null) ? Math.abs(entry - stop) : null;
+    const prof = (p) => (isShort ? entry - p : p - entry);
+    const fmtPct = (p) => { const v = prof(p) / entry * 100; return (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(1).replace(".", ",") + " %"; };
+    const fmtR = (p) => { if (!R) return "—"; const v = prof(p) / R; return (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2).replace(".", ",") + " R"; };
+    const skims = parseSkims(t.skim_levels || t.skim);
+    const rows = [];
+    if (target != null) rows.push({ k: "tgt", lab: T("Target", "Target"), price: target, kind: "win" });
+    skims.forEach((s, i) => rows.push({ k: "sk" + i, lab: "Skim " + (i + 1), price: s, kind: "win" }));
+    rows.push({ k: "en", lab: "Entry", price: entry, kind: "entry" });
+    if (stop != null) rows.push({ k: "st", lab: "Stop", price: stop, kind: "stop" });
+    if (live != null) rows.push({ k: "now", lab: T("Stand", "Now"), price: live, kind: "now" });
+    rows.sort((a, b) => prof(b.price) - prof(a.price));
+    const col = (r) => r.kind === "now" ? "var(--oracle-b, #D4A94E)" : r.kind === "stop" ? "#E0726B" : r.kind === "entry" ? "var(--ash, #8b93a1)" : (prof(r.price) >= 0 ? "#67B07E" : "#E0726B");
+    return h("div", { style: { margin: "4px 0 8px", border: "1px solid var(--line, #1f242c)", borderRadius: 10, overflow: "hidden" } },
+      R ? h("div", { style: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ash, #8b93a1)", padding: "9px 9px 7px" } }, "R = " + deFmt(R) + " " + (t.currency || "EUR") + (t.expected_move ? "  ·  " + t.expected_move : "")) : null,
+      rows.map((r) => h("div", { key: r.k, style: { display: "grid", gridTemplateColumns: "minmax(54px,1fr) 86px 70px 76px", gap: "0 10px", alignItems: "center", padding: "7px 9px", borderTop: "1px solid var(--line, #1f242c)", fontFamily: "var(--font-mono)", fontSize: 12.5, background: r.kind === "now" ? "rgba(212,169,78,0.10)" : "transparent" } },
+        h("span", { style: { color: r.kind === "now" ? "var(--oracle-b, #D4A94E)" : "var(--parch, #e8e4da)", fontWeight: (r.kind === "now" || r.kind === "entry") ? 700 : 400 } }, r.lab),
+        h("span", { style: { color: "var(--ash, #8b93a1)", textAlign: "right" } }, deFmt(r.price)),
+        h("span", { style: { color: col(r), textAlign: "right" } }, r.kind === "entry" ? "0 %" : fmtPct(r.price)),
+        h("span", { style: { color: col(r), textAlign: "right", fontWeight: 700 } }, r.kind === "entry" ? "0 R" : fmtR(r.price)))));
+  }
   function PosBar(t) {
     const lab = String(t.position_risk_label || "").toLowerCase();
     const idx = POSR.indexOf(lab);
@@ -354,6 +381,7 @@
     const [showArchive, setShowArchive] = useState(false);
     const [showWatch, setShowWatch] = useState(false);
     const [simple, setSimple] = useState(true);
+    const [ladderOpen, setLadderOpen] = useState(null);
     const sfx = (n) => { if (typeof window.PYsfx === "function") window.PYsfx(n); };
     const [chartBusy, setChartBusy] = useState(null);
     const [flash, setFlash] = useState("");
@@ -512,6 +540,10 @@
             dol != null ? h("span", { className: "f" }, dol + (dol === 1 ? T(" Tag auf der Liste", "d on the list") : T(" Tage auf der Liste", "d on the list"))) : (t.origin ? h("span", { className: "f" }, T("seit ", "since ") + t.origin) : null)),
           !hasSetup ? h("div", { className: "setupnote" }, T("Setup-Niveau folgt — sobald das Orakel die Idee scharf stellt.", "Setup level follows once the oracle arms the idea.")) : null,
 
+          h("div", { className: "secl", style: { marginTop: 22, display: "flex", alignItems: "center", justifyContent: "space-between" } },
+            h("span", null, T("Exit-Plan · R-Leiter", "Exit plan · R-ladder")),
+            h("button", { onClick: (e) => { e.stopPropagation(); sfx("button-004-toggle"); setLadderOpen(ladderOpen === t.id ? null : t.id); }, style: { background: "none", border: "1px solid var(--border-strong, #2a2f39)", borderRadius: 6, color: "var(--oracle-b, #D4A94E)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.04em", padding: "3px 11px", cursor: "pointer" } }, ladderOpen === t.id ? T("schließen ▴", "close ▴") : T("öffnen ▾", "open ▾"))),
+          ladderOpen === t.id ? ExitLadder(t) : null,
           h("div", { className: "secl", style: { marginTop: 22 } }, T("Thesen-Stärke", "Thesis health")),
           Barometer(t, true),
           cardKind(t) ? h("div", { style: { marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 11.5, lineHeight: 1.5, color: CARD_COL[cardKind(t)] } }, cardLine(t)) : null,
