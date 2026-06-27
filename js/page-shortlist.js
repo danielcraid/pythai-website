@@ -95,6 +95,13 @@
       h("span", { style: { display: "inline-block", width: 8, height: 11, borderRadius: 2, background: col, marginRight: 5 } }),
       k === "gelb" ? T("Gelbe Karte", "Yellow card") : T("Rote Karte", "Red card"));
   };
+  // Block 5: grüne Voraus-/Harvest-Karte aus velocity_flag (trail_evaluator)
+  const velocityTag = (t) => {
+    if (!t.velocity_flag) return null;
+    return h("span", { title: T("Voraus im Plan — viel Gewinn ungewöhnlich schnell. Harvest-Kandidat (Skim/Trail).", "Ahead of plan — a lot of gain unusually fast. Harvest candidate."), style: Object.assign({}, CARDTAG_BASE, { color: "#67B07E", borderColor: "#67B07E" }) },
+      h("span", { style: { display: "inline-block", width: 0, height: 0, borderLeft: "4px solid transparent", borderRight: "4px solid transparent", borderBottom: "7px solid #67B07E", marginRight: 5 } }),
+      T("Voraus", "Ahead"));
+  };
   const cardLine = (t) => {
     const k = cardKind(t); if (!k) return null;
     const at = t.card_at ? (" " + T("am ", "on ") + new Date(t.card_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })) : "";
@@ -527,7 +534,7 @@
               (dol != null ? (T("Auf der Liste seit ", "On the list for ") + dol + (dol === 1 ? T(" Tag", "d") : T(" Tagen", "d"))) : "") +
               (t.last_checked_at_de ? (" · " + T("zuletzt gepflegt ", "last updated ") + t.last_checked_at_de) : "") +
               (overdue ? T(" · überfällig?", " · overdue?") : "")) : null),
-          h("div", { className: "cstat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label), cardTag(t)),
+          h("div", { className: "cstat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label), cardTag(t), velocityTag(t)),
           h("div", { className: "live" },
             liveDisp ? h("div", null, h("span", { className: "px" }, liveDisp), h("span", { className: "cur" }, "EUR")) : h("div", null, h("span", { className: "px na" }, "—")),
             todayFmt ? h("span", { className: "chg " + trendCls }, arrow + " " + todayFmt + " " + T("heute", "today")) : null,
