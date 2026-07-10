@@ -694,8 +694,13 @@
     const lastChk = meta && (meta.last_thesis_check_de || meta.last_news_check_de);
     const nextChk = meta && (meta.next_news_check_de || meta.next_thesis_refresh_de);
     const SimpleRow = (t) => {
-      const lab = String(t.waage_label || "").toUpperCase();
-      const tp = { l: ZLAB[lab] || lab || "—", c: zoneColor(lab) };
+      // 10.07.2026 (Daniel-Catch): Einfach-Ansicht zeigte das ROHE Thesen-Label,
+      // Detail-Ansicht die konsolidierte Status-Pill — gleicher Trade, zwei
+      // verschiedene Tags (Apple: SKIM-CHANCE vs WACKELT; Oil&Gas: INTAKT vs
+      // STARK). Jetzt: BEIDE Ansichten rendern dieselbe konsolidierte Pill
+      // (Decision-Tree aus These + Position — preis-bewusst). Die reine
+      // Thesen-Achse bleibt in der Detail-Karte als beschriftete Dimension.
+      const cst = consolidatedStatus(t);
       const liveDisp = (typeof t.live === "string" && t.live) ? t.live : (liveNum(t) != null ? deFmt(liveNum(t)) : null);
       return h("div", { key: t.id, className: "srow", role: "button", tabIndex: 0, onClick: () => { sfx("button-002-itemopen"); setSimple(false); setOpen(t.id); setTimeout(() => { const el = document.getElementById("sl-" + t.id); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 250); } },
         h("div", { className: "sleft" },
@@ -705,8 +710,7 @@
             liveDisp ? h("div", { className: "px" }, liveDisp + " EUR") : null)),
         h("span", { className: "sright" },
           t.held_by_me ? h("span", { className: "sbestand", title: T("Du hältst diese Position in deinem My Book.", "You hold this position in your My Book.") }, T("Bestand", "Held")) : null,
-          h("span", { className: "slbl" }, T("These", "Thesis")),
-          h("span", { className: "spill", style: { color: tp.c, borderColor: tp.c } }, tp.l)));
+          h("span", { className: "cpill " + cst.cls, title: cst.tip }, cst.label)));
     };
     return page(h("div", null,
       Hero(h("div", { className: "hmeta" },
