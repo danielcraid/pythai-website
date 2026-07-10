@@ -531,7 +531,12 @@
       const entryDisp = t.entry_de || (entry != null ? deFmt(entry) : null);
       const liveDisp = (typeof t.live === "string" && t.live) ? t.live : (live != null ? deFmt(live) : null);
       const dol = (t.days_on_list != null ? t.days_on_list : t.days_active);
-      const overdue = dol != null && dol >= 7;
+      // 10.07.2026 (Daniel-Catch): "überfällig?" war eine starre >=7-Tage-Heuristik
+      // und stand direkt hinter dem Pflege-Zeitstempel — las sich wie "Wartung
+      // überfällig" 10 Minuten nach der Wartung. Jetzt horizont-bewusst: Flag nur
+      // wenn das Plan-Fenster (horizon_td_remaining) real überschritten ist.
+      // Verweildauer-Governance machen Thesis-Watcher + Cap-Phase-2 ohnehin präziser.
+      const overdue = t.horizon_td_remaining != null && t.horizon_td_remaining < 0;
       const newsHit = !!t.recent_news_hit;
       const newsHitAt = t.news_hit_at_de || "";
       const cs = consolidatedStatus(t);
@@ -555,7 +560,7 @@
             (dol != null || t.last_checked_at_de) ? h("div", { className: "listmeta" + (overdue ? " over" : "") },
               (dol != null ? (T("Auf der Liste seit ", "On the list for ") + dol + (dol === 1 ? T(" Tag", "d") : T(" Tagen", "d"))) : "") +
               (t.last_checked_at_de ? (" · " + T("zuletzt gepflegt ", "last updated ") + t.last_checked_at_de) : "") +
-              (overdue ? T(" · überfällig?", " · overdue?") : "")) : null),
+              (overdue ? T(" · Horizont überschritten", " · past horizon") : "")) : null),
           h("div", { className: "cstat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label), cardTag(t), velocityTag(t)),
           h("div", { className: "live" },
             liveDisp ? h("div", null, h("span", { className: "px" }, liveDisp), h("span", { className: "cur" }, "EUR")) : h("div", null, h("span", { className: "px na" }, "—")),
