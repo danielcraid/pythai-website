@@ -102,6 +102,28 @@
       h("span", { style: { display: "inline-block", width: 0, height: 0, borderLeft: "4px solid transparent", borderRight: "4px solid transparent", borderBottom: "7px solid #67B07E", marginRight: 5 } }),
       T("Voraus", "Ahead"));
   };
+  // Block 5: Horizont-Badge (v4.0.3 horizon + verbleibende Trading-Days). Enum bleibt kanonisch (long), FE mappt auf Anzeige.
+  const HORIZON_LABEL = { kurzfristig: ["kurzfristig", "short"], mittelfristig: ["mittelfristig", "medium"], long: ["langfristig", "long"], struktur: ["strukturell", "structural"] };
+  const horizonBadge = (t) => {
+    const lab = HORIZON_LABEL[String(t.horizon || "").toLowerCase()];
+    if (!lab) return null;
+    const rem = (t.horizon_td_remaining != null && t.horizon_td_remaining >= 0) ? t.horizon_td_remaining : null;
+    const remTxt = rem != null ? " · " + T("noch " + rem + " TD", rem + " TD left") : "";
+    return h("span", { className: "ltm", title: T("Geplanter Horizont des Setups · verbleibende Handelstage im Plan-Fenster.", "Planned horizon of the setup · trading days left in the plan window.") }, T(lab[0], lab[1]) + remTxt);
+  };
+  // Block 5: Entry-Trigger-Marke für Watchlist (Live-vs-Trigger-Distanz)
+  const entryTriggerMark = (t) => {
+    let et = t.entry_trigger; if (!et) return null;
+    if (typeof et === "string") { try { et = JSON.parse(et); } catch (e) { return null; } }
+    const trig = num(et.trigger_price); if (trig == null) return null;
+    const live = liveNum(t);
+    const baseSty = { display: "inline-block", marginTop: 7, fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, borderRadius: 999, padding: "3px 9px" };
+    if (live == null) return h("span", { style: Object.assign({}, baseSty, { color: "var(--steel, #7C8492)", border: "1px solid var(--line, #242a33)" }), title: T("Aktivierungs-Schwelle des Setups.", "Activation threshold of the setup.") }, "Trigger " + deFmt(trig) + " EUR");
+    const isShort = String(et.side || t.art || "").toLowerCase().indexOf("short") !== -1;
+    const dist = (isShort ? (live - trig) / live : (trig - live) / live) * 100;
+    if (dist <= 0) return h("span", { style: Object.assign({}, baseSty, { color: "var(--bull, #6FCF9A)", background: "rgba(111,207,154,0.1)", border: "1px solid rgba(111,207,154,0.3)" }), title: T("Trigger-Niveau erreicht — Aktivierung steht an.", "Trigger level reached — activation imminent.") }, T("Trigger erreicht", "Trigger reached"));
+    return h("span", { style: Object.assign({}, baseSty, { color: "var(--oracle-b, #D4A94E)", background: "rgba(212,169,78,0.1)", border: "1px solid rgba(212,169,78,0.3)" }), title: T("Abstand bis zur Aktivierungs-Schwelle.", "Distance to the activation threshold.") }, "+" + dist.toFixed(1).replace(".", ",") + " %" + T(" bis Trigger", " to trigger"));
+  };
   const cardLine = (t) => {
     const k = cardKind(t); if (!k) return null;
     const at = t.card_at ? (" " + T("am ", "on ") + new Date(t.card_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })) : "";
@@ -126,7 +148,7 @@
     if (target != null) rows.push({ k: "tgt", lab: T("Target", "Target"), price: target, kind: "win" });
     skims.forEach((s, i) => rows.push({ k: "sk" + i, lab: "Skim " + (i + 1), price: s, kind: "win" }));
     rows.push({ k: "en", lab: "Entry", price: entry, kind: "entry" });
-    if (stop != null) rows.push({ k: "st", lab: "Stop", price: stop, kind: "stop" });
+    if (stop != null) rows.push({ k: "st", lab: "Stop", price: stop, kind: "stop", trailed: !!t.trail_stop_at, tip: t.trail_stop_at ? (T("Stop nachgezogen (getrailt) — schützt Gewinn", "Stop trailed up — protects profit") + " · " + deShort(t.trail_stop_at)) : null });
     if (live != null) rows.push({ k: "now", lab: T("Stand", "Now"), price: live, kind: "now" });
     rows.sort((a, b) => prof(b.price) - prof(a.price));
     const col = (r) => r.kind === "now" ? "var(--oracle-b, #D4A94E)" : r.kind === "stop" ? "#E0726B" : r.kind === "entry" ? "var(--ash, #8b93a1)" : (prof(r.price) >= 0 ? "#67B07E" : "#E0726B");
@@ -139,7 +161,7 @@
           i > 0 ? h("div", { style: { position: "absolute", left: "50%", top: 0, height: "50%", width: 2, transform: "translateX(-50%)", background: "var(--line, #242a33)" } }) : null,
           i < N - 1 ? h("div", { style: { position: "absolute", left: "50%", top: "50%", bottom: 0, width: 2, transform: "translateX(-50%)", background: "var(--line, #242a33)" } }) : null,
           h("div", { style: { position: "absolute", left: "50%", top: "50%", width: r.kind === "now" ? 11 : 8, height: r.kind === "now" ? 11 : 8, borderRadius: "50%", background: dotc(r), transform: "translate(-50%,-50%)" } })),
-        h("span", { style: { flex: "1 1 auto", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-ui)", fontSize: 14, color: r.kind === "now" ? "var(--oracle-b, #D4A94E)" : "var(--parch, #e8e4da)", fontWeight: (r.kind === "now" || r.kind === "entry") ? 700 : 400 } }, r.lab),
+        h("span", { style: { flex: "1 1 auto", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-ui)", fontSize: 14, color: r.kind === "now" ? "var(--oracle-b, #D4A94E)" : "var(--parch, #e8e4da)", fontWeight: (r.kind === "now" || r.kind === "entry") ? 700 : 400 }, title: r.tip || null }, r.lab, r.trailed ? h("span", { style: { color: "#E0726B", fontWeight: 700, marginLeft: 5, fontSize: 12 } }, "↑") : null),
         h("span", { style: { flex: "0 0 auto", minWidth: 56, textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--ash, #8b93a1)" } }, deFmt(r.price)),
         h("span", { style: { flex: "0 0 auto", minWidth: 52, textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 12.5, color: col(r) } }, r.kind === "entry" ? "0 %" : fmtPct(r.price)),
         h("span", { style: { flex: "0 0 auto", minWidth: 52, textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 700, color: col(r) } }, r.kind === "entry" ? "0 R" : fmtR(r.price)))));
@@ -528,7 +550,7 @@
               h("span", { className: "isin" }, t.isin || ""),
               h("span", { className: "stbadge " + (isPending ? "pend" : "act") }, isPending ? T("Watchlist", "Watchlist") : T("Aktiv", "Active")),
               t.held_by_me ? h("span", { className: "bestand", title: T("Du hältst diese Position in deinem My Book.", "You hold this position in your My Book.") }, T("Bestand", "Held")) : null,
-              t.lifetime_class ? h("span", { className: "ltm", title: ltMeta(t.lifetime_class).t }, ltMeta(t.lifetime_class).l) : null,
+              t.horizon ? horizonBadge(t) : (t.lifetime_class ? h("span", { className: "ltm", title: ltMeta(t.lifetime_class).t }, ltMeta(t.lifetime_class).l) : null),
               newsHit ? h("span", { className: "newshit", title: T("Validierter Tag-Match auf einer aktuellen News. Schau hin — Einschätzung lesen.", "Validated tag match on a recent news item. Look — read the assessment.") }, h("span", { className: "nh-dot" }), T("News-Alert", "News alert") + (newsHitAt ? " " + newsHitAt : "")) : null),
             (dol != null || t.last_checked_at_de) ? h("div", { className: "listmeta" + (overdue ? " over" : "") },
               (dol != null ? (T("Auf der Liste seit ", "On the list for ") + dol + (dol === 1 ? T(" Tag", "d") : T(" Tagen", "d"))) : "") +
@@ -538,7 +560,8 @@
           h("div", { className: "live" },
             liveDisp ? h("div", null, h("span", { className: "px" }, liveDisp), h("span", { className: "cur" }, "EUR")) : h("div", null, h("span", { className: "px na" }, "—")),
             todayFmt ? h("span", { className: "chg " + trendCls }, arrow + " " + todayFmt + " " + T("heute", "today")) : null,
-            pnlStr ? h("span", { className: "chg " + pnlCls, title: T("seit Setup-Niveau", "since setup level") }, pnlStr + " " + T("seit Setup", "since setup")) : null),
+            pnlStr ? h("span", { className: "chg " + pnlCls, title: T("seit Setup-Niveau", "since setup level") }, pnlStr + " " + T("seit Setup", "since setup")) : null,
+            isPending ? entryTriggerMark(t) : null),
           h("div", { className: "chev" }, "▼")),
 
         isOpen ? h("div", { className: "det" },
