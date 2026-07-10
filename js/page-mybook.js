@@ -767,7 +767,11 @@
             h(Button, { variant: "oracle", size: "sm", disabled: count >= MAX, onClick: addTopic }, T("+ Topic hinzufügen", "+ Add topic")))),
         h("h2", { className: "mb" }, T("Deine Topics auf einen Blick.", "Your topics at a glance.")),
         rows.length ? (simple ? h("div", { className: "simplelist" }, rows.map((p) => {
-          const tp = thesisPill(p);
+          // 10.07.2026 (Daniel-Catch Prosus WACKELT/INTAKT): Einfach-Liste zeigt
+          // jetzt dieselbe konsolidierte Status-Pill wie die Detail-Karte —
+          // vorher rohes Thesen-Label hier vs. Decision-Tree-Pill dort =
+          // scheinbarer Widerspruch. Thesen-Achse bleibt als Balken im Detail.
+          const cst = consolidatedStatus(p);
           const oracle = p.tracking_source === "oracle";
           const _lv = parseDeNum(p.live), _en = parseDeNum(p.entry);
           const _pnl = (_lv != null && _en != null && _en > 0) ? (_lv - _en) / _en * 100 : null;
@@ -781,8 +785,7 @@
                 p.live ? h("div", { className: "px" }, (typeof p.live === "string" ? p.live : String(p.live)) + " " + (p.currency || "EUR")) : null)),
             h("span", { className: "sright" },
               h("span", { title: T("Stand seit Entry", "Since entry"), style: { fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700, color: pnlCol, marginRight: 16, whiteSpace: "nowrap" } }, pnlStr),
-              h("span", { className: "slbl" }, T("These", "Thesis")),
-              h("span", { className: "spill", style: { color: tp.c, borderColor: tp.c } }, tp.l)));
+              h("span", { className: "cpill " + cst.cls, title: cst.tip }, cst.label)));
         })) : (function () {
           const mkHdr = () => h("div", { className: "hdr" },
             h("span", { className: "hc c-mon" }, T("Beobachten", "Monitor")),
