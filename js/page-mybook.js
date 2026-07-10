@@ -726,7 +726,15 @@
               checkMsg[p.id] ? h("div", { style: { fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--ox-b)", marginTop: 10 } }, checkMsg[p.id]) : null),
             h("div", { className: "actcol2" },
               h("button", { className: "bline chk", disabled: checkId === p.id, onClick: () => checkThesis(p) }, checkId === p.id ? T("Prüfe…", "Checking…") : T("These prüfen", "Check thesis")),
-              h("button", { className: "bline" + (chartBusy === p.id ? " saving" : ""), disabled: chartBusy === p.id, onClick: () => setChartConfirm(p) }, chartBusy === p.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")))),
+              h("button", { className: "bline" + (chartBusy === p.id ? " saving" : ""), disabled: chartBusy === p.id, onClick: () => setChartConfirm(p) }, chartBusy === p.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")),
+              // 10.07.2026 (Daniel-Wunsch): Topic-Chat pro Item — gleicher Pfad wie ask_warren.
+              h("button", { className: "bline", onClick: () => {
+                if (typeof window.PYchatOpen !== "function") return;
+                var lbl = thesisPill(p).l;
+                window.PYchatOpen(T(
+                  "Lass uns über mein Topic „" + p.name + "“ (" + (p.isin || "?") + ") sprechen — These aktuell „" + lbl + "“. Wie steht sie da, und was wäre jetzt klug zu beobachten?",
+                  "Let's talk about my topic „" + p.name + "“ (" + (p.isin || "?") + ") — thesis currently „" + lbl + "“. How is it holding up, and what should I watch now?"));
+              } }, T("Mit Warren besprechen", "Discuss with Warren")))),
           h("div", { className: "tlbl", style: { display: "flex", alignItems: "center", justifyContent: "space-between" } },
             h("span", null, T("Exit-Plan · R-Leiter", "Exit plan · R-ladder")),
             h("button", { onClick: (e) => { e.stopPropagation(); sfx("button-004-toggle"); setLadderOpen(ladderOpen === p.id ? null : p.id); }, style: { background: "none", border: "1px solid var(--border-strong, #2a2f39)", borderRadius: 6, color: "var(--oracle-b, #D4A94E)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.04em", padding: "3px 11px", cursor: "pointer" } }, ladderOpen === p.id ? T("schließen ▴", "close ▴") : T("öffnen ▾", "open ▾"))),

@@ -614,7 +614,17 @@
                   : h("div", { className: "actcol" },
                       h("button", { className: "badd", disabled: addingId === t.id, onClick: () => setConfirmAdd(t) }, addingId === t.id ? T("übernehme…", "adding…") : T("In My Book übernehmen", "Add to My Book")),
                       h("div", { className: "baddhint" }, T("Übernimmt These & Setup als eigenes Topic — mit eigenen Marken & Alerts.", "Copies thesis & setup as your own topic — with your own levels & alerts."))),
-            h("button", { className: "bchart", disabled: chartBusy === t.id, onClick: () => setChartConfirm(t) }, chartBusy === t.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")))) : null);
+            h("button", { className: "bchart", disabled: chartBusy === t.id, onClick: () => setChartConfirm(t) }, chartBusy === t.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")),
+            // 10.07.2026 (Daniel-Wunsch): Topic-Chat — öffnet Warren-Chat mit
+            // vorgefülltem Kontext-Opener (Asset + ISIN + aktueller Status).
+            // Server-Kontext (MyBook + Shortlist-Tools) ist bereits self-scoped da.
+            h("button", { className: "bchart", "data-sfx": "", onClick: () => {
+              if (typeof window.PYchatOpen !== "function") return;
+              const cst = consolidatedStatus(t);
+              window.PYchatOpen(T(
+                "Lass uns über „" + t.asset + "“ (" + (t.isin || "?") + ") aus der Shortlist sprechen — Status gerade „" + cst.label + "“. Wie liest du die Lage, und worauf sollte ich achten?",
+                "Let's talk about „" + t.asset + "“ (" + (t.isin || "?") + ") from the shortlist — current status „" + cst.label + "“. How do you read it, and what should I watch?"));
+            } }, T("Mit Warren besprechen", "Discuss with Warren")))) : null);
     };
 
     const Hero = (sub) => h("div", { className: "hero" },
