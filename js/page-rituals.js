@@ -140,9 +140,10 @@
     const [smsErr, setSmsErr] = useState("");
     const [smsConsent, setSmsConsent] = useState(false);
     const [smsPending, setSmsPending] = useState(null);
+    const [simpleLang, setSimpleLang] = useState(false);
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((res) => res.ok ? res.json() : null).then((d) => {
-        if (d && d.ok) { setMe(d); setPrefs(d.mailReports || {}); setSmsV(!!(d.smsVerified || d.sms_verified)); setSmsConsent(!!(d.smsConsent || d.sms_consent)); if (d.phone) setSmsPhone(d.phone); }
+        if (d && d.ok) { setMe(d); setPrefs(d.mailReports || {}); setSmsV(!!(d.smsVerified || d.sms_verified)); setSmsConsent(!!(d.smsConsent || d.sms_consent)); if (d.phone) setSmsPhone(d.phone); setSimpleLang(d.simpleLanguage === true); }
         if (d && d.onboardingRequired) { window.location.href = "account.html"; return; }
         const member = d && d.ok && PRIV.indexOf(d.tier) !== -1 && d.approval === "approved";
         setGate(member ? "ok" : "locked");
@@ -176,6 +177,7 @@
 
     const uk = me ? (me.tier === "syndicate" || me.tier === "admin" ? "syndicate" : (me.tier === "inner-circle" || me.tier === "circle-of-trust" ? "inner" : "observer")) : "inner";
     const isEnabled = (key) => (key === "morning-compass" || key === "breaking-critical" || key === "morning-news-flash" || key === "daily-oracle" || key === "im-spiel") ? prefs[key] !== false : prefs[key] === true;
+    const onSimpleLang = (v) => { setSimpleLang(v); fetch(API + "/api/mail-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ simpleLanguage: v }) }).catch(() => { }); };
     const onToggleRaw = (key, v) => { setPrefs((p) => { const n = Object.assign({}, p); n[key] = v; return n; }); fetch(API + "/api/mail-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ report: key, on: v }) }).catch(() => { }); try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } fetch(API + "/api/setup-complete", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setupComplete: true }) }).catch(() => { }); };
     const onToggle = (key, v) => { if (key === "trade-alerts" && v && !smsV) { setSmsPending("trade-alerts"); setSmsErr(""); setSmsCode(""); setSmsSent(false); setSmsModal(true); return; } onToggleRaw(key, v); };
     const openSmsVerify = () => { setSmsPending(null); setSmsErr(""); setSmsCode(""); setSmsSent(false); setSmsModal(true); };
@@ -186,6 +188,17 @@
 
     return h("div", null, h(SiteNav, { active: "rituals.html" }),
       h(PyPageHead, { eyebrow: "Member rituals", title: "What arrives, and when.", sub: T("Der Wochen-Rhythmus aller Reports von Warren — was wann kommt, für wen, und wie du es liest.", "The weekly rhythm of all of Warren's reports — what arrives when, for whom, and how to read it.") }),
+      h(PySection, null, h("div", { style: { display: "flex", flexDirection: "column", gap: 12 } },
+        h("div", { style: { border: "1px solid var(--border-oracle)", borderRadius: 12, background: "var(--bg-surface)", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", boxShadow: "0 0 24px var(--glow-oracle-soft)" } },
+          h("div", { style: { flex: 1, minWidth: 220 } },
+            h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 20, color: "var(--text-primary)", marginBottom: 5 } }, T("Rituals mit Warren einrichten", "Set up rituals with Warren")),
+            h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.55, color: "var(--text-secondary)", margin: 0, maxWidth: "58ch" } }, T("Warren fragt dich in zwei Minuten durch — was du h\xF6ren willst, wie oft, und ob er einfache Sprache nutzen soll.", "Warren walks you through it in two minutes — what you want to hear, how often, and whether he should use simple language."))),
+          h(Button, { variant: "oracle", size: "sm", "data-sfx": "", onClick: () => { if (typeof window.PYchatOpen === "function") window.PYchatOpen(T("Richte mit mir meine Rituals ein.", "Set up my rituals with me.")); } }, T("Mit Warren starten", "Start with Warren"))),
+        h("div", { style: { border: "1px solid var(--border-subtle)", borderRadius: 12, background: "var(--bg-surface)", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" } },
+          h("div", { style: { flex: 1, minWidth: 220 } },
+            h("div", { style: { fontFamily: "var(--font-oracle)", fontSize: 20, color: "var(--text-primary)", marginBottom: 5 } }, T("Einfache Sprache", "Simple language")),
+            h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.55, color: "var(--text-secondary)", margin: 0, maxWidth: "58ch" } }, T("Warren vermeidet Fachbegriffe und erkl\xE4rt alles in klaren Worten — im Chat und sp\xE4ter auch in Mails.", "Warren avoids jargon and explains everything in plain words — in chat, and later in emails too."))),
+          h(Switch, { checked: simpleLang, onChange: onSimpleLang })))),
       h(TierSummary, null),
       h(Overview, { groups: GROUPS, uk: uk, isEnabled: isEnabled, onToggle: onToggle,
         smsBox: (uk === "syndicate" && smsV) ? h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", border: "1px solid var(--border-subtle)", borderRadius: 12, background: "var(--bg-surface)", padding: "16px 20px" } },
