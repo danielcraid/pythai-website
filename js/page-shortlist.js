@@ -46,6 +46,24 @@
   const pctStr = (v) => { if (v == null || v === "") return null; if (typeof v === "number") return (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(1) + " %"; return String(v).trim(); };
   const isNeg = (s) => /^[\-−–]/.test(String(s == null ? "" : s).trim());
   const liveNum = (t) => { const a = num(t.live_price); return a != null ? a : num(t.live); };
+  // Eine Wahrheit fuer beide Ansichten (Lehre 10.07.2026: Einfach vs. Detail
+  // rechneten unterschiedlich). Tages-Trend = change_pct_today (NICHT P&L);
+  // seit Setup = P&L vs Entry, short-bewusst.
+  const dayTrend = (t) => {
+    const fmt = t.change_pct_today_fmt || (t.change_pct_today != null ? pctStr(t.change_pct_today) : null);
+    let dirN = null;
+    if (t.trend_dir != null) { const sd = String(t.trend_dir).toLowerCase(); dirN = (sd.indexOf("up") !== -1 || sd === "1" || sd === "+") ? 1 : (sd.indexOf("down") !== -1 || sd === "-1" || sd === "-") ? -1 : 0; }
+    if (dirN == null && t.change_pct_today != null) { const n = Number(t.change_pct_today); dirN = n > 0 ? 1 : n < 0 ? -1 : 0; }
+    if (dirN == null && fmt) dirN = isNeg(fmt) ? -1 : 1;
+    return { fmt: fmt, dirN: dirN, arrow: dirN > 0 ? "▲" : dirN < 0 ? "▼" : "—", cls: dirN > 0 ? "up" : dirN < 0 ? "dn" : "flat" };
+  };
+  const sinceSetup = (t) => {
+    const entry = num(t.entry), live = liveNum(t);
+    const isShort = /short/i.test(t.art || "");
+    const v = (entry != null && live != null && entry > 0) ? (isShort ? (entry - live) / entry : (live - entry) / entry) * 100 : null;
+    if (v == null) return { v: null, str: null, cls: "flat" };
+    return { v: v, str: (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(1).replace(".", ",") + " %", cls: v >= 0 ? "up" : "dn" };
+  };
   const killList = (t) => { if (Array.isArray(t.thesis_kill_triggers) && t.thesis_kill_triggers.length) return t.thesis_kill_triggers; if (t.kill) return String(t.kill).split(/\s*·\s*/).filter(Boolean); return []; };
   // Position-Risk (4-Level) ist getrennt von Thesen-Stärke (waage, 5-Level). Decision-Tree -> 1 konsolidierte Pill (kein Mittelwert).
   const POSR = ["stopped", "danger", "caution", "safe"];
@@ -353,12 +371,16 @@
   #sl-root .sdot.o{background:var(--oracle);} #sl-root .sdot.s{background:#9F7BCB;}
   #sl-root .sname{min-width:0;}
   #sl-root .sname .nm{font-family:var(--font-oracle);font-size:18px;color:var(--parch);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:0;}
-  #sl-root .sname .px{font-family:var(--font-mono);font-size:12px;color:var(--ash);margin-top:2px;}
+  #sl-root .spct{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;margin-top:3px;}
+  #sl-root .spct .pxv{color:var(--ash);font-size:12px;}
+  #sl-root .spct .up{color:var(--bull);} #sl-root .spct .dn{color:var(--ox-b);} #sl-root .spct .flat{color:var(--steel);}
+  #sl-root .sask{font-family:var(--font-ui);font-size:12px;font-weight:600;color:var(--oracle-b);background:rgba(212,169,78,.06);border:1px solid rgba(212,169,78,.5);border-radius:999px;padding:6px 13px;cursor:pointer;white-space:nowrap;}
+  #sl-root .sask:hover{background:rgba(212,169,78,.14);}
   #sl-root .sright{display:flex;align-items:center;gap:10px;flex-shrink:0;}
   #sl-root .slbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
   #sl-root .spill{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid currentColor;border-radius:999px;padding:5px 12px;white-space:nowrap;}
   #sl-root .sbestand{font-family:var(--font-mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--oracle-b);border:1px solid rgba(212,169,78,.4);border-radius:999px;padding:3px 8px;white-space:nowrap;}
-  @media(max-width:560px){ #sl-root .slbl{display:none;} }
+  @media(max-width:560px){ #sl-root .slbl{display:none;} #sl-root .sbestand{display:none;} }
 
   @media(max-width:820px){
     #sl-root .head{grid-template-columns:minmax(0,1fr) auto;gap:14px 18px;grid-template-areas:"id live" "bm bm";}
@@ -510,20 +532,25 @@
         .catch(() => { setChartBusy(null); showFlash(T("Netzwerkfehler — versuch es gleich nochmal.", "Network error — try again shortly.")); });
     };
 
+    // Topic-Chat: Warren mit Kontext-Opener (Asset + ISIN + Status). Genutzt von
+    // Detail-Karte ("Mit Warren besprechen") und Einfach-Ansicht ("Warren fragen").
+    const askWarren = (t) => {
+      if (typeof window.PYchatOpen !== "function") return;
+      const cst = consolidatedStatus(t);
+      window.PYchatOpen(T(
+        "Lass uns über „" + t.asset + "“ (" + (t.isin || "?") + ") aus der Shortlist sprechen — Status gerade „" + cst.label + "“. Wie liest du die Lage, und worauf sollte ich achten?",
+        "Let's talk about „" + t.asset + "“ (" + (t.isin || "?") + ") from the shortlist — current status „" + cst.label + "“. How do you read it, and what should I watch?"));
+    };
+
     const Card = (t) => {
       const isOpen = open === t.id;
       const isShort = /short/i.test(t.art || "");
       const entry = num(t.entry), live = liveNum(t);
       const isPending = t.state === "pending"; // Badge NUR aus state
       const hasSetup = entry != null;           // Add nur mit Setup-Niveau möglich (kein p&l!)
-      // Tages-Trend (NICHT p&l vs Entry) — change_pct_today_fmt + trend_dir
-      const todayFmt = t.change_pct_today_fmt || (t.change_pct_today != null ? pctStr(t.change_pct_today) : null);
-      let dirN = null;
-      if (t.trend_dir != null) { const s = String(t.trend_dir).toLowerCase(); dirN = (s.indexOf("up") !== -1 || s === "1" || s === "+") ? 1 : (s.indexOf("down") !== -1 || s === "-1" || s === "-") ? -1 : 0; }
-      if (dirN == null && t.change_pct_today != null) { const n = Number(t.change_pct_today); dirN = n > 0 ? 1 : n < 0 ? -1 : 0; }
-      if (dirN == null && todayFmt) dirN = isNeg(todayFmt) ? -1 : 1;
-      const arrow = dirN > 0 ? "▲" : dirN < 0 ? "▼" : "—";
-      const trendCls = dirN > 0 ? "up" : dirN < 0 ? "dn" : "flat";
+      // Tages-Trend (NICHT p&l vs Entry) — geteilte Wahrheit mit der Einfach-Ansicht
+      const td_ = dayTrend(t);
+      const todayFmt = td_.fmt, arrow = td_.arrow, trendCls = td_.cls;
       const added = addedIds.indexOf(t.id) !== -1;
       const kills = killList(t);
       const recap = t.einschaetzung || "";
@@ -542,9 +569,8 @@
       const cs = consolidatedStatus(t);
       // Setup->Kurs-Farbe: grün, wenn der Kurs in Thesen-Richtung über (Long) bzw. unter (Short) dem Setup liegt; sonst rot.
       const setupCls = (entry != null && live != null && live !== entry) ? ((isShort ? live < entry : live > entry) ? "up" : "dn") : "flat";
-      const _pnl = (entry != null && live != null && entry > 0) ? (isShort ? (entry - live) / entry : (live - entry) / entry) * 100 : null;
-      const pnlStr = _pnl == null ? null : (_pnl >= 0 ? "+" : "−") + Math.abs(_pnl).toFixed(1).replace(".", ",") + " %";
-      const pnlCls = _pnl == null ? "flat" : (_pnl >= 0 ? "up" : "dn");
+      const ss_ = sinceSetup(t); // geteilte Wahrheit mit der Einfach-Ansicht
+      const pnlStr = ss_.str, pnlCls = ss_.cls;
 
       return h("div", { key: t.id, id: "sl-" + t.id, className: "card" + (isOpen ? " open" : "") + (t.held_by_me ? " held" : "") },
         h("div", { className: "head", onClick: () => { sfx(isOpen ? "button-001-itemclose" : "button-002-itemopen"); setOpen(isOpen ? null : t.id); } },
@@ -623,13 +649,7 @@
             // 10.07.2026 (Daniel-Wunsch): Topic-Chat — öffnet Warren-Chat mit
             // vorgefülltem Kontext-Opener (Asset + ISIN + aktueller Status).
             // Server-Kontext (MyBook + Shortlist-Tools) ist bereits self-scoped da.
-            h("button", { className: "bchart", "data-sfx": "", onClick: () => {
-              if (typeof window.PYchatOpen !== "function") return;
-              const cst = consolidatedStatus(t);
-              window.PYchatOpen(T(
-                "Lass uns über „" + t.asset + "“ (" + (t.isin || "?") + ") aus der Shortlist sprechen — Status gerade „" + cst.label + "“. Wie liest du die Lage, und worauf sollte ich achten?",
-                "Let's talk about „" + t.asset + "“ (" + (t.isin || "?") + ") from the shortlist — current status „" + cst.label + "“. How do you read it, and what should I watch?"));
-            } }, T("Mit Warren besprechen", "Discuss with Warren")))) : null);
+            h("button", { className: "bchart", "data-sfx": "", onClick: () => askWarren(t) }, T("Mit Warren besprechen", "Discuss with Warren")))) : null);
     };
 
     const Hero = (sub) => h("div", { className: "hero" },
@@ -717,15 +737,22 @@
       // Thesen-Achse bleibt in der Detail-Karte als beschriftete Dimension.
       const cst = consolidatedStatus(t);
       const liveDisp = (typeof t.live === "string" && t.live) ? t.live : (liveNum(t) != null ? deFmt(liveNum(t)) : null);
+      // 30.07.2026 (Daniel): Einfach-Ansicht zeigt beide %-Werte (heute + seit Setup)
+      // + "Warren fragen" pro Item. Gleiche Rechen-Wahrheit wie die Detail-Karte.
+      const td = dayTrend(t), ss = sinceSetup(t);
       return h("div", { key: t.id, className: "srow", role: "button", tabIndex: 0, onClick: () => { sfx("button-002-itemopen"); setSimple(false); setOpen(t.id); setTimeout(() => { const el = document.getElementById("sl-" + t.id); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 250); } },
         h("div", { className: "sleft" },
           h("span", { className: "sdot o" }),
           h("div", { className: "sname" },
             h("div", { className: "nm" }, t.asset),
-            liveDisp ? h("div", { className: "px" }, liveDisp + " EUR") : null)),
+            (liveDisp || td.fmt || ss.str) ? h("div", { className: "spct" },
+              liveDisp ? h("span", { className: "pxv" }, liveDisp + " EUR") : null,
+              td.fmt ? h("span", { className: td.cls, title: T("Veränderung heute", "Change today") }, td.arrow + " " + td.fmt + " " + T("heute", "today")) : null,
+              ss.str ? h("span", { className: ss.cls, title: T("seit Setup-Niveau (Entry)", "since setup level (entry)") }, ss.str + " " + T("seit Setup", "since setup")) : null) : null)),
         h("span", { className: "sright" },
           t.held_by_me ? h("span", { className: "sbestand", title: T("Du hältst diese Position in deinem My Book.", "You hold this position in your My Book.") }, T("Bestand", "Held")) : null,
-          h("span", { className: "cpill " + cst.cls, title: cst.tip }, cst.label)));
+          h("span", { className: "cpill " + cst.cls, title: cst.tip }, cst.label),
+          h("button", { className: "sask", "data-sfx": "", onClick: (e) => { e.stopPropagation(); sfx("button-002-itemopen"); askWarren(t); } }, T("Warren fragen", "Ask Warren"))));
     };
     return page(h("div", null,
       Hero(h("div", { className: "hmeta" },
