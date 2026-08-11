@@ -232,6 +232,50 @@
     #mb-root .lt-row .marke{align-self:flex-start;}
     #mb-root .lt-head{flex-direction:column;}
   }
+  /* --- B1 · Ziel-Editor (AP6.5) --- */
+  #mb-root .ze{background:var(--card,#15181E);border:1px solid var(--line);border-left:3px solid var(--oracle);border-radius:0 10px 10px 0;padding:24px 26px;margin:20px 0 0;}
+  #mb-root .ze-kopf{display:flex;align-items:baseline;justify-content:space-between;gap:14px;}
+  #mb-root .ze-kopf h4{font-family:var(--font-oracle);font-weight:400;font-size:22px;color:var(--parch);margin:0;}
+  #mb-root .ze-zu{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .ze-zu:hover{color:var(--mist);}
+  #mb-root .ze-lead{font-family:var(--font-ui);font-size:13.5px;line-height:1.65;color:var(--text-secondary,#9BA3B2);margin:10px 0 0;max-width:600px;}
+
+  #mb-root .ze-grp{margin:24px 0 0;}
+  #mb-root .ze-grp-t{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--oracle);margin:0 0 10px;}
+  #mb-root .ze-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  #mb-root .ze-name{font-family:var(--font-ui);font-size:14px;color:var(--parch);flex:1 1 190px;min-width:0;}
+  #mb-root .ze-f{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;}
+  #mb-root .ze-f span{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .ze-f i{font-family:var(--font-mono);font-size:11px;color:var(--ash);font-style:normal;}
+  #mb-root .ze-f input{width:66px;background:var(--input,#1D212A);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-mono);font-size:13px;padding:7px 9px;text-align:right;}
+  #mb-root .ze-f input:focus{outline:none;border-color:var(--oracle);}
+  #mb-root .ze-weg{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;color:var(--ash);flex:0 0 auto;}
+  #mb-root .ze-weg:hover{color:var(--ox-b);}
+  #mb-root .ze-fest{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;color:var(--line);flex:0 0 auto;}
+
+  #mb-root .ze-summe{font-family:var(--font-ui);font-size:13px;color:#E7A062;margin:12px 0 0;}
+  #mb-root .ze-summe.ok{color:var(--bull);}
+  #mb-root .ze-leer{font-family:var(--font-ui);font-size:13px;line-height:1.6;color:var(--ash);margin:0;}
+
+  #mb-root .ze-hinzu{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 0;}
+  #mb-root .ze-hinzu span{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .ze-hinzu button{background:none;border:1px solid var(--line);border-radius:999px;color:var(--mist);font-family:var(--font-ui);font-size:12px;padding:5px 12px;cursor:pointer;}
+  #mb-root .ze-hinzu button:hover{border-color:var(--oracle);color:var(--oracle-b);}
+
+  #mb-root .ze-meld{border-radius:0 8px 8px 0;padding:13px 16px;margin:20px 0 0;font-family:var(--font-ui);font-size:13px;line-height:1.6;}
+  #mb-root .ze-meld.offen{background:rgba(212,169,78,.07);border-left:3px solid var(--oracle);color:var(--parch);}
+  #mb-root .ze-meld.fehler{background:rgba(224,114,107,.07);border-left:3px solid var(--ox-b);color:var(--parch);}
+  #mb-root .ze-meld.gut{background:rgba(111,207,154,.07);border-left:3px solid var(--bull);color:var(--parch);}
+
+  #mb-root .ze-fuss{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:22px 0 0;}
+  #mb-root .ze-abbr{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-ui);font-size:13px;color:var(--ash);}
+  #mb-root .ze-abbr:hover{color:var(--mist);}
+  #mb-root .ze-hinweis{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--ash);margin:16px 0 0;}
+
+  @media(max-width:560px){
+    #mb-root .ze{padding:20px 18px;}
+    #mb-root .ze-name{flex:1 1 100%;}
+  }
   #mb-root .sright{display:flex;align-items:center;gap:10px;flex-shrink:0;}
   #mb-root .slbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
   #mb-root .spill{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid currentColor;border-radius:999px;padding:5px 12px;white-space:nowrap;}
@@ -532,11 +576,192 @@
   };
   const ltSchreiben = (an) => { try { localStorage.setItem(LT_SCHALTER, an ? "1" : "0"); } catch (e) {} };
 
+  /* ============================================================
+     B1 · ZIELSTRUKTUR SETZEN (AP6.5) — Vertrag V2, Abschnitt B1
+     POST /api/mybook/sockel/ziel
+     Semantik: jeder Absenden-Vorgang erzeugt eine NEUE Version. Eine
+     Zeile "loeschen" heisst: neue Version ohne diese Zeile. Deshalb ist
+     dieses Formular immer die GANZE Zielstruktur, nie ein Teil davon.
+
+     Die Route antwortet zum Bauzeitpunkt noch 404. Das Formular tut
+     deshalb NICHT so, als haette es gespeichert: es sagt beim Absenden
+     ehrlich, dass die Strecke noch nicht ausgeliefert ist. Kein
+     localStorage, keine Schein-Speicherung — eine Eingabe, die spaeter
+     verschwindet, ist schlimmer als eine, die nie behauptet hat, sicher
+     zu sein.
+     ============================================================ */
+
+  const LT_KLASSEN = ["aktien", "anleihen", "geldmarkt"];
+  // Zuordnung aus dem Vertrag B6 — welcher Baustein zu welcher Klasse gehoert.
+  const LT_ZU_KLASSE = {
+    us_core: "aktien", us_equal_weight: "aktien", europa: "aktien",
+    em: "aktien", em_value: "aktien", japan: "aktien", welt: "aktien",
+    corp_kurz: "anleihen", staat_eur_3_5: "anleihen",
+    staat_global: "anleihen", renten_defensiv: "anleihen",
+    geldmarkt: "geldmarkt",
+  };
+  const LT_BAUSTEINE = Object.keys(LT_ZU_KLASSE);
+
+  const ltZahl = (s) => {
+    if (s == null || s === "") return null;
+    const n = parseFloat(String(s).replace(",", "."));
+    return isFinite(n) ? n : null;
+  };
+  const ltSumme = (zeilen, ebene) => zeilen
+    .filter((z) => z.ebene === ebene)
+    .reduce((a, z) => a + (ltZahl(z.ziel_pct) || 0), 0);
+  const LT_TOLERANZ = 0.5;
+
+  function ZielEditor({ depot, start, onSchliessen }) {
+    const [zeilen, setZeilen] = useState(() => {
+      if (Array.isArray(start) && start.length) {
+        return start.map((z) => ({
+          ebene: z.ebene, schluessel: z.schluessel,
+          ziel_pct: z.ziel_pct == null ? "" : String(z.ziel_pct).replace(".", ","),
+          band_rel_pct: z.band_rel_pct == null ? "" : String(z.band_rel_pct).replace(".", ","),
+        }));
+      }
+      return LT_KLASSEN.map((k) => ({ ebene: "klasse", schluessel: k, ziel_pct: "", band_rel_pct: "20" }));
+    });
+    const [busy, setBusy] = useState(false);
+    const [meldung, setMeldung] = useState(null);
+
+    const setFeld = (i, feld, wert) => setZeilen(zeilen.map((z, j) => j === i ? Object.assign({}, z, { [feld]: wert }) : z));
+    const entfernen = (i) => setZeilen(zeilen.filter((_, j) => j !== i));
+    const hinzu = (schluessel) => {
+      if (zeilen.some((z) => z.schluessel === schluessel)) return;
+      setZeilen(zeilen.concat([{ ebene: "baustein", schluessel: schluessel, ziel_pct: "", band_rel_pct: "25" }]));
+    };
+
+    const sK = ltSumme(zeilen, "klasse");
+    const sB = ltSumme(zeilen, "baustein");
+    const hatB = zeilen.some((z) => z.ebene === "baustein");
+    const kOk = Math.abs(sK - 100) <= LT_TOLERANZ;
+    const bOk = !hatB || Math.abs(sB - 100) <= LT_TOLERANZ;
+    const bereit = kOk && bOk && !busy;
+
+    // Summen-Anzeige in Worten, nicht als nackte Zahl — dieselbe Sprache
+    // wie die Baender oben.
+    const summenSatz = (summe, ok, label) => {
+      const s = ltPct(summe);
+      if (ok) return T(label + " ergeben " + s + " % — vollstaendig.", label + " add up to " + s + " % — complete.");
+      const rest = 100 - summe;
+      return rest > 0
+        ? T(label + " ergeben " + s + " % — es fehlen " + ltPct(rest) + " Punkte.",
+            label + " add up to " + s + " % — " + ltPct(rest) + " points missing.")
+        : T(label + " ergeben " + s + " % — " + ltPct(-rest) + " Punkte zu viel.",
+            label + " add up to " + s + " % — " + ltPct(-rest) + " points too many.");
+    };
+
+    const senden = () => {
+      setBusy(true); setMeldung(null);
+      const koerper = {
+        depot: depot || null,
+        quelle: "inhaber_entscheidung",
+        zeilen: zeilen
+          .filter((z) => ltZahl(z.ziel_pct) != null)
+          .map((z) => ({
+            ebene: z.ebene, schluessel: z.schluessel,
+            ziel_pct: ltZahl(z.ziel_pct),
+            band_rel_pct: ltZahl(z.band_rel_pct),
+          })),
+      };
+      fetch(API + "/api/mybook/sockel/ziel", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(koerper),
+      })
+        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+        .then((res) => {
+          setBusy(false);
+          if (res.code === 404) {
+            // Ehrlich statt hilfreich: nichts wurde gespeichert.
+            setMeldung({ art: "offen", text: T(
+              "Die Speicher-Strecke ist noch nicht ausgeliefert. Deine Eingaben stehen weiter im Formular, sind aber NICHT gespeichert.",
+              "The save route is not deployed yet. Your entries remain in the form but are NOT saved.") });
+            return;
+          }
+          if (res.code === 400 && res.d && res.d.error === "ziel_summe_invalid") {
+            setMeldung({ art: "fehler", text: T(
+              "Der Server hat die Summe zurueckgewiesen (" + (res.d.ebene || "") + ": " + ltPct(res.d.summe) + " %).",
+              "The server rejected the total (" + (res.d.ebene || "") + ": " + ltPct(res.d.summe) + " %).") });
+            return;
+          }
+          if (res.code !== 200 || !res.d || !res.d.ok) {
+            setMeldung({ art: "fehler", text: T("Das Speichern ist fehlgeschlagen. Es wurde nichts geaendert.",
+                                                "Saving failed. Nothing was changed.") });
+            return;
+          }
+          setMeldung({ art: "gut", text: T("Gespeichert, gueltig ab " + (ltDatum(res.d.gueltig_ab) || "heute") + ".",
+                                           "Saved, valid from " + (ltDatum(res.d.gueltig_ab) || "today") + ".") });
+        })
+        .catch(() => {
+          setBusy(false);
+          setMeldung({ art: "fehler", text: T("Keine Verbindung. Es wurde nichts geaendert.", "No connection. Nothing was changed.") });
+        });
+    };
+
+    const zeileFeld = (z, i) => h("div", { key: z.schluessel, className: "ze-row" },
+      h("div", { className: "ze-name" }, ltName(z)),
+      h("label", { className: "ze-f" },
+        h("span", null, T("Ziel", "Target")),
+        h("input", { type: "text", inputMode: "decimal", value: z.ziel_pct, placeholder: "0,0",
+          onChange: (e) => setFeld(i, "ziel_pct", e.target.value) }),
+        h("i", null, "%")),
+      h("label", { className: "ze-f" },
+        h("span", null, T("Band", "Band")),
+        h("input", { type: "text", inputMode: "decimal", value: z.band_rel_pct, placeholder: "20",
+          onChange: (e) => setFeld(i, "band_rel_pct", e.target.value) }),
+        h("i", null, "%")),
+      z.ebene === "baustein"
+        ? h("button", { className: "ze-weg", title: T("Zeile aus der naechsten Version nehmen", "Drop this row from the next version"),
+            onClick: () => entfernen(i) }, T("entfernen", "remove"))
+        : h("span", { className: "ze-fest" }, T("fest", "fixed")));
+
+    const offeneBausteine = LT_BAUSTEINE.filter((b) => !zeilen.some((z) => z.schluessel === b));
+
+    return h("div", { className: "ze" },
+      h("div", { className: "ze-kopf" },
+        h("h4", null, T("Zielstruktur festlegen", "Define target structure")),
+        h("button", { className: "ze-zu", onClick: onSchliessen }, T("schliessen", "close"))),
+
+      h("p", { className: "ze-lead" },
+        T("Du legst die Anteile fest, gegen die spaeter gemessen wird, und je Zeile ein Toleranzband. PYTHAI schlaegt nichts vor und bewertet nichts — die Struktur ist deine Entscheidung.",
+          "You define the shares that will later be measured against, and a tolerance band per row. PYTHAI proposes nothing and judges nothing — the structure is your decision.")),
+
+      h("div", { className: "ze-grp" },
+        h("div", { className: "ze-grp-t" }, T("Klassen", "Classes")),
+        zeilen.map((z, i) => z.ebene === "klasse" ? zeileFeld(z, i) : null),
+        h("div", { className: "ze-summe" + (kOk ? " ok" : "") }, summenSatz(sK, kOk, T("Die Klassen", "The classes")))),
+
+      h("div", { className: "ze-grp" },
+        h("div", { className: "ze-grp-t" }, T("Bausteine", "Building blocks")),
+        hatB ? zeilen.map((z, i) => z.ebene === "baustein" ? zeileFeld(z, i) : null)
+             : h("p", { className: "ze-leer" }, T("Noch keine Bausteine. Eine Struktur nur aus Klassen ist vollstaendig — Bausteine sind die feinere Ebene darunter.",
+                                                  "No building blocks yet. A structure of classes alone is complete — building blocks are the finer level below.")),
+        hatB ? h("div", { className: "ze-summe" + (bOk ? " ok" : "") }, summenSatz(sB, bOk, T("Die Bausteine", "The building blocks"))) : null,
+        offeneBausteine.length ? h("div", { className: "ze-hinzu" },
+          h("span", null, T("hinzufuegen:", "add:")),
+          offeneBausteine.map((b) => h("button", { key: b, onClick: () => hinzu(b) }, ltName({ ebene: "baustein", schluessel: b })))) : null),
+
+      meldung ? h("div", { className: "ze-meld " + meldung.art }, meldung.text) : null,
+
+      h("div", { className: "ze-fuss" },
+        h(Button, { variant: "oracle", disabled: !bereit, onClick: senden },
+          busy ? T("wird gesendet…", "sending…") : T("Als meine Zielstruktur speichern", "Save as my target structure")),
+        h("button", { className: "ze-abbr", onClick: onSchliessen }, T("Abbrechen", "Cancel"))),
+
+      h("p", { className: "ze-hinweis" },
+        T("Jedes Speichern erzeugt eine neue Version. Die vorherige bleibt als Verlauf erhalten — nichts wird ueberschrieben.",
+          "Each save creates a new version. The previous one remains as history — nothing is overwritten.")));
+  }
+
   function Langfrist() {
     const [an, setAn] = useState(ltGelesen());
     const [stand, setStand] = useState("laedt"); // laedt | ok | leer | fehler | gesperrt
     const [depots, setDepots] = useState([]);
     const [offen, setOffen] = useState({});
+    const [editor, setEditor] = useState(null); // null | { depot, start }
 
     useEffect(() => {
       if (!an) return;
@@ -599,7 +824,10 @@
                        "This surface shows how far long-held capital has drifted from its own target structure. That needs two things: a portfolio statement as a reporting date, and the target weights to measure against.")),
         h("p", null, T("Beides bleibt bei dir. PYTHAI schlägt keine Struktur vor und bewertet keine — es stellt den Abstand dar, den du selbst definiert hast.",
                        "Both remain yours. PYTHAI proposes no structure and judges none — it shows the distance you defined yourself.")),
-        h("div", { className: "bald" }, T("Der Weg zum Einliefern folgt in einem eigenen Schritt.", "The way to submit follows in a separate step.")));
+        h("div", { style: { marginTop: 18 } },
+          h(Button, { variant: "oracle", onClick: () => setEditor({ depot: null, start: null }) },
+            T("Zielstruktur festlegen", "Define target structure"))),
+        h("div", { className: "bald" }, T("Der Weg, einen Depotauszug einzuliefern, folgt im naechsten Schritt.", "The way to submit a portfolio statement follows in the next step.")));
     } else if (stand === "ok") {
       koerper = depots.map((dep, di) => {
         const zeilen = Array.isArray(dep.zeilen) ? dep.zeilen : [];
@@ -635,11 +863,17 @@
             h("button", { className: "lt-mehr", onClick: () => setOffen(Object.assign({}, offen, { [dep.depot]: !auf })) },
               auf ? T("Bausteine schlie\u00DFen ▴", "Close building blocks ▴")
                   : T("Bausteine ansehen ▾ (" + rest.length + ")", "View building blocks ▾ (" + rest.length + ")")),
-            auf ? h("div", { style: { marginTop: 8 } }, rest.map(zeile)) : null) : null);
+            auf ? h("div", { style: { marginTop: 8 } }, rest.map(zeile)) : null) : null,
+          h("div", { style: { marginTop: 18 } },
+            h("button", { className: "lt-mehr", onClick: () => setEditor({ depot: dep.depot, start: zeilen.filter((z) => z.ziel_pct != null) }) },
+              dep.ziel_gueltig_ab == null ? T("Zielstruktur festlegen", "Define target structure")
+                                          : T("Zielstruktur \u00E4ndern", "Change target structure"))));
       });
     }
 
-    return h("div", { className: "lt" }, kopf, erklaerung, koerper,
+    return h("div", { className: "lt" }, kopf, erklaerung,
+      editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, onSchliessen: () => setEditor(null) }) : null,
+      koerper,
       h("p", { className: "lt-fuss" },
         T("Darstellung einer selbst festgelegten Struktur zum genannten Stichtag. Keine Anlageberatung, keine Empfehlung, keine Aufforderung zu irgendeiner Transaktion. Keine Beträge, keine Stückzahlen — die Struktur zählt, nicht das Vermögen.",
           "A display of a self-defined structure as of the stated reporting date. Not investment advice, not a recommendation, not a prompt to any transaction. No amounts, no quantities — the structure matters, not the wealth.")));
