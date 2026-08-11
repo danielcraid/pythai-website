@@ -183,6 +183,55 @@
     #mb-root .sname .art{white-space:normal;}
   }
   @media(max-width:390px){ #mb-root .spct{flex-direction:column;gap:2px;} }
+  /* ============================================================
+     FLAECHE DREI · Langfrist-Thesen (AP6.4)
+     Die ruhigste Flaeche des Produkts. Kein Alarm-Rot, keine
+     Nachkommastellen-Parade, keine Handlungsaufforderung.
+     Vertrag: workspace/intake/FLAECHE3-FE-VERTRAG-2026-08-12.md
+     ============================================================ */
+  #mb-root .lt{margin:56px 0 0;padding-top:30px;border-top:1px solid var(--line);}
+  #mb-root .lt-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;}
+  #mb-root .lt-title{font-family:var(--font-oracle);font-weight:400;font-size:27px;color:var(--parch);margin:0;}
+  #mb-root .lt-eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--oracle);margin-bottom:7px;}
+  #mb-root .lt-sw{display:flex;align-items:center;gap:11px;flex:0 0 auto;padding-top:4px;}
+  #mb-root .lt-sw span{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .lt-lead{font-family:var(--font-ui);font-size:14px;line-height:1.65;color:var(--text-secondary,#9BA3B2);margin:12px 0 0;max-width:640px;}
+
+  /* Stand-Zeile: erste Zeile, nicht Kleingedrucktes (AP6.2) */
+  #mb-root .lt-stand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:22px 0 4px;font-family:var(--font-mono);font-size:12.5px;color:var(--parch);}
+  #mb-root .lt-stand .alt{color:var(--ash);font-size:11.5px;}
+  #mb-root .lt-stand .depot{color:var(--ash);font-size:11px;letter-spacing:.06em;}
+  #mb-root .lt-warn{font-family:var(--font-ui);font-size:12px;color:var(--ash);margin:0 0 18px;}
+
+  #mb-root .lt-grp{margin:24px 0 0;}
+  #mb-root .lt-grp-t{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ash);margin:0 0 8px;}
+  #mb-root .lt-row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid var(--line);}
+  #mb-root .lt-row .satz{font-family:var(--font-ui);font-size:14px;line-height:1.5;color:var(--mist);min-width:0;}
+  #mb-root .lt-row .satz b{color:var(--parch);font-weight:600;}
+  #mb-root .lt-row .marke{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;flex:0 0 auto;color:var(--ash);}
+  #mb-root .lt-row .marke.aus{color:#E7A062;}
+  #mb-root .lt-row.b-aus{background:rgba(207,122,78,.05);}
+
+  #mb-root .lt-mehr{background:none;border:none;padding:9px 0 0;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;color:var(--oracle-b);}
+  #mb-root .lt-mehr:hover{color:var(--oracle);}
+
+  /* Leer-Zustand: ehrlich, kein leeres Geruest */
+  #mb-root .lt-leer{background:var(--card,#15181E);border:1px solid var(--line);border-left:3px solid #6FCF9A;border-radius:0 10px 10px 0;padding:24px 26px;margin-top:20px;}
+  #mb-root .lt-leer h4{font-family:var(--font-oracle);font-weight:400;font-size:21px;color:var(--parch);margin:0 0 10px;}
+  #mb-root .lt-leer p{font-family:var(--font-ui);font-size:13.5px;line-height:1.7;color:var(--text-secondary,#9BA3B2);margin:0 0 11px;}
+  #mb-root .lt-leer p:last-child{margin:0;}
+  #mb-root .lt-leer .bald{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);margin-top:14px;}
+
+  /* Fehler: NIEMALS als "kein Depot" ausgeben */
+  #mb-root .lt-fehler{background:rgba(224,114,107,.06);border:1px solid rgba(224,114,107,.3);border-left:3px solid var(--ox-b);border-radius:0 10px 10px 0;padding:18px 22px;margin-top:20px;font-family:var(--font-ui);font-size:13.5px;line-height:1.65;color:var(--parch);}
+
+  #mb-root .lt-fuss{font-family:var(--font-ui);font-size:12px;line-height:1.7;color:var(--ash);margin:22px 0 0;max-width:640px;}
+
+  @media(max-width:560px){
+    #mb-root .lt-row{flex-direction:column;gap:5px;}
+    #mb-root .lt-row .marke{align-self:flex-start;}
+    #mb-root .lt-head{flex-direction:column;}
+  }
   #mb-root .sright{display:flex;align-items:center;gap:10px;flex-shrink:0;}
   #mb-root .slbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
   #mb-root .spill{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid currentColor;border-radius:999px;padding:5px 12px;white-space:nowrap;}
@@ -395,6 +444,205 @@
         h(PyEyebrow, null, "Syndicate · My Book"),
         h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, letterSpacing: "-0.02em", fontSize: "clamp(40px,6vw,72px)", lineHeight: 1.05, margin: 0, color: "var(--text-primary)" } }, "My Book."),
         h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 18, lineHeight: 1.6, color: "var(--text-secondary)", maxWidth: 640, margin: "22px auto 0" } }, T("Das ist dein Thesen-Buch. Deine Topics, deine Marken, deine Entscheidung. Warren beobachtet, ob deine These hält, und meldet Fakten — reines Tracking, ohne Gewähr. Kein Portfolio, keine Beträge. Warren rät nie.", "This is your thesis book. Your topics, your levels, your call. Warren watches whether your thesis holds and reports facts — pure tracking, no warranty. No portfolio, no amounts. Warren never advises."))));
+  }
+
+  /* ============================================================
+     FLAECHE DREI · Langfrist-Thesen (AP6.4)
+     Vertrag: _backend-readonly/workspace/intake/FLAECHE3-FE-VERTRAG-2026-08-12.md
+     Endpunkt: GET /api/mybook/sockel — 401 / 403 / 500 / 200.
+
+     Leitplanken, die hier im Code stehen, damit sie nicht verloren gehen:
+     - Keine Euro-Betraege, keine Stueckzahlen. Der Endpunkt liefert sie
+       nicht, das FE erfindet sie nicht.
+     - Stand-Datum in der ERSTEN Zeile, nicht im Kleingedruckten.
+     - Abweichungen als Saetze, nicht als Zahlenfriedhof.
+     - Keine Handlungsaufforderung. "band_verletzt" ist eine Feststellung.
+     - Ein 500 wird als FEHLER angezeigt, NIE als "kein Depot".
+     - Keine eigenen Rechnungen auf den Rohzahlen. Die Formeln leben im
+       Backend (sockel_drift.mjs) — eine Wahrheit, zwei Leser.
+     ============================================================ */
+
+  // System-Vokabular -> Anzeigenamen. Gehoert laut Vertrag ins FE, nicht
+  // in die API: Anzeige-Fragen werden in der Anzeige geloest.
+  const LT_NAMEN = {
+    aktien: ["Aktien", "Equities"],
+    anleihen: ["Anleihen", "Bonds"],
+    geldmarkt: ["Geldmarkt", "Money market"],
+    rohstoffe: ["Rohstoffe", "Commodities"],
+    immobilien: ["Immobilien", "Real estate"],
+    welt: ["Welt", "World"],
+    us_core: ["USA Kern", "US core"],
+    us_equal_weight: ["USA gleichgewichtet", "US equal weight"],
+    europa: ["Europa", "Europe"],
+    em: ["Schwellenl\u00E4nder", "Emerging markets"],
+    em_value: ["Schwellenl\u00E4nder Value", "Emerging markets value"],
+    japan: ["Japan", "Japan"],
+    corp_kurz: ["Unternehmensanleihen kurz", "Corporate short"],
+    staat_eur_3_5: ["Staatsanleihen Euro 3\u20135 Jahre", "Euro sovereigns 3-5y"],
+    staat_global: ["Staatsanleihen global", "Global sovereigns"],
+    renten_defensiv: ["Renten defensiv", "Defensive fixed income"],
+  };
+  const ltName = (z) => {
+    if (z.ebene === "position") return z.name || z.schluessel;
+    const n = LT_NAMEN[z.schluessel];
+    return n ? T(n[0], n[1]) : String(z.schluessel || "").replace(/_/g, " ");
+  };
+
+  const ltPct = (x) => (x == null ? null : Number(x).toFixed(1).replace(".", ","));
+  const ltDatum = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso + "T00:00:00");
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(T("de-DE", "en-GB"), { day: "2-digit", month: "long", year: "numeric" });
+  };
+
+  // Aus einer Zeile wird eine AUSSAGE — ohne den Namen, damit er daneben
+  // fett stehen kann und keine Verb-Kongruenz noetig wird ("Aktien liegen"
+  // gegen "Geldmarkt liegt"). Gerechnet wird nichts, nur formuliert.
+  const ltAussage = (z) => {
+    const ist = ltPct(z.ist_pct);
+    if (z.verdikt === "kein_ziel" || z.ziel_pct == null) {
+      return T(ist + " % \u2014 keine Zielstruktur festgelegt", ist + " % \u2014 no target structure defined");
+    }
+    const ziel = ltPct(z.ziel_pct);
+    if (z.verdikt === "ohne_band") {
+      return T(ist + " %, Ziel " + ziel + " % \u2014 kein Toleranzband hinterlegt",
+               ist + " %, target " + ziel + " % \u2014 no tolerance band on file");
+    }
+    const pp = z.abw_pp == null ? null : Number(z.abw_pp);
+    if (pp == null) return T(ist + " %, Ziel " + ziel + " %", ist + " %, target " + ziel + " %");
+    if (Math.abs(pp) < 0.05) return T("genau auf Ziel, " + ist + " %", "exactly on target, " + ist + " %");
+    const betrag = ltPct(Math.abs(pp));
+    const richtung = pp > 0 ? T("\u00FCber", "above") : T("unter", "below");
+    const lage = z.verdikt === "band_verletzt"
+      ? T("au\u00DFerhalb des Bandes", "outside the band")
+      : T("innerhalb des Bandes", "inside the band");
+    return T(betrag + " Punkte " + richtung + " Ziel, " + lage,
+             betrag + " points " + richtung + " target, " + lage);
+  };
+
+  const LT_SCHALTER = "py_langfrist_an";
+  const ltGelesen = () => {
+    try {
+      const v = localStorage.getItem(LT_SCHALTER);
+      if (v === "0") return false;
+      if (v === "1") return true;
+    } catch (e) {}
+    return true; // Vorgabe: an. Wer nichts entschieden hat, sieht die Fläche.
+  };
+  const ltSchreiben = (an) => { try { localStorage.setItem(LT_SCHALTER, an ? "1" : "0"); } catch (e) {} };
+
+  function Langfrist() {
+    const [an, setAn] = useState(ltGelesen());
+    const [stand, setStand] = useState("laedt"); // laedt | ok | leer | fehler | gesperrt
+    const [depots, setDepots] = useState([]);
+    const [offen, setOffen] = useState({});
+
+    useEffect(() => {
+      if (!an) return;
+      let lebt = true;
+      fetch(API + "/api/mybook/sockel", { credentials: "include" })
+        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+        .then((res) => {
+          if (!lebt) return;
+          if (res.code === 403) { setStand("gesperrt"); return; }
+          if (res.code !== 200 || !res.d || !res.d.ok) { setStand("fehler"); return; }
+          const ds = Array.isArray(res.d.depots) ? res.d.depots : [];
+          setDepots(ds);
+          setStand(res.d.vorhanden && ds.length ? "ok" : "leer");
+        })
+        .catch(() => { if (lebt) setStand("fehler"); });
+      return () => { lebt = false; };
+    }, [an]);
+
+    const kopf = h("div", { className: "lt-head" },
+      h("div", null,
+        h("div", { className: "lt-eyebrow" }, T("Fl\u00E4che drei", "Surface three")),
+        h("h3", { className: "lt-title" }, T("Langfrist-Thesen", "Long-term theses"))),
+      h("div", { className: "lt-sw" },
+        h("span", null, an ? T("an", "on") : T("aus", "off")),
+        h("button", {
+          className: "sw " + (an ? "on" : "off"),
+          "aria-pressed": an ? "true" : "false",
+          title: T("Langfrist-Thesen ein- oder ausblenden. Es werden keine Daten gel\u00F6scht.",
+                   "Show or hide long-term theses. No data is deleted."),
+          onClick: () => { const n = !an; setAn(n); ltSchreiben(n); sfx("button-004-toggle"); }
+        }, h("span", { className: "knob" }))));
+
+    const erklaerung = h("p", { className: "lt-lead" },
+      T("Das norwegische Prinzip: eine breit gestreute Zielstruktur, feste Anteile, und keine Meinung zum n\u00E4chsten Quartal. Hier z\u00E4hlt nicht der Tag, sondern der Abstand zum Ziel.",
+        "The Norwegian principle: a broadly diversified target structure, fixed shares, and no opinion about the next quarter. Here the day does not matter — the distance to target does."));
+
+    if (!an) {
+      return h("div", { className: "lt" }, kopf,
+        h("p", { className: "lt-lead" },
+          T("Ausgeblendet. Es wurde nichts gelöscht — der Schalter oben holt die Fläche zurück.",
+            "Hidden. Nothing was deleted — the switch above brings it back.")));
+    }
+
+    let koerper = null;
+
+    if (stand === "laedt") {
+      koerper = h("p", { className: "lt-warn", style: { marginTop: 20 } }, T("Wird geladen…", "Loading…"));
+    } else if (stand === "fehler") {
+      // Ein Lesefehler ist ein Fehler. Er wird NICHT zu "kein Depot" gemacht.
+      koerper = h("div", { className: "lt-fehler" },
+        T("Die Langfrist-Daten sind gerade nicht abrufbar. Das ist ein technischer Fehler auf unserer Seite, keine Aussage ueber dein Depot. Bitte spaeter erneut ansehen.",
+          "The long-term data cannot be retrieved right now. That is a technical fault on our side, not a statement about your portfolio. Please look again later."));
+    } else if (stand === "gesperrt") {
+      koerper = h("p", { className: "lt-warn", style: { marginTop: 20 } },
+        T("Diese Fl\u00E4che ist dem Syndicate vorbehalten.", "This surface is reserved for the Syndicate."));
+    } else if (stand === "leer") {
+      koerper = h("div", { className: "lt-leer" },
+        h("h4", null, T("Noch keine Zielstruktur festgelegt.", "No target structure defined yet.")),
+        h("p", null, T("Diese Fl\u00E4che zeigt, wie weit ein langfristig gehaltenes Verm\u00F6gen von seiner eigenen Zielstruktur abgewichen ist. Daf\u00FCr braucht es zweierlei: einen Depotauszug als Stichtag, und die Zielgewichte, gegen die gemessen wird.",
+                       "This surface shows how far long-held capital has drifted from its own target structure. That needs two things: a portfolio statement as a reporting date, and the target weights to measure against.")),
+        h("p", null, T("Beides bleibt bei dir. PYTHAI schlägt keine Struktur vor und bewertet keine — es stellt den Abstand dar, den du selbst definiert hast.",
+                       "Both remain yours. PYTHAI proposes no structure and judges none — it shows the distance you defined yourself.")),
+        h("div", { className: "bald" }, T("Der Weg zum Einliefern folgt in einem eigenen Schritt.", "The way to submit follows in a separate step.")));
+    } else if (stand === "ok") {
+      koerper = depots.map((dep, di) => {
+        const zeilen = Array.isArray(dep.zeilen) ? dep.zeilen : [];
+        const klassen = zeilen.filter((z) => z.ebene === "klasse");
+        const rest = zeilen.filter((z) => z.ebene !== "klasse");
+        const auf = !!offen[dep.depot];
+        const zeile = (z, i) => h("div", { key: i, className: "lt-row" + (z.verdikt === "band_verletzt" ? " b-aus" : "") },
+          h("div", { className: "satz" }, h("b", null, ltName(z)), " \u00B7 ", ltAussage(z)),
+          h("div", { className: "marke" + (z.verdikt === "band_verletzt" ? " aus" : "") },
+            z.verdikt === "band_verletzt" ? T("au\u00DFerhalb", "outside")
+              : z.verdikt === "im_band" ? T("im Band", "in band")
+              : z.verdikt === "ohne_band" ? T("kein Band", "no band")
+              : T("kein Ziel", "no target")));
+        return h("div", { key: dep.depot || di },
+          h("div", { className: "lt-stand" },
+            h("span", null, T("Stand: ", "As of: ") + (ltDatum(dep.stand) || "—")),
+            dep.stand_alter_tage != null ? h("span", { className: "alt" },
+              dep.stand_alter_tage === 0 ? T("heute", "today")
+                : dep.stand_alter_tage === 1 ? T("vor 1 Tag", "1 day ago")
+                : T("vor " + dep.stand_alter_tage + " Tagen", dep.stand_alter_tage + " days ago")) : null,
+            dep.depot ? h("span", { className: "depot" }, dep.depot) : null),
+          h("p", { className: "lt-warn" },
+            T("Die Zahlen beziehen sich auf diesen Stichtag und bewegen sich bis zum n\u00E4chsten Auszug nicht.",
+              "The figures refer to that reporting date and do not move until the next statement.")),
+          dep.ziel_gueltig_ab == null ? h("div", { className: "lt-leer", style: { marginBottom: 20 } },
+            h("h4", null, T("Ist-Struktur ohne Ziel.", "Actual structure, no target.")),
+            h("p", null, T("Der Auszug liegt vor, die Zielgewichte fehlen noch. Ohne Ziel gibt es keinen Abstand zu messen — unten steht, wie es heute aussieht.",
+                           "The statement is on file, the target weights are not. Without a target there is no distance to measure — below is how it looks today."))) : null,
+          klassen.length ? h("div", { className: "lt-grp" },
+            h("div", { className: "lt-grp-t" }, T("Klassen", "Classes")),
+            klassen.map(zeile)) : null,
+          rest.length ? h("div", { className: "lt-grp" },
+            h("button", { className: "lt-mehr", onClick: () => setOffen(Object.assign({}, offen, { [dep.depot]: !auf })) },
+              auf ? T("Bausteine schlie\u00DFen ▴", "Close building blocks ▴")
+                  : T("Bausteine ansehen ▾ (" + rest.length + ")", "View building blocks ▾ (" + rest.length + ")")),
+            auf ? h("div", { style: { marginTop: 8 } }, rest.map(zeile)) : null) : null);
+      });
+    }
+
+    return h("div", { className: "lt" }, kopf, erklaerung, koerper,
+      h("p", { className: "lt-fuss" },
+        T("Darstellung einer selbst festgelegten Struktur zum genannten Stichtag. Keine Anlageberatung, keine Empfehlung, keine Aufforderung zu irgendeiner Transaktion. Keine Beträge, keine Stückzahlen — die Struktur zählt, nicht das Vermögen.",
+          "A display of a self-defined structure as of the stated reporting date. Not investment advice, not a recommendation, not a prompt to any transaction. No amounts, no quantities — the structure matters, not the wealth.")));
   }
 
   function Mini({ p }) {
@@ -883,6 +1131,7 @@
             h(Button, { variant: "ghost", onClick: addTopic }, T("Manuell eintragen", "Enter manually"))),
           h("div", { className: "addcnt" }, count + "/" + MAX + T(" Topics belegt", " topics used")),
           h("div", { className: "addfull" }, h("b", null, MAX + "/" + MAX + " — "), T("Buch voll. Lösche erst ein Topic, um ein neues anzulegen.", "Book full. Delete a topic first to add a new one."))),
+        h(Langfrist, null),
         h("div", { className: "disc" },
           h("div", { className: "tlbl" }, T("Tracking · keine Anlageberatung", "Tracking · not investment advice")),
           h("p", null, T("My Book ist dein persönliches Thesen-Tagebuch — nur Kurs-Marken (Entry/Stop/Skim/Target) und deine These, keine Stückzahlen, keine Beträge, keine Gewinn-/Verlust-Anzeige. Entry = dein Einstandskurs (bei Nachkäufen neu eintragen). Hochgeladene Dateien werden nicht gespeichert — nur die von dir bestätigten Marken. Warren beobachtet und meldet Fakten, ohne Gewähr — keine Kauf-, Verkaufs- oder Halte-Empfehlung. Du entscheidest eigenverantwortlich. Warren ist eine KI und kann irren.", "My Book is your personal thesis journal — price levels and your thesis only, no quantities, no amounts, no P/L. Entry = your average entry price (re-enter on add-buys). Uploaded files are not stored — only the levels you confirm. Warren observes and reports facts, without warranty — no buy, sell or hold recommendation. You decide on your own responsibility. Warren is an AI and can err.")))),
