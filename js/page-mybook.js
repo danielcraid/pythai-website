@@ -288,6 +288,7 @@
   #mb-root .pe-oben input{background:var(--input,#1D212A);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-ui);font-size:13.5px;padding:8px 11px;}
   #mb-root .pe-oben input:focus{outline:none;border-color:var(--oracle);}
   #mb-root .pe-name{flex:1 1 260px;min-width:0;}
+  #mb-root .pe-isin.ungueltig{border-color:rgba(224,114,107,.7) !important;}
   #mb-root .pe-isin{flex:0 0 170px;font-family:var(--font-mono) !important;font-size:12.5px !important;letter-spacing:.04em;}
   #mb-root .pe-unten{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:9px;}
   #mb-root .pe-unten select{background:var(--input,#1D212A);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-ui);font-size:12.5px;padding:7px 9px;}
@@ -671,11 +672,14 @@
       setZeilen(zeilen.concat([{ ebene: "baustein", schluessel: schluessel, ziel_pct: "", band_rel_pct: "25" }]));
     };
 
+    // Nachtrag 3, Punkt 1: die Klassen-Ebene ist PFLICHT und muss 100 ergeben.
+    // Bausteine sind eine TEILMENGE — ein Band nur fuer us_core ist legitim.
+    // Sie duerfen 100,5 nur nicht ueberschreiten.
     const sK = ltSumme(zeilen, "klasse");
     const sB = ltSumme(zeilen, "baustein");
     const hatB = zeilen.some((z) => z.ebene === "baustein");
     const kOk = Math.abs(sK - 100) <= LT_TOLERANZ;
-    const bOk = !hatB || Math.abs(sB - 100) <= LT_TOLERANZ;
+    const bOk = !hatB || sB <= 100 + LT_TOLERANZ;
     const bereit = kOk && bOk && !busy;
 
     // Summen-Anzeige in Worten, nicht als nackte Zahl — dieselbe Sprache
@@ -719,10 +723,20 @@
               "The save route is not deployed yet. Your entries remain in the form but are NOT saved.") });
             return;
           }
-          if (res.code === 400 && res.d && res.d.error === "ziel_summe_invalid") {
-            setMeldung({ art: "fehler", text: T(
-              "Der Server hat die Summe zurueckgewiesen (" + (res.d.ebene || "") + ": " + ltPct(res.d.summe) + " %).",
-              "The server rejected the total (" + (res.d.ebene || "") + ": " + ltPct(res.d.summe) + " %).") });
+          if (res.code === 400) {
+            const e = res.d && res.d.error;
+            if (e === "ziel_summe_invalid") {
+              setMeldung({ art: "fehler", text: T(
+                "Der Server hat die Summe zur\u00FCckgewiesen (" + (res.d.ebene || "") + ": " + ltPct(res.d.summe) + " %).",
+                "The server rejected the total (" + (res.d.ebene || "") + ": " + ltPct(res.d.summe) + " %).") });
+            } else {
+              // Nachtrag 3, Punkt 2: die uebrigen 400er sind Eingabefehler.
+              // Generisch, aber MIT dem Code daneben — eine Fehlermeldung ohne
+              // Kennung ist bei der Fehlersuche wertlos.
+              setMeldung({ art: "fehler", text: T(
+                "Eingabe pr\u00FCfen. Der Server hat sie zur\u00FCckgewiesen (" + (e || "unbekannt") + "). Es wurde nichts ge\u00E4ndert.",
+                "Check the input. The server rejected it (" + (e || "unknown") + "). Nothing was changed.") });
+            }
             return;
           }
           if (res.code !== 200 || !res.d || !res.d.ok) {
@@ -777,7 +791,11 @@
         hatB ? zeilen.map((z, i) => z.ebene === "baustein" ? zeileFeld(z, i) : null)
              : h("p", { className: "ze-leer" }, T("Noch keine Bausteine. Eine Struktur nur aus Klassen ist vollstaendig — Bausteine sind die feinere Ebene darunter.",
                                                   "No building blocks yet. A structure of classes alone is complete — building blocks are the finer level below.")),
-        hatB ? h("div", { className: "ze-summe" + (bOk ? " ok" : "") }, summenSatz(sB, bOk, T("Die Bausteine", "The building blocks"))) : null,
+        hatB ? h("div", { className: "ze-summe" + (bOk ? " ok" : "") },
+          bOk ? T("Die Bausteine ergeben " + ltPct(sB) + " % \u2014 eine Teilmenge der Klassen, das ist zul\u00E4ssig.",
+                  "The building blocks add up to " + ltPct(sB) + " % \u2014 a subset of the classes, which is allowed.")
+              : T("Die Bausteine ergeben " + ltPct(sB) + " % \u2014 mehr als 100 ist nicht m\u00F6glich.",
+                  "The building blocks add up to " + ltPct(sB) + " % \u2014 more than 100 is not possible.")) : null,
         offeneBausteine.length ? h("div", { className: "ze-hinzu" },
           h("span", null, T("hinzufuegen:", "add:")),
           offeneBausteine.map((b) => h("button", { key: b, onClick: () => hinzu(b) }, ltName({ ebene: "baustein", schluessel: b })))) : null),
@@ -790,8 +808,8 @@
         h("button", { className: "ze-abbr", onClick: onSchliessen }, T("Abbrechen", "Cancel"))),
 
       h("p", { className: "ze-hinweis" },
-        T("Jedes Speichern erzeugt eine neue Version. Die vorherige bleibt als Verlauf erhalten — nichts wird ueberschrieben.",
-          "Each save creates a new version. The previous one remains as history — nothing is overwritten.")));
+        T("Jedes Speichern erzeugt eine neue Version. Speicherst du am selben Tag noch einmal, ersetzt das die heutige Version — die Stände früherer Tage bleiben als Verlauf erhalten.",
+          "Each save creates a new version. Saving again on the same day replaces today's version — earlier days remain as history.")));
   }
 
   /* ============================================================
@@ -811,6 +829,10 @@
         erfundene ISINs im Vermoegenskontext sind ein Desaster. Antwortet
         die Route nicht, zeigt die Flaeche das an, statt zu erfinden.
      ============================================================ */
+
+  // Nachtrag 3, Punkt 3: ISIN ist entweder leer oder streng zwoelfstellig.
+  const LT_ISIN = /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/;
+  const ltIsinOk = (w) => { const t = String(w || "").trim(); return t === "" || LT_ISIN.test(t); };
 
   const LT_BAUSTEIN_ZU = (klasse) => LT_BAUSTEINE.filter((b) => LT_ZU_KLASSE[b] === klasse);
   const LT_PFLICHT_LABEL = [
@@ -851,7 +873,9 @@
     if (stand === "fehler") return h("div", { className: "bs" }, kopf,
       h("p", { className: "bs-hin" }, T("Die Liste ist gerade nicht abrufbar.", "The list cannot be retrieved right now.")));
     if (!liste.length) return h("div", { className: "bs" }, kopf,
-      h("p", { className: "bs-hin" }, T("Für diese Kategorie sind noch keine Beispiele hinterlegt.", "No examples are on file for this category yet.")));
+      h("p", { className: "bs-hin" }, T(
+        "F\u00FCr diese Kategorie sind noch keine kuratierten Beispiele hinterlegt. Eine Kategorie erscheint erst, wenn mindestens zwei Produkte gepr\u00FCft sind \u2014 genau eines w\u00E4re eine Empfehlung, und die gibt es hier nicht.",
+        "No curated examples are on file for this category yet. A category appears only once at least two products have been reviewed \u2014 exactly one would be a recommendation, and there are none here.")));
 
     return h("div", { className: "bs" }, kopf,
       h("p", { className: "bs-label" }, T(LT_PFLICHT_LABEL[0], LT_PFLICHT_LABEL[1])),
@@ -859,6 +883,7 @@
         h("div", { className: "bs-name" }, p.name || "—"),
         h("div", { className: "bs-fakten" },
           p.anbieter ? h("span", null, p.anbieter) : null,
+          p.ausschuettung ? h("span", null, T("Aussch\u00FCttung ", "distribution ") + p.ausschuettung) : null,
           p.ter_pct != null ? h("span", null, T("laufende Kosten ", "ongoing charges ") + ltPct(p.ter_pct) + " %") : null,
           p.replikation ? h("span", null, p.replikation) : null,
           p.fondsgroesse ? h("span", null, T("Fondsgröße ", "fund size ") + p.fondsgroesse) : null,
@@ -904,7 +929,9 @@
     const summe = zeilen.reduce((a, z) => a + (pctVon(z) || 0), 0);
     const summeOk = Math.abs(summe - 100) <= LT_TOLERANZ;
     const namenOk = zeilen.every((z) => String(z.name || "").trim().length > 0);
-    const bereit = summeOk && namenOk && !busy && !!stand;
+    const isinOk = zeilen.every((z) => ltIsinOk(z.isin));
+    const standOk = !!stand && stand <= heute;
+    const bereit = summeOk && namenOk && isinOk && standOk && !busy;
 
     const senden = (ersetzen) => {
       setBusy(true); setMeldung(null); setErsetzenFrage(null);
@@ -935,6 +962,13 @@
             return;
           }
           if (res.code === 409) { setErsetzenFrage(true); return; }
+          if (res.code === 400 && res.d && res.d.error !== "gewicht_summe_invalid") {
+            const e = res.d.error;
+            setMeldung({ art: "fehler", text: T(
+              "Eingabe pr\u00FCfen. Der Server hat sie zur\u00FCckgewiesen (" + (e || "unbekannt") + "). Es wurde nichts ge\u00E4ndert.",
+              "Check the input. The server rejected it (" + (e || "unknown") + "). Nothing was changed.") });
+            return;
+          }
           if (res.code === 400 && res.d && res.d.error === "gewicht_summe_invalid") {
             setMeldung({ art: "fehler", text: T("Der Server hat die Summe zurückgewiesen (" + ltPct(res.d.summe) + " %).",
                                                 "The server rejected the total (" + ltPct(res.d.summe) + " %).") });
@@ -954,7 +988,7 @@
       h("div", { className: "pe-oben" },
         h("input", { className: "pe-name", type: "text", value: z.name, placeholder: T("Name des Fonds oder Wertpapiers", "Name of the fund or security"),
           onChange: (e) => setFeld(i, "name", e.target.value) }),
-        h("input", { className: "pe-isin", type: "text", value: z.isin, placeholder: T("ISIN (optional)", "ISIN (optional)"),
+        h("input", { className: "pe-isin" + (ltIsinOk(z.isin) ? "" : " ungueltig"), type: "text", value: z.isin, placeholder: T("ISIN (optional)", "ISIN (optional)"),
           onChange: (e) => setFeld(i, "isin", e.target.value.toUpperCase()) })),
       h("div", { className: "pe-unten" },
         h("select", { value: z.klasse, onChange: (e) => setFeld(i, "klasse", e.target.value) },
@@ -1010,6 +1044,9 @@
               : T("Die Anteile ergeben " + ltPct(summe) + " % — " + ltPct(summe - 100) + " Punkte zu viel.",
                   "The weights add up to " + ltPct(summe) + " % — " + ltPct(summe - 100) + " points too many."))),
       !namenOk ? h("div", { className: "ze-summe" }, T("Jede Position braucht einen Namen.", "Every position needs a name.")) : null,
+      !isinOk ? h("div", { className: "ze-summe" }, T("Eine ISIN hat zw\u00F6lf Stellen: zwei Buchstaben, neun Zeichen, eine Pr\u00FCfziffer. Leer lassen ist erlaubt.",
+                                                      "An ISIN has twelve characters: two letters, nine alphanumerics, one check digit. Leaving it empty is fine.")) : null,
+      !standOk ? h("div", { className: "ze-summe" }, T("Der Stichtag darf nicht in der Zukunft liegen.", "The reporting date cannot be in the future.")) : null,
 
       ersetzenFrage ? h("div", { className: "ze-meld offen" },
         h("div", null, T("Für den " + (ltDatum(stand) || stand) + " liegt bereits ein Stand vor. Ersetzen?",
