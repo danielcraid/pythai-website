@@ -262,6 +262,18 @@
   #mb-root .ze-hinzu button{background:none;border:1px solid var(--line);border-radius:999px;color:var(--mist);font-family:var(--font-ui);font-size:12px;padding:5px 12px;cursor:pointer;}
   #mb-root .ze-hinzu button:hover{border-color:var(--oracle);color:var(--oracle-b);}
 
+  /* --- B4 · Vorlagen (AP6.5) --- */
+  #mb-root .ze-vor{margin:20px 0 0;padding:16px 18px;background:rgba(255,255,255,.017);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:0 8px 8px 0;}
+  #mb-root .ze-vor-t{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ash);margin:0 0 4px;}
+  #mb-root .ze-vor-pflicht{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:var(--mist);margin:0 0 13px;}
+  #mb-root .ze-vor-liste{display:flex;gap:10px;flex-wrap:wrap;}
+  #mb-root .ze-vor-k{flex:1 1 190px;text-align:left;background:none;border:1px solid var(--line);border-radius:8px;padding:11px 13px;cursor:pointer;}
+  #mb-root .ze-vor-k:hover{border-color:var(--oracle);}
+  #mb-root .ze-vor-k.an{border-color:var(--oracle);background:rgba(212,169,78,.05);}
+  #mb-root .ze-vor-k b{display:block;font-family:var(--font-ui);font-weight:600;font-size:13.5px;color:var(--parch);margin:0 0 4px;}
+  #mb-root .ze-vor-k span{display:block;font-family:var(--font-mono);font-size:11px;line-height:1.55;color:var(--text-secondary,#9BA3B2);}
+  #mb-root .ze-vor-quelle{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:var(--text-secondary,#9BA3B2);margin:13px 0 0;}
+
   #mb-root .ze-meld{border-radius:0 8px 8px 0;padding:13px 16px;margin:20px 0 0;font-family:var(--font-ui);font-size:13px;line-height:1.6;}
   #mb-root .ze-meld.offen{background:rgba(212,169,78,.07);border-left:3px solid var(--oracle);color:var(--parch);}
   #mb-root .ze-meld.fehler{background:rgba(224,114,107,.07);border-left:3px solid var(--ox-b);color:var(--parch);}
@@ -651,6 +663,36 @@
     .reduce((a, z) => a + (ltZahl(z.ziel_pct) || 0), 0);
   const LT_TOLERANZ = 0.5;
 
+  /* ------------------------------------------------------------
+     B4 · VORLAGEN — Vertrag V2, Abschnitt B4 / Nachtrag 3, Punkt 6
+
+     Drei Muster mit fest vereinbarten Zahlen. Die Beschreibung nennt
+     AUSSCHLIESSLICH, was in der Vorlage steht — keine Wirkung, keine
+     Eignung, keine Rangfolge. "Norwegen" ist hier ein Name, keine
+     Aussage ueber einen realen Fonds; die Erklaerung des Prinzips
+     steht redaktionell auf der Methodik-Seite, nicht als Zusage hier.
+
+     band_rel_pct 20 ist Startwert des Editors, frei aenderbar.
+     ------------------------------------------------------------ */
+  const LT_BAND_START = "20";
+  const LT_VORLAGEN = [
+    { key: "norwegen_original",
+      name: ["Norwegen-Muster (Original)", "Norway pattern (original)"],
+      anteile: { aktien: "73", anleihen: "27" },
+      satz: ["73 % Aktien · 27 % Anleihen · kein Geldmarkt",
+             "73 % equities · 27 % bonds · no money market"] },
+    { key: "muster_ausgewogen",
+      name: ["Muster ausgewogen", "Sample balanced"],
+      anteile: { aktien: "60", anleihen: "30", geldmarkt: "10" },
+      satz: ["60 % Aktien · 30 % Anleihen · 10 % Geldmarkt",
+             "60 % equities · 30 % bonds · 10 % money market"] },
+    { key: "muster_defensiv",
+      name: ["Muster defensiv", "Sample defensive"],
+      anteile: { aktien: "40", anleihen: "45", geldmarkt: "15" },
+      satz: ["40 % Aktien · 45 % Anleihen · 15 % Geldmarkt",
+             "40 % equities · 45 % bonds · 15 % money market"] },
+  ];
+
   function ZielEditor({ depot, start, onSchliessen }) {
     const [zeilen, setZeilen] = useState(() => {
       if (Array.isArray(start) && start.length) {
@@ -664,12 +706,33 @@
     });
     const [busy, setBusy] = useState(false);
     const [meldung, setMeldung] = useState(null);
+    // Welche Vorlage steht UNVERAENDERT im Formular? Sobald eine Zahl
+    // angefasst wird, ist es die Entscheidung des Inhabers und nicht mehr
+    // die Vorlage — genau das wandert als quelle ins Backend.
+    const [vorlage, setVorlage] = useState(null);
 
-    const setFeld = (i, feld, wert) => setZeilen(zeilen.map((z, j) => j === i ? Object.assign({}, z, { [feld]: wert }) : z));
-    const entfernen = (i) => setZeilen(zeilen.filter((_, j) => j !== i));
+    const setFeld = (i, feld, wert) => {
+      setVorlage(null);
+      setZeilen(zeilen.map((z, j) => j === i ? Object.assign({}, z, { [feld]: wert }) : z));
+    };
+    const entfernen = (i) => { setVorlage(null); setZeilen(zeilen.filter((_, j) => j !== i)); };
     const hinzu = (schluessel) => {
       if (zeilen.some((z) => z.schluessel === schluessel)) return;
+      setVorlage(null);
       setZeilen(zeilen.concat([{ ebene: "baustein", schluessel: schluessel, ziel_pct: "", band_rel_pct: "25" }]));
+    };
+
+    // Eine Vorlage ersetzt das GANZE Formular durch die Klassen-Ebene.
+    // Klassen, die in der Vorlage nicht vorkommen, bleiben leer und
+    // stehen damit nicht in der Version — nicht "0", sondern "nicht Teil".
+    const vorlageAnwenden = (v) => {
+      setMeldung(null);
+      setVorlage(v.key);
+      setZeilen(LT_KLASSEN.map((k) => ({
+        ebene: "klasse", schluessel: k,
+        ziel_pct: v.anteile[k] || "",
+        band_rel_pct: LT_BAND_START,
+      })));
     };
 
     // Nachtrag 3, Punkt 1: die Klassen-Ebene ist PFLICHT und muss 100 ergeben.
@@ -686,7 +749,7 @@
     // wie die Baender oben.
     const summenSatz = (summe, ok, label) => {
       const s = ltPct(summe);
-      if (ok) return T(label + " ergeben " + s + " % — vollstaendig.", label + " add up to " + s + " % — complete.");
+      if (ok) return T(label + " ergeben " + s + " % — vollständig.", label + " add up to " + s + " % — complete.");
       const rest = 100 - summe;
       return rest > 0
         ? T(label + " ergeben " + s + " % — es fehlen " + ltPct(rest) + " Punkte.",
@@ -699,7 +762,7 @@
       setBusy(true); setMeldung(null);
       const koerper = {
         depot: depot || null,
-        quelle: "inhaber_entscheidung",
+        quelle: vorlage ? "vorlage:" + vorlage : "inhaber_entscheidung",
         zeilen: zeilen
           .filter((z) => ltZahl(z.ziel_pct) != null)
           .map((z) => ({
@@ -740,16 +803,16 @@
             return;
           }
           if (res.code !== 200 || !res.d || !res.d.ok) {
-            setMeldung({ art: "fehler", text: T("Das Speichern ist fehlgeschlagen. Es wurde nichts geaendert.",
+            setMeldung({ art: "fehler", text: T("Das Speichern ist fehlgeschlagen. Es wurde nichts geändert.",
                                                 "Saving failed. Nothing was changed.") });
             return;
           }
-          setMeldung({ art: "gut", text: T("Gespeichert, gueltig ab " + (ltDatum(res.d.gueltig_ab) || "heute") + ".",
+          setMeldung({ art: "gut", text: T("Gespeichert, gültig ab " + (ltDatum(res.d.gueltig_ab) || "heute") + ".",
                                            "Saved, valid from " + (ltDatum(res.d.gueltig_ab) || "today") + ".") });
         })
         .catch(() => {
           setBusy(false);
-          setMeldung({ art: "fehler", text: T("Keine Verbindung. Es wurde nichts geaendert.", "No connection. Nothing was changed.") });
+          setMeldung({ art: "fehler", text: T("Keine Verbindung. Es wurde nichts geändert.", "No connection. Nothing was changed.") });
         });
     };
 
@@ -766,7 +829,7 @@
           onChange: (e) => setFeld(i, "band_rel_pct", e.target.value) }),
         h("i", null, "%")),
       z.ebene === "baustein"
-        ? h("button", { className: "ze-weg", title: T("Zeile aus der naechsten Version nehmen", "Drop this row from the next version"),
+        ? h("button", { className: "ze-weg", title: T("Zeile aus der nächsten Version nehmen", "Drop this row from the next version"),
             onClick: () => entfernen(i) }, T("entfernen", "remove"))
         : h("span", { className: "ze-fest" }, T("fest", "fixed")));
 
@@ -775,11 +838,31 @@
     return h("div", { className: "ze" },
       h("div", { className: "ze-kopf" },
         h("h4", null, T("Zielstruktur festlegen", "Define target structure")),
-        h("button", { className: "ze-zu", onClick: onSchliessen }, T("schliessen", "close"))),
+        h("button", { className: "ze-zu", onClick: onSchliessen }, T("schließen", "close"))),
 
       h("p", { className: "ze-lead" },
-        T("Du legst die Anteile fest, gegen die spaeter gemessen wird, und je Zeile ein Toleranzband. PYTHAI schlaegt nichts vor und bewertet nichts — die Struktur ist deine Entscheidung.",
+        T("Du legst die Anteile fest, gegen die später gemessen wird, und je Zeile ein Toleranzband. PYTHAI schlägt nichts vor und bewertet nichts — die Struktur ist deine Entscheidung.",
           "You define the shares that will later be measured against, and a tolerance band per row. PYTHAI proposes nothing and judges nothing — the structure is your decision.")),
+
+      h("div", { className: "ze-vor" },
+        h("div", { className: "ze-vor-t" }, T("Vorlagen", "Templates")),
+        h("p", { className: "ze-vor-pflicht" },
+          T("Muster zur freien Auswahl — keine Empfehlung. Du entscheidest.",
+            "Patterns to choose from freely — not a recommendation. You decide.")),
+        h("div", { className: "ze-vor-liste" },
+          LT_VORLAGEN.map((v) => h("button", {
+            key: v.key,
+            className: "ze-vor-k" + (vorlage === v.key ? " an" : ""),
+            onClick: () => vorlageAnwenden(v),
+          },
+            h("b", null, T(v.name[0], v.name[1])),
+            h("span", null, T(v.satz[0], v.satz[1]))))),
+        h("p", { className: "ze-vor-quelle" },
+          vorlage
+            ? T("Die Vorlage steht unverändert im Formular. Sobald du eine Zahl änderst, wird daraus deine eigene Struktur.",
+                "The template stands unchanged in the form. As soon as you change a number it becomes your own structure.")
+            : T("Eine Vorlage füllt die Felder unten. Ändern kannst du danach jede Zahl — auch das Band.",
+                "A template fills the fields below. Afterwards you can change every number — the band included."))),
 
       h("div", { className: "ze-grp" },
         h("div", { className: "ze-grp-t" }, T("Klassen", "Classes")),
@@ -789,7 +872,7 @@
       h("div", { className: "ze-grp" },
         h("div", { className: "ze-grp-t" }, T("Bausteine", "Building blocks")),
         hatB ? zeilen.map((z, i) => z.ebene === "baustein" ? zeileFeld(z, i) : null)
-             : h("p", { className: "ze-leer" }, T("Noch keine Bausteine. Eine Struktur nur aus Klassen ist vollstaendig — Bausteine sind die feinere Ebene darunter.",
+             : h("p", { className: "ze-leer" }, T("Noch keine Bausteine. Eine Struktur nur aus Klassen ist vollständig — Bausteine sind die feinere Ebene darunter.",
                                                   "No building blocks yet. A structure of classes alone is complete — building blocks are the finer level below.")),
         hatB ? h("div", { className: "ze-summe" + (bOk ? " ok" : "") },
           bOk ? T("Die Bausteine ergeben " + ltPct(sB) + " % \u2014 eine Teilmenge der Klassen, das ist zul\u00E4ssig.",
@@ -797,7 +880,7 @@
               : T("Die Bausteine ergeben " + ltPct(sB) + " % \u2014 mehr als 100 ist nicht m\u00F6glich.",
                   "The building blocks add up to " + ltPct(sB) + " % \u2014 more than 100 is not possible.")) : null,
         offeneBausteine.length ? h("div", { className: "ze-hinzu" },
-          h("span", null, T("hinzufuegen:", "add:")),
+          h("span", null, T("hinzufügen:", "add:")),
           offeneBausteine.map((b) => h("button", { key: b, onClick: () => hinzu(b) }, ltName({ ebene: "baustein", schluessel: b })))) : null),
 
       meldung ? h("div", { className: "ze-meld " + meldung.art }, meldung.text) : null,
@@ -1124,7 +1207,7 @@
     } else if (stand === "fehler") {
       // Ein Lesefehler ist ein Fehler. Er wird NICHT zu "kein Depot" gemacht.
       koerper = h("div", { className: "lt-fehler" },
-        T("Die Langfrist-Daten sind gerade nicht abrufbar. Das ist ein technischer Fehler auf unserer Seite, keine Aussage ueber dein Depot. Bitte spaeter erneut ansehen.",
+        T("Die Langfrist-Daten sind gerade nicht abrufbar. Das ist ein technischer Fehler auf unserer Seite, keine Aussage über dein Depot. Bitte später erneut ansehen.",
           "The long-term data cannot be retrieved right now. That is a technical fault on our side, not a statement about your portfolio. Please look again later."));
     } else if (stand === "gesperrt") {
       koerper = h("p", { className: "lt-warn", style: { marginTop: 20 } },
@@ -1142,7 +1225,7 @@
               T("Zielstruktur festlegen", "Define target structure")),
             h(Button, { variant: "ghost", onClick: () => setPosEditor({ depot: null }) },
               T("Stand einliefern", "Submit reporting date")))),
-        h("div", { className: "bald" }, T("Der Weg, einen Depotauszug einzuliefern, folgt im naechsten Schritt.", "The way to submit a portfolio statement follows in the next step.")));
+        h("div", { className: "bald" }, T("Der Weg, einen Depotauszug einzuliefern, folgt im nächsten Schritt.", "The way to submit a portfolio statement follows in the next step.")));
     } else if (stand === "ok") {
       koerper = depots.map((dep, di) => {
         const zeilen = Array.isArray(dep.zeilen) ? dep.zeilen : [];
