@@ -203,6 +203,27 @@
   #mb-root .lt-stand .depot{color:var(--ash);font-size:11px;letter-spacing:.06em;}
   #mb-root .lt-warn{font-family:var(--font-ui);font-size:12px;color:var(--ash);margin:0 0 18px;}
 
+  /* --- B3 · Depot loeschen (unumkehrbar) --- */
+  #mb-root .lt-del{margin:20px 0 0;}
+  #mb-root .lt-del-auf{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;color:var(--ash);}
+  #mb-root .lt-del-auf:hover{color:var(--ox-b);}
+  #mb-root .lt-del-box{background:rgba(224,114,107,.05);border:1px solid rgba(224,114,107,.28);border-left:3px solid var(--ox-b);border-radius:0 10px 10px 0;padding:20px 22px;margin:12px 0 0;}
+  #mb-root .lt-del-box h4{font-family:var(--font-oracle);font-weight:400;font-size:20px;color:var(--parch);margin:0 0 9px;}
+  #mb-root .lt-del-box p{font-family:var(--font-ui);font-size:13.5px;line-height:1.65;color:var(--text-secondary,#9BA3B2);margin:0 0 10px;}
+  #mb-root .lt-del-box p:last-of-type{margin-bottom:0;}
+  #mb-root .lt-del-tip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0 0;}
+  #mb-root .lt-del-tip label{font-family:var(--font-ui);font-size:13px;color:var(--mist);}
+  #mb-root .lt-del-tip code{font-family:var(--font-mono);font-size:12.5px;color:var(--parch);background:rgba(255,255,255,.05);padding:2px 7px;border-radius:4px;}
+  #mb-root .lt-del-tip input{background:var(--input,#0B0D11);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-mono);font-size:13px;padding:8px 11px;min-width:190px;}
+  #mb-root .lt-del-tip input:focus{outline:none;border-color:var(--ox-b);}
+  #mb-root .lt-del-fuss{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:18px 0 0;}
+  #mb-root .lt-del-weg{background:none;border:1px solid var(--ox-b);border-radius:8px;color:var(--ox-b);font-family:var(--font-ui);font-size:13.5px;padding:9px 17px;cursor:pointer;}
+  #mb-root .lt-del-weg[disabled]{opacity:.35;cursor:not-allowed;}
+  #mb-root .lt-del-weg:not([disabled]):hover{background:rgba(224,114,107,.12);}
+  #mb-root .lt-del-abbr{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-ui);font-size:13px;color:var(--ash);}
+  #mb-root .lt-del-abbr:hover{color:var(--mist);}
+  #mb-root .lt-del-meld{font-family:var(--font-ui);font-size:13px;line-height:1.6;color:var(--parch);margin:16px 0 0;}
+
   #mb-root .lt-grp{margin:24px 0 0;}
   #mb-root .lt-grp-t{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ash);margin:0 0 8px;}
   #mb-root .lt-row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid var(--line);}
@@ -272,6 +293,7 @@
   #mb-root .ze-vor-k.an{border-color:var(--oracle);background:rgba(212,169,78,.05);}
   #mb-root .ze-vor-k b{display:block;font-family:var(--font-ui);font-weight:600;font-size:13.5px;color:var(--parch);margin:0 0 4px;}
   #mb-root .ze-vor-k span{display:block;font-family:var(--font-mono);font-size:11px;line-height:1.55;color:var(--text-secondary,#9BA3B2);}
+  #mb-root .ze-vor-k em{display:block;font-family:var(--font-ui);font-style:normal;font-size:12px;line-height:1.55;color:var(--ash);margin-top:6px;}
   #mb-root .ze-vor-quelle{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:var(--text-secondary,#9BA3B2);margin:13px 0 0;}
 
   #mb-root .ze-meld{border-radius:0 8px 8px 0;padding:13px 16px;margin:20px 0 0;font-family:var(--font-ui);font-size:13px;line-height:1.6;}
@@ -664,34 +686,30 @@
   const LT_TOLERANZ = 0.5;
 
   /* ------------------------------------------------------------
-     B4 · VORLAGEN — Vertrag V2, Abschnitt B4 / Nachtrag 3, Punkt 6
+     B4 · VORLAGEN — Vertrag V2, Abschnitt B4
 
-     Drei Muster mit fest vereinbarten Zahlen. Die Beschreibung nennt
-     AUSSCHLIESSLICH, was in der Vorlage steht — keine Wirkung, keine
-     Eignung, keine Rangfolge. "Norwegen" ist hier ein Name, keine
-     Aussage ueber einen realen Fonds; die Erklaerung des Prinzips
-     steht redaktionell auf der Methodik-Seite, nicht als Zusage hier.
+     Die Muster stehen NICHT im Frontend. Sie kommen aus
+     GET /api/mybook/sockel/vorlagen mit name, beschreibung und zeilen.
+     Namen oder Zahlen hier fest zu verdrahten waere dieselbe Sorte
+     Fehler wie eine fest verdrahtete ISIN: das FE wuerde behaupten,
+     was der Server sagt, ohne ihn gefragt zu haben.
 
-     band_rel_pct 20 ist Startwert des Editors, frei aenderbar.
+     Die Zeile unter jedem Namen nennt AUSSCHLIESSLICH, was in der
+     Vorlage steht — keine Wirkung, keine Eignung, keine Rangfolge.
+
+     band_rel_pct 20 ist nur der Startwert des leeren Editors und frei
+     aenderbar; liefert die Vorlage ein Band, gilt das der Vorlage.
      ------------------------------------------------------------ */
   const LT_BAND_START = "20";
-  const LT_VORLAGEN = [
-    { key: "norwegen_original",
-      name: ["Norwegen-Muster (Original)", "Norway pattern (original)"],
-      anteile: { aktien: "73", anleihen: "27" },
-      satz: ["73 % Aktien · 27 % Anleihen · kein Geldmarkt",
-             "73 % equities · 27 % bonds · no money market"] },
-    { key: "muster_ausgewogen",
-      name: ["Muster ausgewogen", "Sample balanced"],
-      anteile: { aktien: "60", anleihen: "30", geldmarkt: "10" },
-      satz: ["60 % Aktien · 30 % Anleihen · 10 % Geldmarkt",
-             "60 % equities · 30 % bonds · 10 % money market"] },
-    { key: "muster_defensiv",
-      name: ["Muster defensiv", "Sample defensive"],
-      anteile: { aktien: "40", anleihen: "45", geldmarkt: "15" },
-      satz: ["40 % Aktien · 45 % Anleihen · 15 % Geldmarkt",
-             "40 % equities · 45 % bonds · 15 % money market"] },
-  ];
+
+  // Vorlagen-Zeilen -> die Zahlen-Zeile unter dem Namen. Nur Klassen,
+  // weil die Karte sonst zur Tabelle wird; Bausteine kommen beim
+  // Uebernehmen trotzdem vollstaendig mit.
+  const ltVorlageSatz = (v) => {
+    const zs = Array.isArray(v && v.zeilen) ? v.zeilen.filter((z) => z.ebene === "klasse" && z.ziel_pct != null) : [];
+    if (!zs.length) return "";
+    return zs.map((z) => ltPct(z.ziel_pct) + " % " + ltName(z)).join(" · ");
+  };
 
   function ZielEditor({ depot, start, onSchliessen }) {
     const [zeilen, setZeilen] = useState(() => {
@@ -702,7 +720,7 @@
           band_rel_pct: z.band_rel_pct == null ? "" : String(z.band_rel_pct).replace(".", ","),
         }));
       }
-      return LT_KLASSEN.map((k) => ({ ebene: "klasse", schluessel: k, ziel_pct: "", band_rel_pct: "20" }));
+      return LT_KLASSEN.map((k) => ({ ebene: "klasse", schluessel: k, ziel_pct: "", band_rel_pct: LT_BAND_START }));
     });
     const [busy, setBusy] = useState(false);
     const [meldung, setMeldung] = useState(null);
@@ -710,6 +728,24 @@
     // angefasst wird, ist es die Entscheidung des Inhabers und nicht mehr
     // die Vorlage — genau das wandert als quelle ins Backend.
     const [vorlage, setVorlage] = useState(null);
+    const [vStand, setVStand] = useState("laedt"); // laedt | ok | leer | fehler | nicht_da
+    const [vListe, setVListe] = useState([]);
+
+    useEffect(() => {
+      let lebt = true;
+      fetch(API + "/api/mybook/sockel/vorlagen", { credentials: "include" })
+        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+        .then((res) => {
+          if (!lebt) return;
+          if (res.code === 404) { setVStand("nicht_da"); return; }
+          if (res.code !== 200 || !res.d || !res.d.ok) { setVStand("fehler"); return; }
+          const vs = Array.isArray(res.d.vorlagen) ? res.d.vorlagen.filter((v) => v && v.key) : [];
+          setVListe(vs);
+          setVStand(vs.length ? "ok" : "leer");
+        })
+        .catch(() => { if (lebt) setVStand("fehler"); });
+      return () => { lebt = false; };
+    }, []);
 
     const setFeld = (i, feld, wert) => {
       setVorlage(null);
@@ -722,17 +758,32 @@
       setZeilen(zeilen.concat([{ ebene: "baustein", schluessel: schluessel, ziel_pct: "", band_rel_pct: "25" }]));
     };
 
-    // Eine Vorlage ersetzt das GANZE Formular durch die Klassen-Ebene.
-    // Klassen, die in der Vorlage nicht vorkommen, bleiben leer und
-    // stehen damit nicht in der Version — nicht "0", sondern "nicht Teil".
+    // Eine Vorlage ersetzt das GANZE Formular. Die Klassen-Zeilen bleiben
+    // immer alle drei stehen (auch die, die die Vorlage nicht kennt) —
+    // leer heisst dort "nicht Teil dieser Version", nicht "null Prozent".
+    // Bausteine der Vorlage kommen unveraendert mit.
     const vorlageAnwenden = (v) => {
       setMeldung(null);
       setVorlage(v.key);
-      setZeilen(LT_KLASSEN.map((k) => ({
-        ebene: "klasse", schluessel: k,
-        ziel_pct: v.anteile[k] || "",
-        band_rel_pct: LT_BAND_START,
-      })));
+      const vz = Array.isArray(v.zeilen) ? v.zeilen : [];
+      const feld = (x) => x == null ? "" : String(x).replace(".", ",");
+      const ausVorlage = (ebene, schluessel) => vz.find((z) => z.ebene === ebene && z.schluessel === schluessel);
+      const klassen = LT_KLASSEN.map((k) => {
+        const t = ausVorlage("klasse", k);
+        return {
+          ebene: "klasse", schluessel: k,
+          ziel_pct: t ? feld(t.ziel_pct) : "",
+          band_rel_pct: t && t.band_rel_pct != null ? feld(t.band_rel_pct) : LT_BAND_START,
+        };
+      });
+      const bausteine = vz
+        .filter((z) => z.ebene === "baustein" && LT_ZU_KLASSE[z.schluessel])
+        .map((z) => ({
+          ebene: "baustein", schluessel: z.schluessel,
+          ziel_pct: feld(z.ziel_pct),
+          band_rel_pct: z.band_rel_pct == null ? LT_BAND_START : feld(z.band_rel_pct),
+        }));
+      setZeilen(klassen.concat(bausteine));
     };
 
     // Nachtrag 3, Punkt 1: die Klassen-Ebene ist PFLICHT und muss 100 ergeben.
@@ -846,23 +897,43 @@
 
       h("div", { className: "ze-vor" },
         h("div", { className: "ze-vor-t" }, T("Vorlagen", "Templates")),
-        h("p", { className: "ze-vor-pflicht" },
+
+        vStand === "ok" ? h("p", { className: "ze-vor-pflicht" },
           T("Muster zur freien Auswahl — keine Empfehlung. Du entscheidest.",
-            "Patterns to choose from freely — not a recommendation. You decide.")),
-        h("div", { className: "ze-vor-liste" },
-          LT_VORLAGEN.map((v) => h("button", {
-            key: v.key,
-            className: "ze-vor-k" + (vorlage === v.key ? " an" : ""),
-            onClick: () => vorlageAnwenden(v),
-          },
-            h("b", null, T(v.name[0], v.name[1])),
-            h("span", null, T(v.satz[0], v.satz[1]))))),
-        h("p", { className: "ze-vor-quelle" },
+            "Patterns to choose from freely — not a recommendation. You decide.")) : null,
+
+        vStand === "laedt" ? h("p", { className: "ze-vor-quelle" }, T("Muster werden geladen…", "Loading patterns…")) : null,
+
+        vStand === "fehler" ? h("p", { className: "ze-vor-quelle" },
+          T("Die Muster sind gerade nicht abrufbar. Das ist ein technischer Fehler auf unserer Seite — deine Felder unten sind davon nicht betroffen.",
+            "The patterns cannot be retrieved right now. That is a technical fault on our side — the fields below are unaffected.")) : null,
+
+        vStand === "nicht_da" ? h("p", { className: "ze-vor-quelle" },
+          T("Die Muster-Strecke ist noch nicht ausgeliefert. Du kannst deine Struktur unten trotzdem vollständig selbst eintragen.",
+            "The patterns route is not deployed yet. You can still enter your structure below in full.")) : null,
+
+        vStand === "leer" ? h("p", { className: "ze-vor-quelle" },
+          T("Zurzeit sind keine Muster hinterlegt.", "No patterns are on file at the moment.")) : null,
+
+        vStand === "ok" ? h("div", { className: "ze-vor-liste" },
+          vListe.map((v) => {
+            const satz = ltVorlageSatz(v);
+            return h("button", {
+              key: v.key,
+              className: "ze-vor-k" + (vorlage === v.key ? " an" : ""),
+              onClick: () => vorlageAnwenden(v),
+            },
+              h("b", null, v.name || v.key),
+              satz ? h("span", null, satz) : null,
+              v.beschreibung ? h("em", null, v.beschreibung) : null);
+          })) : null,
+
+        vStand === "ok" ? h("p", { className: "ze-vor-quelle" },
           vorlage
             ? T("Die Vorlage steht unverändert im Formular. Sobald du eine Zahl änderst, wird daraus deine eigene Struktur.",
                 "The template stands unchanged in the form. As soon as you change a number it becomes your own structure.")
             : T("Eine Vorlage füllt die Felder unten. Ändern kannst du danach jede Zahl — auch das Band.",
-                "A template fills the fields below. Afterwards you can change every number — the band included."))),
+                "A template fills the fields below. Afterwards you can change every number — the band included.")) : null),
 
       h("div", { className: "ze-grp" },
         h("div", { className: "ze-grp-t" }, T("Klassen", "Classes")),
@@ -1150,6 +1221,109 @@
           "There is no deleting a single position. A reporting date is a snapshot — you submit a new one without it, and the old one remains history.")));
   }
 
+  /* ============================================================
+     B3 · LOESCHEN — Vertrag V2, Abschnitt B3
+
+     Drei verschiedene Dinge, drei Antworten:
+       1. Eine POSITION loeschen gibt es nicht. Der naechste Stand ohne
+          sie IST die Loeschung — steht im Positions-Editor.
+       2. Eine ZIEL-ZEILE loeschen heisst: neue Ziel-Version ohne die
+          Zeile — steht im Ziel-Editor.
+       3. Das GANZE Depot loeschen: hier. Unumkehrbar, deshalb Pflicht-
+          Bestaetigung durch Tippen des Depot-Namens; der Knopf bleibt
+          bis dahin tot.
+
+     Zur Ehrlichkeit bei Fehlern: nur wo wir WISSEN, dass nichts
+     passiert ist (404, abgelehnte Anfrage), sagen wir "es wurde nichts
+     geloescht". Bei einer verlorenen Antwort oder einem Serverfehler
+     wissen wir es nicht — dann sagen wir genau das, statt zu beruhigen.
+     ============================================================ */
+  function DepotLoeschen({ depot, onGeloescht }) {
+    const [auf, setAuf] = useState(false);
+    const [tipp, setTipp] = useState("");
+    const [busy, setBusy] = useState(false);
+    const [meldung, setMeldung] = useState(null);
+    const [fertig, setFertig] = useState(false);
+
+    const passt = tipp.trim() === depot;
+
+    const anzahl = (n, ein, viele) => (n === 1 ? "1 " + ein : n + " " + viele);
+
+    const loeschen = () => {
+      setBusy(true); setMeldung(null);
+      fetch(API + "/api/mybook/sockel/depot/" + encodeURIComponent(depot), {
+        method: "DELETE", credentials: "include",
+      })
+        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+        .then((res) => {
+          setBusy(false);
+          if (res.code === 404) {
+            const unbekannt = res.d && res.d.error === "depot_unbekannt";
+            setMeldung(unbekannt
+              ? T("Dieses Depot ist serverseitig nicht bekannt. Es wurde nichts gelöscht.",
+                  "The server does not know this portfolio. Nothing was deleted.")
+              : T("Die Lösch-Strecke ist noch nicht ausgeliefert. Es wurde nichts gelöscht.",
+                  "The delete route is not deployed yet. Nothing was deleted."));
+            return;
+          }
+          if (res.code === 200 && res.d && res.d.ok) {
+            const g = res.d.geloescht || {};
+            const s = typeof g.snapshots === "number" ? g.snapshots : 0;
+            const z = typeof g.ziele === "number" ? g.ziele : 0;
+            setFertig(true);
+            setMeldung(T("Gelöscht: " + anzahl(s, "Stand", "Stände") + " und " + anzahl(z, "Ziel-Zeile", "Ziel-Zeilen") + ".",
+                         "Deleted: " + anzahl(s, "reporting date", "reporting dates") + " and " + anzahl(z, "target row", "target rows") + "."));
+            setTimeout(() => { if (typeof onGeloescht === "function") onGeloescht(); }, 1400);
+            return;
+          }
+          setMeldung(T("Der Server hat mit Fehler " + res.code + " geantwortet. Ob dabei etwas entfernt wurde, sagt diese Antwort nicht — lade die Fläche neu und sieh nach.",
+                       "The server answered with error " + res.code + ". Whether anything was removed is not stated in that answer — reload the surface and check."));
+        })
+        .catch(() => {
+          setBusy(false);
+          setMeldung(T("Es kam keine Antwort an. Ob gelöscht wurde, lässt sich von hier aus nicht sagen — lade die Fläche neu und sieh nach.",
+                       "No answer arrived. Whether the deletion happened cannot be told from here — reload the surface and check."));
+        });
+    };
+
+    if (!depot) return null;
+
+    if (!auf) {
+      return h("div", { className: "lt-del" },
+        h("button", { className: "lt-del-auf", onClick: () => setAuf(true) },
+          T("Dieses Depot löschen …", "Delete this portfolio …")));
+    }
+
+    if (fertig) {
+      return h("div", { className: "lt-del" },
+        h("div", { className: "lt-del-box" },
+          h("h4", null, T("Depot gelöscht", "Portfolio deleted")),
+          meldung ? h("p", null, meldung) : null,
+          h("p", null, T("Die Fläche lädt gleich neu.", "The surface reloads in a moment."))));
+    }
+
+    return h("div", { className: "lt-del" },
+      h("div", { className: "lt-del-box" },
+        h("h4", null, T("Depot „" + depot + "“ vollständig löschen", "Delete portfolio “" + depot + "” completely")),
+        h("p", null, T("Entfernt alle eingelieferten Stände und alle Ziel-Zeilen dieses Depots — auch den Verlauf. Deine Thesen in My Book bleiben unberührt.",
+                       "Removes every submitted reporting date and every target row of this portfolio — including the history. Your theses in My Book stay untouched.")),
+        h("p", null, T("Das lässt sich nicht rückgängig machen. Der Löschvorgang selbst wird protokolliert.",
+                       "This cannot be undone. The deletion itself is journalled.")),
+
+        fertig ? null : h("div", { className: "lt-del-tip" },
+          h("label", { htmlFor: "del-" + depot }, T("Tippe zur Bestätigung", "Type to confirm"), " ", h("code", null, depot)),
+          h("input", { id: "del-" + depot, type: "text", value: tipp, autoComplete: "off", spellCheck: false,
+            placeholder: depot, onChange: (e) => setTipp(e.target.value) })),
+
+        meldung ? h("p", { className: "lt-del-meld" }, meldung) : null,
+
+        fertig ? null : h("div", { className: "lt-del-fuss" },
+          h("button", { className: "lt-del-weg", disabled: !passt || busy, onClick: loeschen },
+            busy ? T("wird gelöscht…", "deleting…") : T("Endgültig löschen", "Delete permanently")),
+          h("button", { className: "lt-del-abbr", onClick: () => { setAuf(false); setTipp(""); setMeldung(null); } },
+            T("Abbrechen", "Cancel")))));
+  }
+
   function Langfrist() {
     const [an, setAn] = useState(ltGelesen());
     const [stand, setStand] = useState("laedt"); // laedt | ok | leer | fehler | gesperrt
@@ -1157,6 +1331,7 @@
     const [offen, setOffen] = useState({});
     const [editor, setEditor] = useState(null); // null | { depot, start }
     const [posEditor, setPosEditor] = useState(null); // null | { depot }
+    const [nachladen, setNachladen] = useState(0);
 
     useEffect(() => {
       if (!an) return;
@@ -1173,7 +1348,7 @@
         })
         .catch(() => { if (lebt) setStand("fehler"); });
       return () => { lebt = false; };
-    }, [an]);
+    }, [an, nachladen]);
 
     const kopf = h("div", { className: "lt-head" },
       h("div", null,
@@ -1267,7 +1442,8 @@
               dep.ziel_gueltig_ab == null ? T("Zielstruktur festlegen", "Define target structure")
                                           : T("Zielstruktur \u00E4ndern", "Change target structure")),
             h("button", { className: "lt-mehr", style: { marginLeft: 22 }, onClick: () => setPosEditor({ depot: dep.depot }) },
-              T("Neuen Stand einliefern", "Submit new reporting date"))));
+              T("Neuen Stand einliefern", "Submit new reporting date"))),
+          dep.depot ? h(DepotLoeschen, { depot: dep.depot, onGeloescht: () => setNachladen((n) => n + 1) }) : null);
       });
     }
 
