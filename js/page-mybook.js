@@ -203,6 +203,31 @@
   #mb-root .lt-stand .depot{color:var(--ash);font-size:11px;letter-spacing:.06em;}
   #mb-root .lt-warn{font-family:var(--font-ui);font-size:12px;color:var(--ash);margin:0 0 18px;}
 
+  /* --- Nachtrag 4 · Einrichtungsstrecke (C.7) --- */
+  #mb-root .ein{margin:20px 0 0;}
+  #mb-root .ein-kopf{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  #mb-root .ein-schritte{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .ein-schritte b{font-weight:400;color:var(--ash);}
+  #mb-root .ein-schritte b.jetzt{color:var(--oracle);}
+  #mb-root .ein-schritte b.fertig{color:var(--bull);}
+  #mb-root .ein-schritte i{font-style:normal;color:var(--line);}
+  #mb-root .ein-raus{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-ui);font-size:12.5px;color:var(--ash);}
+  #mb-root .ein-raus:hover{color:var(--mist);}
+  #mb-root .ein-t{font-family:var(--font-oracle);font-weight:400;font-size:24px;color:var(--parch);margin:14px 0 0;}
+  #mb-root .ein-p{font-family:var(--font-ui);font-size:13.5px;line-height:1.7;color:var(--text-secondary,#9BA3B2);margin:9px 0 0;max-width:640px;}
+  #mb-root .ein-chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:16px 0 0;}
+  #mb-root .ein-chips span{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .ein-chips button{background:none;border:1px solid var(--line);border-radius:999px;color:var(--mist);font-family:var(--font-ui);font-size:12px;padding:5px 13px;cursor:pointer;text-align:left;}
+  #mb-root .ein-chips button:hover{border-color:var(--oracle);color:var(--oracle-b);}
+  #mb-root .ein-wahl{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0 0;}
+  #mb-root .ein-wahl button{flex:1 1 240px;text-align:left;background:none;border:1px solid var(--line);border-radius:0 10px 10px 0;border-left:3px solid var(--oracle);padding:16px 18px;cursor:pointer;}
+  #mb-root .ein-wahl button:hover{border-color:var(--oracle);border-left-color:var(--oracle);}
+  #mb-root .ein-wahl b{display:block;font-family:var(--font-ui);font-weight:600;font-size:14px;color:var(--parch);margin:0 0 5px;}
+  #mb-root .ein-wahl span{display:block;font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:var(--text-secondary,#9BA3B2);}
+  #mb-root .ein-fuss{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:22px 0 0;}
+  #mb-root .ein-weiter{background:none;border:1px solid var(--line);border-radius:8px;color:var(--mist);font-family:var(--font-ui);font-size:13px;padding:8px 16px;cursor:pointer;}
+  #mb-root .ein-weiter:hover{border-color:var(--oracle);color:var(--oracle-b);}
+
   /* --- B3 · Depot loeschen (unumkehrbar) --- */
   #mb-root .lt-del{margin:20px 0 0;}
   #mb-root .lt-del-auf{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;color:var(--ash);}
@@ -711,7 +736,7 @@
     return zs.map((z) => ltPct(z.ziel_pct) + " % " + ltName(z)).join(" · ");
   };
 
-  function ZielEditor({ depot, start, onSchliessen }) {
+  function ZielEditor({ depot, start, onSchliessen, weiterLabel, onGespeichert }) {
     const [zeilen, setZeilen] = useState(() => {
       if (Array.isArray(start) && start.length) {
         return start.map((z) => ({
@@ -858,6 +883,7 @@
                                                 "Saving failed. Nothing was changed.") });
             return;
           }
+          if (typeof onGespeichert === "function") onGespeichert(koerper.zeilen);
           setMeldung({ art: "gut", text: T("Gespeichert, gültig ab " + (ltDatum(res.d.gueltig_ab) || "heute") + ".",
                                            "Saved, valid from " + (ltDatum(res.d.gueltig_ab) || "today") + ".") });
         })
@@ -958,7 +984,7 @@
 
       h("div", { className: "ze-fuss" },
         h(Button, { variant: "oracle", disabled: !bereit, onClick: senden },
-          busy ? T("wird gesendet…", "sending…") : T("Als meine Zielstruktur speichern", "Save as my target structure")),
+          busy ? T("wird gesendet…", "sending…") : (weiterLabel || T("Als meine Zielstruktur speichern", "Save as my target structure"))),
         h("button", { className: "ze-abbr", onClick: onSchliessen }, T("Abbrechen", "Cancel"))),
 
       h("p", { className: "ze-hinweis" },
@@ -996,10 +1022,13 @@
 
   // B7 · Beispiele je Baustein. Holt die kuratierte Liste, zeigt sie
   // neutral nebeneinander, ohne Rangfolge.
-  function Beispiele({ baustein, onUebernehmen, onSchliessen }) {
-    const [stand, setStand] = useState("laedt"); // laedt | ok | offen | fehler
-    const [liste, setListe] = useState([]);
+  function Beispiele({ baustein, onUebernehmen, onSchliessen, nurAnsicht, vorab }) {
+    // vorab: bereits geladene Antwort (Einrichtungsstrecke laedt einmal fuer
+    // alle Bausteine, statt pro Baustein neu zu fragen).
+    const [stand, setStand] = useState(vorab ? vorab.stand : "laedt"); // laedt | ok | offen | fehler
+    const [liste, setListe] = useState(vorab && vorab.stand === "ok" ? ((vorab.bausteine || {})[baustein] || []) : []);
     useEffect(() => {
+      if (vorab) return;
       let lebt = true;
       fetch(API + "/api/mybook/sockel/produktbeispiele", { credentials: "include" })
         .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
@@ -1017,7 +1046,7 @@
 
     const kopf = h("div", { className: "bs-kopf" },
       h("div", { className: "bs-t" }, T("Beispiele für ", "Examples for ") + ltName({ ebene: "baustein", schluessel: baustein })),
-      h("button", { className: "ze-zu", onClick: onSchliessen }, T("schließen", "close")));
+      nurAnsicht ? null : h("button", { className: "ze-zu", onClick: onSchliessen }, T("schließen", "close")));
 
     if (stand === "laedt") return h("div", { className: "bs" }, kopf, h("p", { className: "bs-hin" }, T("Wird geladen…", "Loading…")));
     if (stand === "offen") return h("div", { className: "bs" }, kopf,
@@ -1044,16 +1073,19 @@
           p.domizil ? h("span", null, T("Domizil ", "domicile ") + p.domizil) : null),
         h("div", { className: "bs-fuss" },
           p.isin ? h("code", null, p.isin) : null,
-          h("button", { className: "bs-nimm", onClick: () => onUebernehmen(p) }, T("in die Zeile übernehmen", "use in this row")))))),
+          nurAnsicht ? null
+            : h("button", { className: "bs-nimm", onClick: () => onUebernehmen(p) }, T("in die Zeile übernehmen", "use in this row")))))),
       h("p", { className: "bs-sort" }, T("Ohne Rangfolge. Die Reihenfolge stammt aus der gepflegten Liste, sie ist keine Wertung.",
                                           "No ranking. The order comes from the maintained list; it is not a judgement.")));
   }
 
-  function PositionsEditor({ depot, onSchliessen }) {
+  function PositionsEditor({ depot, onSchliessen, start, weiterLabel, onGespeichert }) {
     const heute = new Date().toISOString().slice(0, 10);
     const [stand, setStand] = useState(heute);
     const [betraege, setBetraege] = useState(false); // Hilfsmodus, rein clientseitig
-    const [zeilen, setZeilen] = useState([{ name: "", isin: "", klasse: "aktien", baustein: "welt", gewicht_pct: "", betrag: "" }]);
+    const [zeilen, setZeilen] = useState(() => (Array.isArray(start) && start.length)
+      ? start.map((z) => Object.assign({ name: "", isin: "", klasse: "aktien", baustein: "welt", gewicht_pct: "", betrag: "" }, z))
+      : [{ name: "", isin: "", klasse: "aktien", baustein: "welt", gewicht_pct: "", betrag: "" }]);
     const [beispielFuer, setBeispielFuer] = useState(null); // Index der Zeile
     const [busy, setBusy] = useState(false);
     const [meldung, setMeldung] = useState(null);
@@ -1132,6 +1164,7 @@
             setMeldung({ art: "fehler", text: T("Das Einliefern ist fehlgeschlagen. Es wurde nichts geändert.", "Submission failed. Nothing was changed.") });
             return;
           }
+          if (typeof onGespeichert === "function") onGespeichert(res.d);
           setMeldung({ art: "gut", text: T("Stand " + (ltDatum(res.d.stand) || stand) + " eingeliefert, " + res.d.positionen + " Positionen.",
                                            "Reporting date " + (ltDatum(res.d.stand) || stand) + " submitted, " + res.d.positionen + " positions.") });
         })
@@ -1213,12 +1246,188 @@
 
       h("div", { className: "ze-fuss" },
         h(Button, { variant: "oracle", disabled: !bereit, onClick: () => senden(false) },
-          busy ? T("wird gesendet…", "sending…") : T("Stand einliefern", "Submit reporting date")),
+          busy ? T("wird gesendet…", "sending…") : (weiterLabel || T("Stand einliefern", "Submit reporting date"))),
         h("button", { className: "ze-abbr", onClick: onSchliessen }, T("Abbrechen", "Cancel"))),
 
       h("p", { className: "ze-hinweis" },
         T("Eine einzelne Position löschen gibt es nicht. Ein Stand ist ein Stichtag — du lieferst einen neuen Stand ohne sie, und der alte bleibt Verlauf.",
           "There is no deleting a single position. A reporting date is a snapshot — you submit a new one without it, and the old one remains history.")));
+  }
+
+  /* ============================================================
+     B5 · "WARREN ERKLAERT" — Vertrag V2, Abschnitt B5
+
+     Wissen, nicht Rat. Der Einstieg heisst nie "Empfehlung bekommen",
+     und es gibt keinen Eignungs-Fragebogen. Die Chips oeffnen den
+     BESTEHENDEN Chat mit einer kuratierten Erklaer-Frage; die Leitplanke
+     selbst steht serverseitig im Chat-Prompt, nicht hier.
+
+     Ist der Chat auf der Seite nicht vorhanden, erscheint kein toter
+     Knopf — dann fehlt die Zeile ganz.
+     ============================================================ */
+  const warrenDa = () => typeof window.PYchatOpen === "function";
+  function WarrenChips({ fragen }) {
+    if (!warrenDa() || !fragen || !fragen.length) return null;
+    return h("div", { className: "ein-chips" },
+      h("span", null, T("Warren erklärt:", "Warren explains:")),
+      fragen.map((f, i) => h("button", {
+        key: i,
+        onClick: () => { try { window.PYchatOpen(T(f[0], f[1])); } catch (e) { /* Chat weg: nichts tun, nichts behaupten */ } },
+      }, T(f[0], f[1]))));
+  }
+
+  const EIN_FRAGEN_ZIEL = [
+    ["Wie ist der norwegische Staatsfonds aufgestellt?", "How is the Norwegian sovereign fund structured?"],
+    ["Was bedeutet ein Band von 20 Prozent?", "What does a band of 20 percent mean?"],
+    ["Warum bewegt Norwegen seine Struktur nicht?", "Why does Norway not move its structure?"],
+  ];
+  const EIN_FRAGEN_PRODUKTE = [
+    ["Worin unterscheiden sich us_core und us_equal_weight?", "How do us_core and us_equal_weight differ?"],
+    ["Was bedeutet physische Replikation bei einem ETF?", "What does physical replication mean for an ETF?"],
+    ["Wonach ist diese Beispiel-Liste zusammengestellt?", "On what basis is this example list compiled?"],
+  ];
+  const EIN_FRAGEN_IST = [
+    ["Was ist ein Stichtag, und warum zählt er hier?", "What is a reporting date, and why does it matter here?"],
+    ["Warum rechnet PYTHAI in Prozent statt in Beträgen?", "Why does PYTHAI work in percent instead of amounts?"],
+  ];
+
+  /* ============================================================
+     NACHTRAG 4 · EINRICHTUNGSSTRECKE (Teil C, Punkt 7)
+
+     Drei Schritte, die die bestehenden Routen verketten — kein neues
+     Backend. Geschrieben wird ausschliesslich durch den jeweiligen
+     Bestaetigungs-Klick (B1 in Schritt 1, B2 in Schritt 3);
+     Abbrechen ist jederzeit folgenlos, Schritt 2 schreibt gar nichts.
+
+     Paragraph-32-Linie: die Strecke ordnet die REIHENFOLGE, nie die
+     Entscheidung. Keine Eignungsfrage, identische Listen fuer alle,
+     kein Broker-Link, keine Order.
+     ============================================================ */
+  function Einrichtung({ onFertig, onAbbruch }) {
+    const [schritt, setSchritt] = useState(1);
+    const [zielZeilen, setZielZeilen] = useState([]);
+    const [istWahl, setIstWahl] = useState(null); // null | "null" | "depot"
+    const [bs, setBs] = useState(null); // Schritt 2: einmal geladen, fuer alle Bausteine
+
+    // Schritt 2 laedt die kuratierte Liste EINMAL, nicht je Baustein.
+    useEffect(() => {
+      if (schritt !== 2 || bs) return;
+      let lebt = true;
+      fetch(API + "/api/mybook/sockel/produktbeispiele", { credentials: "include" })
+        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+        .then((res) => {
+          if (!lebt) return;
+          if (res.code === 404) { setBs({ stand: "offen", bausteine: {} }); return; }
+          if (res.code !== 200 || !res.d || !res.d.ok) { setBs({ stand: "fehler", bausteine: {} }); return; }
+          setBs({ stand: "ok", bausteine: res.d.bausteine || {} });
+        })
+        .catch(() => { if (lebt) setBs({ stand: "fehler", bausteine: {} }); });
+      return () => { lebt = false; };
+    }, [schritt, bs]);
+
+    const marke = (n, txt) => h("b", {
+      className: schritt === n ? "jetzt" : (schritt > n ? "fertig" : ""),
+    }, n + " " + txt);
+
+    const kopf = h("div", { className: "ein-kopf" },
+      h("div", { className: "ein-schritte" },
+        marke(1, T("Ziel", "Target")), h("i", null, "·"),
+        marke(2, T("Produkte", "Products")), h("i", null, "·"),
+        marke(3, T("Stand", "Reporting date"))),
+      schritt < 4 ? h("button", { className: "ein-raus", onClick: onAbbruch },
+        T("Einrichtung abbrechen", "Cancel setup")) : null);
+
+    const bausteine = zielZeilen.filter((z) => z.ebene === "baustein").map((z) => z.schluessel);
+
+    let koerper = null;
+
+    if (schritt === 1) {
+      koerper = h("div", null,
+        h("h4", { className: "ein-t" }, T("Schritt 1 — deine Zielstruktur", "Step 1 — your target structure")),
+        h("p", { className: "ein-p" },
+          T("Du wählst die Anteile, gegen die später gemessen wird. Ein Muster als Startpunkt zu nehmen ist erlaubt, aber nicht nötig — jede Zahl bleibt änderbar. Erst der Klick unten schreibt etwas.",
+            "You choose the shares that will later be measured against. Taking a pattern as a starting point is allowed but not required — every number stays editable. Only the click below writes anything.")),
+        h(WarrenChips, { fragen: EIN_FRAGEN_ZIEL }),
+        h(ZielEditor, {
+          depot: null, start: null,
+          weiterLabel: T("Als mein Ziel übernehmen", "Adopt as my target"),
+          onGespeichert: (zs) => { setZielZeilen(Array.isArray(zs) ? zs : []); setSchritt(2); },
+          onSchliessen: onAbbruch,
+        }));
+    }
+
+    if (schritt === 2) {
+      koerper = h("div", null,
+        h("h4", { className: "ein-t" }, T("Schritt 2 — Beispiele zu deinen Bausteinen", "Step 2 — examples for your building blocks")),
+        h("p", { className: "ein-p" },
+          T("Hier steht, welche Produkte die Kategorien deiner Struktur erfüllen. PYTHAI kauft nichts, führt keine Order aus und verlinkt keinen Broker — der Kauf passiert bei deiner Bank, wenn du das willst. Dieser Schritt schreibt nichts.",
+            "This shows which products fulfil the categories of your structure. PYTHAI buys nothing, places no order and links to no broker — the purchase happens at your bank, if you want it. This step writes nothing.")),
+        h(WarrenChips, { fragen: EIN_FRAGEN_PRODUKTE }),
+        !bausteine.length
+          ? h("p", { className: "ein-p", style: { marginTop: 18 } },
+              T("Deine Zielstruktur steht auf der Klassen-Ebene. Beispiele hängen an Bausteinen — du kannst diesen Schritt überspringen und Bausteine später ergänzen.",
+                "Your target structure sits at the class level. Examples hang off building blocks — you can skip this step and add building blocks later."))
+          : (bs == null
+              ? h("p", { className: "ein-p", style: { marginTop: 18 } }, T("Wird geladen…", "Loading…"))
+              : (bs.stand === "offen"
+                  ? h("p", { className: "ein-p", style: { marginTop: 18 } },
+                      T("Beispiele folgen nach redaktioneller Prüfung. Bis dahin stehen hier keine Namen und keine ISIN — dieser Schritt ist überspringbar.",
+                        "Examples follow after editorial review. Until then no names and no ISINs appear here — this step can be skipped."))
+                  : bs.stand === "fehler"
+                    ? h("p", { className: "ein-p", style: { marginTop: 18 } },
+                        T("Die Liste ist gerade nicht abrufbar. Das ist ein technischer Fehler auf unserer Seite — der Schritt ist überspringbar.",
+                          "The list cannot be retrieved right now. That is a technical fault on our side — the step can be skipped."))
+                    : h("div", { style: { marginTop: 18 } },
+                        bausteine.map((b) => h(Beispiele, { key: b, baustein: b, nurAnsicht: true, vorab: bs }))))),
+        h("div", { className: "ein-fuss" },
+          h("button", { className: "ein-weiter", onClick: () => setSchritt(3) },
+            T("Weiter zum Stand", "Continue to reporting date")),
+          h("button", { className: "ein-raus", onClick: () => setSchritt(1) }, T("zurück", "back"))));
+    }
+
+    if (schritt === 3) {
+      koerper = h("div", null,
+        h("h4", { className: "ein-t" }, T("Schritt 3 — wie es heute aussieht", "Step 3 — how it looks today")),
+        h("p", { className: "ein-p" },
+          T("Zum Schluss brauchst du einen Stichtag: die Struktur, die du heute tatsächlich hältst. Ohne ihn gibt es keinen Abstand zum Ziel — nur das Ziel.",
+            "Finally you need a reporting date: the structure you actually hold today. Without it there is no distance to the target — only the target.")),
+        h(WarrenChips, { fragen: EIN_FRAGEN_IST }),
+
+        istWahl == null ? h("div", { className: "ein-wahl" },
+          h("button", { onClick: () => setIstWahl("null") },
+            h("b", null, T("Ich fange bei null an", "I am starting from zero")),
+            h("span", null, T("Noch nichts gekauft. Der Editor startet mit einer Zeile Geldmarkt zu 100 % — das ist die ehrliche Beschreibung von Bargeld. Ändere sie, sobald sich das ändert.",
+                              "Nothing bought yet. The editor starts with one money-market row at 100 % — the honest description of cash. Change it as soon as that changes."))),
+          h("button", { onClick: () => setIstWahl("depot") },
+            h("b", null, T("Ich habe schon ein Depot", "I already have a portfolio")),
+            h("span", null, T("Trage deine Positionen in Prozent ein. Beträge und Stückzahlen verlangt PYTHAI nicht und speichert es nirgends.",
+                              "Enter your positions in percent. PYTHAI does not ask for amounts or quantities and stores them nowhere.")))) : null,
+
+        istWahl != null ? h(PositionsEditor, {
+          depot: null,
+          start: istWahl === "null"
+            ? [{ name: T("Geldmarkt (Bargeld)", "Money market (cash)"), isin: "", klasse: "geldmarkt", baustein: "geldmarkt", gewicht_pct: "100", betrag: "" }]
+            : null,
+          weiterLabel: T("Stand übernehmen und fertig", "Adopt reporting date and finish"),
+          onGespeichert: () => setSchritt(4),
+          onSchliessen: () => setIstWahl(null),
+        }) : null,
+
+        istWahl == null ? h("div", { className: "ein-fuss" },
+          h("button", { className: "ein-raus", onClick: () => setSchritt(2) }, T("zurück", "back"))) : null);
+    }
+
+    if (schritt === 4) {
+      koerper = h("div", null,
+        h("h4", { className: "ein-t" }, T("Fertig.", "Done.")),
+        h("p", { className: "ein-p" },
+          T("Ziel und Stichtag stehen. Ab jetzt zeigt die Fläche den Abstand zwischen beiden — und sonst nichts.",
+            "Target and reporting date are in place. From now on the surface shows the distance between the two — and nothing else.")),
+        h("div", { className: "ein-fuss" },
+          h("button", { className: "ein-weiter", onClick: onFertig }, T("Fläche ansehen", "View the surface"))));
+    }
+
+    return h("div", { className: "ein" }, kopf, koerper);
   }
 
   /* ============================================================
@@ -1332,6 +1541,7 @@
     const [editor, setEditor] = useState(null); // null | { depot, start }
     const [posEditor, setPosEditor] = useState(null); // null | { depot }
     const [nachladen, setNachladen] = useState(0);
+    const [einrichtung, setEinrichtung] = useState(false);
 
     useEffect(() => {
       if (!an) return;
@@ -1388,19 +1598,31 @@
       koerper = h("p", { className: "lt-warn", style: { marginTop: 20 } },
         T("Diese Fl\u00E4che ist dem Syndicate vorbehalten.", "This surface is reserved for the Syndicate."));
     } else if (stand === "leer") {
-      koerper = h("div", { className: "lt-leer" },
+      // Nachtrag 4: der "kein Depot"-Zustand ist jetzt der Einstieg in die
+      // gefuehrte Strecke. Der freie Weg bleibt daneben stehen — wer nur
+      // ein Ziel setzen will, soll nicht durch drei Schritte muessen.
+      koerper = einrichtung
+        ? h(Einrichtung, {
+            onAbbruch: () => setEinrichtung(false),
+            onFertig: () => { setEinrichtung(false); setNachladen((n) => n + 1); },
+          })
+        : h("div", { className: "lt-leer" },
         h("h4", null, T("Noch keine Zielstruktur festgelegt.", "No target structure defined yet.")),
         h("p", null, T("Diese Fl\u00E4che zeigt, wie weit ein langfristig gehaltenes Verm\u00F6gen von seiner eigenen Zielstruktur abgewichen ist. Daf\u00FCr braucht es zweierlei: einen Depotauszug als Stichtag, und die Zielgewichte, gegen die gemessen wird.",
                        "This surface shows how far long-held capital has drifted from its own target structure. That needs two things: a portfolio statement as a reporting date, and the target weights to measure against.")),
         h("p", null, T("Beides bleibt bei dir. PYTHAI schlägt keine Struktur vor und bewertet keine — es stellt den Abstand dar, den du selbst definiert hast.",
                        "Both remain yours. PYTHAI proposes no structure and judges none — it shows the distance you defined yourself.")),
-        h("div", { style: { marginTop: 18 } },
-          h("div", { style: { display: "flex", gap: 12, flexWrap: "wrap" } },
-            h(Button, { variant: "oracle", onClick: () => setEditor({ depot: null, start: null }) },
-              T("Zielstruktur festlegen", "Define target structure")),
-            h(Button, { variant: "ghost", onClick: () => setPosEditor({ depot: null }) },
-              T("Stand einliefern", "Submit reporting date")))),
-        h("div", { className: "bald" }, T("Der Weg, einen Depotauszug einzuliefern, folgt im nächsten Schritt.", "The way to submit a portfolio statement follows in the next step.")));
+            h("div", { style: { marginTop: 18 } },
+              h("div", { style: { display: "flex", gap: 12, flexWrap: "wrap" } },
+                h(Button, { variant: "oracle", onClick: () => setEinrichtung(true) },
+                  T("In drei Schritten einrichten", "Set up in three steps")),
+                h(Button, { variant: "ghost", onClick: () => setEditor({ depot: null, start: null }) },
+                  T("Nur Zielstruktur festlegen", "Only define target structure")),
+                h(Button, { variant: "ghost", onClick: () => setPosEditor({ depot: null }) },
+                  T("Nur Stand einliefern", "Only submit reporting date")))),
+            h("p", { className: "ein-p", style: { marginTop: 14, fontSize: 12.5 } },
+              T("Jeder Schritt schreibt erst mit seinem Bestätigungs-Klick. Was du bestätigt hast, bleibt auch dann stehen, wenn du danach abbrichst — rückgängig macht es nur eine neue Version.",
+                "Each step writes only on its confirmation click. What you have confirmed stays even if you cancel afterwards — only a new version undoes it.")));
     } else if (stand === "ok") {
       koerper = depots.map((dep, di) => {
         const zeilen = Array.isArray(dep.zeilen) ? dep.zeilen : [];
