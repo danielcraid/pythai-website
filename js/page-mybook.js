@@ -42,6 +42,42 @@
     STARK: { cls: "st-greenS", l: T("Stark", "Strong"), t: T("Im Plus, Story bestätigt.", "In profit, story confirmed.") },
     INTAKT: { cls: "st-green", l: T("Intakt", "Intact"), t: T("Story trägt.", "Story holds.") }
   };
+  // 11.08.2026: Tagesveraenderung aus dem Feld, das die API seit dem BFM-Umbau
+  // mitliefert (mybook.mjs setzt change_pct_today aus der Live-Quote).
+  const tagesTrend = (p) => {
+    const n = (p && p.change_pct_today != null) ? Number(p.change_pct_today) : null;
+    if (n == null || !isFinite(n)) return null;
+    const dir = n > 0 ? 1 : n < 0 ? -1 : 0;
+    return {
+      str: (n >= 0 ? "+" : "\u2212") + Math.abs(n).toFixed(2).replace(".", ",") + " %",
+      arrow: dir > 0 ? "\u25B2" : dir < 0 ? "\u25BC" : "\u2014",
+      cls: dir > 0 ? "up" : dir < 0 ? "dn" : "flat"
+    };
+  };
+  // Verweildauer aus created_at (Notion-Anlage). Kein Datum -> kein Text; eine
+  // erfundene Zahl waere schlimmer als eine fehlende.
+  const tageSeit = (p) => {
+    const q = p && (p.created_at || p.db_created_at);
+    if (!q) return null;
+    const d = new Date(q);
+    if (isNaN(d.getTime())) return null;
+    const tage = Math.floor((Date.now() - d.getTime()) / 86400000);
+    return tage < 0 ? null : tage;
+  };
+  const tageSeitText = (n) => n === 0 ? T("seit heute", "since today")
+    : n === 1 ? T("seit 1 Tag", "since 1 day")
+    : T("seit " + n + " Tagen", "since " + n + " days");
+
+  // Eine Wahrheit fuer beide Einstiege: Einfach-Ansicht und Detail-Karte oeffnen
+  // denselben Chat mit demselben Text.
+  const askWarrenTopic = (p) => {
+    if (typeof window.PYchatOpen !== "function") return;
+    const lbl = thesisPill(p).l;
+    window.PYchatOpen(T(
+      "Lass uns \u00FCber mein Topic \u201E" + p.name + "\u201C (" + (p.isin || "?") + ") sprechen \u2014 These aktuell \u201E" + lbl + "\u201C. Wie steht sie da, und was w\u00E4re jetzt klug zu beobachten?",
+      "Let's talk about my topic \u201E" + p.name + "\u201C (" + (p.isin || "?") + ") \u2014 thesis currently \u201E" + lbl + "\u201C. How is it holding up, and what should I watch now?"));
+  };
+
   const parseDeNum = (s) => { if (s == null) return null; if (typeof s === "number") return isFinite(s) ? s : null; const n = parseFloat(String(s).replace(/\./g, "").replace(",", ".")); return isFinite(n) ? n : null; };
   const statusKeyOf = (p) => {
     if (p.status && p.status.key) return String(p.status.key).toUpperCase();
@@ -121,6 +157,32 @@
   #mb-root .sname{min-width:0;}
   #mb-root .sname .nm{font-family:var(--font-oracle);font-size:18px;color:var(--parch);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   #mb-root .sname .px{font-family:var(--font-mono);font-size:12px;color:var(--ash);margin-top:2px;}
+  /* 11.08.2026 (Daniel): Einfach-Ansicht zeigt Art, Produkt, Zahlen mit Verweildauer,
+     These und "Warren fragen" — Werte 1:1 aus der Shortlist uebernommen, damit beide
+     Listen dieselbe Sprache sprechen. */
+  #mb-root .sname .art{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--bull, #4FA578);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #mb-root .spct{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;margin-top:3px;}
+  #mb-root .spct .pxv{color:var(--ash);font-size:12px;}
+  #mb-root .spct .up{color:var(--bull);} #mb-root .spct .dn{color:var(--ox-b);} #mb-root .spct .flat{color:var(--steel);}
+  #mb-root .spct .miss{color:var(--steel);}
+  #mb-root .spct .sep{color:var(--line);}
+  #mb-root .spct .hist{color:var(--ash);}
+  #mb-root .sask{font-family:var(--font-ui);font-size:12px;font-weight:600;color:var(--oracle-b);background:rgba(212,169,78,.06);border:1px solid rgba(212,169,78,.5);border-radius:999px;padding:6px 13px;cursor:pointer;white-space:nowrap;}
+  #mb-root .sask:hover{background:rgba(212,169,78,.14);}
+  /* Drei Zeilen links, deshalb oben ausrichten statt mittig schwimmen lassen. */
+  #mb-root .srow.tall{align-items:flex-start;}
+  #mb-root .srow.tall .sleft{align-items:flex-start;}
+  #mb-root .srow.tall .sdot{margin-top:6px;}
+  #mb-root .srow.tall .sright{align-self:center;}
+  /* Mobil: umbrechen statt den Namen zu quetschen. Ohne diese Regel schrumpft
+     der Name, weil .sright flex-shrink:0 traegt — lange ETF-Namen brechen dann ab. */
+  @media(max-width:560px){
+    #mb-root .srow, #mb-root .srow.tall{flex-direction:column;align-items:stretch;gap:11px;padding:14px 2px 16px;}
+    #mb-root .srow.tall .sright, #mb-root .sright{align-self:flex-start;flex-wrap:wrap;}
+    #mb-root .sname .nm{white-space:normal;overflow:visible;line-height:1.18;}
+    #mb-root .sname .art{white-space:normal;}
+  }
+  @media(max-width:390px){ #mb-root .spct{flex-direction:column;gap:2px;} }
   #mb-root .sright{display:flex;align-items:center;gap:10px;flex-shrink:0;}
   #mb-root .slbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
   #mb-root .spill{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid currentColor;border-radius:999px;padding:5px 12px;white-space:nowrap;}
@@ -728,13 +790,7 @@
               h("button", { className: "bline chk", disabled: checkId === p.id, onClick: () => checkThesis(p) }, checkId === p.id ? T("Prüfe…", "Checking…") : T("These prüfen", "Check thesis")),
               h("button", { className: "bline" + (chartBusy === p.id ? " saving" : ""), disabled: chartBusy === p.id, onClick: () => setChartConfirm(p) }, chartBusy === p.id ? T("sende…", "sending…") : T("Chart-Analyse per Mail", "Chart analysis by mail")),
               // 10.07.2026 (Daniel-Wunsch): Topic-Chat pro Item — gleicher Pfad wie ask_warren.
-              h("button", { className: "bline", onClick: () => {
-                if (typeof window.PYchatOpen !== "function") return;
-                var lbl = thesisPill(p).l;
-                window.PYchatOpen(T(
-                  "Lass uns über mein Topic „" + p.name + "“ (" + (p.isin || "?") + ") sprechen — These aktuell „" + lbl + "“. Wie steht sie da, und was wäre jetzt klug zu beobachten?",
-                  "Let's talk about my topic „" + p.name + "“ (" + (p.isin || "?") + ") — thesis currently „" + lbl + "“. How is it holding up, and what should I watch now?"));
-              } }, T("Mit Warren besprechen", "Discuss with Warren")))),
+              h("button", { className: "bline", onClick: () => askWarrenTopic(p) }, T("Mit Warren besprechen", "Discuss with Warren")))),
           h("div", { className: "tlbl", style: { display: "flex", alignItems: "center", justifyContent: "space-between" } },
             h("span", null, T("Exit-Plan · R-Leiter", "Exit plan · R-ladder")),
             h("button", { onClick: (e) => { e.stopPropagation(); sfx("button-004-toggle"); setLadderOpen(ladderOpen === p.id ? null : p.id); }, style: { background: "none", border: "1px solid var(--border-strong, #2a2f39)", borderRadius: 6, color: "var(--oracle-b, #D4A94E)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.04em", padding: "3px 11px", cursor: "pointer" } }, ladderOpen === p.id ? T("schließen ▴", "close ▴") : T("öffnen ▾", "open ▾"))),
@@ -775,17 +831,27 @@
           const oracle = p.tracking_source === "oracle";
           const _lv = parseDeNum(p.live), _en = parseDeNum(p.entry);
           const _pnl = (_lv != null && _en != null && _en > 0) ? (_lv - _en) / _en * 100 : null;
-          const pnlStr = _pnl == null ? "—" : (_pnl >= 0 ? "+" : "−") + Math.abs(_pnl).toFixed(1).replace(".", ",") + " %";
-          const pnlCol = _pnl == null ? "var(--ash)" : (_pnl >= 0 ? "var(--bull)" : "var(--ox-b)");
-          return h("div", { key: p.id, className: "srow", role: "button", tabIndex: 0, onClick: () => { sfx("button-002-itemopen"); setSimple(false); setOpen(p.id); setTimeout(() => { const el = document.getElementById("mb-" + p.id); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 250); } },
+          const pnlStr = _pnl == null ? null : (_pnl >= 0 ? "+" : "\u2212") + Math.abs(_pnl).toFixed(1).replace(".", ",") + " %";
+          const pnlCls = _pnl == null ? "flat" : (_pnl >= 0 ? "up" : "dn");
+          const td = tagesTrend(p);
+          const tage = tageSeit(p);
+          const kurs = p.live != null && p.live !== "" ? ((typeof p.live === "string" ? p.live : String(p.live)) + " " + (p.currency || "EUR")) : null;
+          return h("div", { key: p.id, className: "srow tall", role: "button", tabIndex: 0, onClick: () => { sfx("button-002-itemopen"); setSimple(false); setOpen(p.id); setTimeout(() => { const el = document.getElementById("mb-" + p.id); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 250); } },
             h("div", { className: "sleft" },
               h("span", { className: "sdot " + (oracle ? "o" : "s"), title: oracle ? T("Orakel-Shortlist", "Oracle shortlist") : T("Meine These", "My thesis") }),
               h("div", { className: "sname" },
+                p.art ? h("div", { className: "art" }, p.art) : null,
                 h("div", { className: "nm" }, p.name),
-                p.live ? h("div", { className: "px" }, (typeof p.live === "string" ? p.live : String(p.live)) + " " + (p.currency || "EUR")) : null)),
+                h("div", { className: "spct" },
+                  kurs ? h("span", { className: "pxv" }, kurs) : h("span", { className: "miss" }, T("Kurs gerade nicht verf\u00FCgbar", "price unavailable")),
+                  td ? h("span", { className: td.cls, title: T("Ver\u00E4nderung heute", "change today") }, td.arrow + " " + td.str + " " + T("heute", "today")) : null,
+                  pnlStr ? h("span", { className: pnlCls, title: T("gegen deinen Entry", "against your entry") }, pnlStr + " " + T("seit Setup", "since setup"))
+                         : h("span", { className: "miss", title: T("Trag einen Entry ein, dann erscheint der Wert.", "Add an entry and the value appears.") }, T("kein Entry", "no entry")),
+                  tage != null ? h("span", { className: "sep" }, "\u00B7") : null,
+                  tage != null ? h("span", { className: "hist" }, tageSeitText(tage)) : null))),
             h("span", { className: "sright" },
-              h("span", { title: T("Stand seit Entry", "Since entry"), style: { fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700, color: pnlCol, marginRight: 16, whiteSpace: "nowrap" } }, pnlStr),
-              h("span", { className: "cpill " + cst.cls, title: cst.tip }, cst.label)));
+              h("span", { className: "cpill " + cst.cls, title: cst.tip }, cst.label),
+              h("button", { className: "sask", "data-sfx": "", onClick: (e) => { e.stopPropagation(); sfx("button-002-itemopen"); askWarrenTopic(p); } }, T("Warren fragen", "Ask Warren"))));
         })) : (function () {
           const mkHdr = () => h("div", { className: "hdr" },
             h("span", { className: "hc c-mon" }, T("Beobachten", "Monitor")),
