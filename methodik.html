@@ -72,7 +72,11 @@
 
   /* Dual-Bucket */
   .dual-bucket { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 32px 0; }
-  .bucket { background: var(--bg-raised); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 22px; }
+  /* 11.08.2026 · DS-Regel: wer links einen Akzentbalken traegt, hat links
+     eckige Ecken — sonst rundet sich der Balken mit und wird zur Pille.
+     Siehe Design System, guidelines/accent-bar.card.html */
+  .bucket { background: var(--bg-raised); border: 1px solid var(--border-subtle); border-radius: 0 8px 8px 0; padding: 22px; }
+  .bucket.long { border-left: 3px solid #6FCF9A; }
   .bucket.idea { border-left: 3px solid var(--oracle); }
   .bucket.execute { border-left: 3px solid #5B8FB8; }
   .bucket-label { font: 600 11px/1.3 var(--font-mono); letter-spacing: .16em; color: var(--parchment); text-transform: uppercase; margin-bottom: 10px; }
@@ -125,7 +129,7 @@
   .risk-tag.hoechste .dot { background: #E0726B; }
 
   /* Warnbox — höchste Risikoklasse */
-  .risk-warning { background: rgba(224,114,107,.07); border: 1px solid rgba(224,114,107,.42); border-left: 3px solid #E0726B; border-radius: 8px; padding: 15px 18px; margin: 0 0 18px; font: 400 14px/1.6 var(--font-ui); color: var(--parchment); }
+  .risk-warning { background: rgba(224,114,107,.07); border: 1px solid rgba(224,114,107,.42); border-left: 3px solid #E0726B; border-radius: 0 8px 8px 0; padding: 15px 18px; margin: 0 0 18px; font: 400 14px/1.6 var(--font-ui); color: var(--parchment); }
   .risk-warning strong { color: #E0726B; }
 
   /* Legend */
@@ -148,6 +152,24 @@
     .legend-grid { grid-template-columns: 1fr; gap: 4px 0; }
     .legend-grid dt { margin-top: 14px; }
   }
+
+  /* --- Thesen-Zustaende (Fläche zwei) --- */
+  .zust { display: inline-block; font: 700 10.5px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; border-radius: 999px; padding: 5px 11px; margin: 0 6px 6px 0; }
+  .z-stark   { color: #6FCF9A; border: 1px solid rgba(111,207,154,.6); background: rgba(111,207,154,.16); }
+  .z-intakt  { color: #8FCBA0; border: 1px solid rgba(111,176,122,.5); background: rgba(111,176,122,.12); }
+  .z-skim    { color: #D8B85A; border: 1px solid rgba(201,162,78,.55); background: rgba(201,162,78,.14); }
+  .z-wackelt { color: #E7A062; border: 1px solid rgba(207,122,78,.55); background: rgba(207,122,78,.14); }
+  .z-broken  { color: #F0A39C; border: 1px solid rgba(224,114,107,.55); background: rgba(224,114,107,.14); }
+
+  /* --- Abgrenzung: was PYTHAI nicht ist --- */
+  .abschluss { background: rgba(224,114,107,.06); border: 1px solid rgba(224,114,107,.3); border-left: 3px solid #E0726B; border-radius: 0 8px 8px 0; padding: 22px 24px; margin-top: 14px; }
+  .abschluss p { font-size: 14px; line-height: 1.7; margin: 0 0 11px; }
+  .abschluss p:last-child { margin: 0; }
+
+  @media (max-width: 640px) {
+    .dual-bucket { grid-template-columns: 1fr; }
+    .confidence-stripe { grid-template-columns: repeat(3, 1fr); }
+  }
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://pythai.ch/#org","name":"PYTHAI","url":"https://pythai.ch/","logo":"https://pythai.ch/assets/logo/pythai-oculus.svg","description":"PYTHAI is a finance-intelligence publisher. An AI persona, Warren, issues one scored market reading each dawn \u2014 editorial market commentary, not investment advice.","email":"hello@pythai.ch","slogan":"Market, Wisdom, Foretold."},{"@type":"WebSite","@id":"https://pythai.ch/#website","url":"https://pythai.ch/","name":"PYTHAI","publisher":{"@id":"https://pythai.ch/#org"},"inLanguage":["de","en"]}]}</script>
 </head>
@@ -164,7 +186,7 @@
 <script src="js/site.js?v=19"></script>
 <script src="js/chat.js?v=12"></script>
 <script src="js/pagekit.js?v=3"></script>
-<script src="js/page-methodik.js?v=3"></script>
+<script src="js/page-methodik.js?v=4"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
