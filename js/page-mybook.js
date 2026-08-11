@@ -276,6 +276,44 @@
     #mb-root .ze{padding:20px 18px;}
     #mb-root .ze-name{flex:1 1 100%;}
   }
+  /* --- B2 · Positions-Editor + B7 · Produktbeispiele --- */
+  #mb-root .pe-kopfzeile{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin:20px 0 0;}
+  #mb-root .pe-kopfzeile input[type=date]{background:var(--input,#1D212A);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-mono);font-size:13px;padding:7px 9px;}
+  #mb-root .pe-modus{display:inline-flex;align-items:center;gap:8px;cursor:pointer;}
+  #mb-root .pe-modus span{font-family:var(--font-ui);font-size:13px;color:var(--mist);}
+  #mb-root .pe-warn{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:var(--oracle-b);background:rgba(212,169,78,.06);border-left:3px solid var(--oracle);border-radius:0 8px 8px 0;padding:11px 14px;margin:14px 0 0;}
+  #mb-root .pe-liste{margin:18px 0 0;}
+  #mb-root .pe-row{padding:14px 0;border-bottom:1px solid var(--line);}
+  #mb-root .pe-oben{display:flex;gap:10px;flex-wrap:wrap;}
+  #mb-root .pe-oben input{background:var(--input,#1D212A);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-ui);font-size:13.5px;padding:8px 11px;}
+  #mb-root .pe-oben input:focus{outline:none;border-color:var(--oracle);}
+  #mb-root .pe-name{flex:1 1 260px;min-width:0;}
+  #mb-root .pe-isin{flex:0 0 170px;font-family:var(--font-mono) !important;font-size:12.5px !important;letter-spacing:.04em;}
+  #mb-root .pe-unten{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:9px;}
+  #mb-root .pe-unten select{background:var(--input,#1D212A);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-ui);font-size:12.5px;padding:7px 9px;}
+  #mb-root .pe-unten select:focus{outline:none;border-color:var(--oracle);}
+  #mb-root .pe-bsp{background:none;border:1px solid var(--line);border-radius:999px;color:var(--mist);font-family:var(--font-ui);font-size:12px;padding:5px 12px;cursor:pointer;}
+  #mb-root .pe-bsp:hover{border-color:var(--oracle);color:var(--oracle-b);}
+  #mb-root .pe-plus{background:none;border:1px dashed var(--line);border-radius:8px;color:var(--mist);font-family:var(--font-ui);font-size:13px;padding:10px 16px;cursor:pointer;margin:16px 0 0;width:100%;}
+  #mb-root .pe-plus:hover{border-color:var(--oracle);color:var(--oracle-b);}
+
+  #mb-root .bs{background:var(--void);border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin:12px 0 4px;}
+  #mb-root .bs-kopf{display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
+  #mb-root .bs-t{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--oracle);}
+  #mb-root .bs-label{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--parch);background:rgba(212,169,78,.07);border-left:3px solid var(--oracle);border-radius:0 6px 6px 0;padding:10px 13px;margin:12px 0 14px;}
+  #mb-root .bs-hin{font-family:var(--font-ui);font-size:12.5px;line-height:1.65;color:var(--ash);margin:12px 0 0;}
+  #mb-root .bs-liste{display:flex;flex-direction:column;gap:12px;}
+  #mb-root .bs-item{border:1px solid var(--line);border-radius:8px;padding:12px 14px;}
+  #mb-root .bs-name{font-family:var(--font-ui);font-size:13.5px;font-weight:600;color:var(--parch);}
+  #mb-root .bs-fakten{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;}
+  #mb-root .bs-fakten span{font-family:var(--font-mono);font-size:11px;color:var(--ash);}
+  #mb-root .bs-fuss{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px;}
+  #mb-root .bs-fuss code{font-family:var(--font-mono);font-size:11.5px;color:var(--steel);letter-spacing:.04em;}
+  #mb-root .bs-nimm{background:none;border:1px solid rgba(212,169,78,.5);border-radius:999px;color:var(--oracle-b);font-family:var(--font-ui);font-size:12px;padding:5px 12px;cursor:pointer;}
+  #mb-root .bs-nimm:hover{background:rgba(212,169,78,.12);}
+  #mb-root .bs-sort{font-family:var(--font-ui);font-size:11.5px;color:var(--ash);margin:12px 0 0;}
+
+  @media(max-width:560px){ #mb-root .pe-isin{flex:1 1 100%;} }
   #mb-root .sright{display:flex;align-items:center;gap:10px;flex-shrink:0;}
   #mb-root .slbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
   #mb-root .spill{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid currentColor;border-radius:999px;padding:5px 12px;white-space:nowrap;}
@@ -756,12 +794,249 @@
           "Each save creates a new version. The previous one remains as history — nothing is overwritten.")));
   }
 
+  /* ============================================================
+     B2 · IST-STRUKTUR EINLIEFERN (AP6.5) + B7 · PRODUKTBEISPIELE (AP6.8)
+     POST /api/mybook/sockel/snapshot   ·   GET .../produktbeispiele
+
+     Zwei Leitplanken stehen hier im Code, weil sie sonst beim naechsten
+     Umbau verloren gehen:
+
+     1. Ueber den Draht gehen NUR PROZENTE. Das optionale Betragsfeld
+        rechnet im Browser um und wird NIE gesendet — es verlaesst diese
+        Datei nicht. Echte Vermoegenswerte von Membern existieren nirgends
+        im System, und das soll so bleiben.
+     2. KEINE ISIN ist hier hinterlegt. Die Produktliste ist die
+        kuratierte Datei hinter dem Review-Tor (Vertrag B7, Regel 1). Ein
+        Frontend mit eingebauter Liste waere eine zweite Quelle — und
+        erfundene ISINs im Vermoegenskontext sind ein Desaster. Antwortet
+        die Route nicht, zeigt die Flaeche das an, statt zu erfinden.
+     ============================================================ */
+
+  const LT_BAUSTEIN_ZU = (klasse) => LT_BAUSTEINE.filter((b) => LT_ZU_KLASSE[b] === klasse);
+  const LT_PFLICHT_LABEL = [
+    "Beispiele, die die Kategorie erfüllen — gleiche Liste für alle Member. Keine Empfehlung, keine Prüfung deiner persönlichen Eignung. Du entscheidest.",
+    "Examples that satisfy the category — the same list for every member. Not a recommendation, no check of your personal suitability. You decide.",
+  ];
+
+  // B7 · Beispiele je Baustein. Holt die kuratierte Liste, zeigt sie
+  // neutral nebeneinander, ohne Rangfolge.
+  function Beispiele({ baustein, onUebernehmen, onSchliessen }) {
+    const [stand, setStand] = useState("laedt"); // laedt | ok | offen | fehler
+    const [liste, setListe] = useState([]);
+    useEffect(() => {
+      let lebt = true;
+      fetch(API + "/api/mybook/sockel/produktbeispiele", { credentials: "include" })
+        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+        .then((res) => {
+          if (!lebt) return;
+          if (res.code === 404) { setStand("offen"); return; }
+          if (res.code !== 200 || !res.d || !res.d.ok) { setStand("fehler"); return; }
+          const b = (res.d.bausteine || {})[baustein];
+          setListe(Array.isArray(b) ? b : []);
+          setStand("ok");
+        })
+        .catch(() => { if (lebt) setStand("fehler"); });
+      return () => { lebt = false; };
+    }, [baustein]);
+
+    const kopf = h("div", { className: "bs-kopf" },
+      h("div", { className: "bs-t" }, T("Beispiele für ", "Examples for ") + ltName({ ebene: "baustein", schluessel: baustein })),
+      h("button", { className: "ze-zu", onClick: onSchliessen }, T("schließen", "close")));
+
+    if (stand === "laedt") return h("div", { className: "bs" }, kopf, h("p", { className: "bs-hin" }, T("Wird geladen…", "Loading…")));
+    if (stand === "offen") return h("div", { className: "bs" }, kopf,
+      h("p", { className: "bs-hin" }, T(
+        "Die geprüfte Beispiel-Liste ist noch nicht ausgeliefert. Sie wird nicht hier im Browser geführt, sondern zentral gepflegt — deshalb stehen hier jetzt keine Namen und keine ISIN.",
+        "The reviewed example list is not deployed yet. It is not kept here in the browser but maintained centrally — which is why no names and no ISINs appear here now.")));
+    if (stand === "fehler") return h("div", { className: "bs" }, kopf,
+      h("p", { className: "bs-hin" }, T("Die Liste ist gerade nicht abrufbar.", "The list cannot be retrieved right now.")));
+    if (!liste.length) return h("div", { className: "bs" }, kopf,
+      h("p", { className: "bs-hin" }, T("Für diese Kategorie sind noch keine Beispiele hinterlegt.", "No examples are on file for this category yet.")));
+
+    return h("div", { className: "bs" }, kopf,
+      h("p", { className: "bs-label" }, T(LT_PFLICHT_LABEL[0], LT_PFLICHT_LABEL[1])),
+      h("div", { className: "bs-liste" }, liste.map((p, i) => h("div", { key: p.isin || i, className: "bs-item" },
+        h("div", { className: "bs-name" }, p.name || "—"),
+        h("div", { className: "bs-fakten" },
+          p.anbieter ? h("span", null, p.anbieter) : null,
+          p.ter_pct != null ? h("span", null, T("laufende Kosten ", "ongoing charges ") + ltPct(p.ter_pct) + " %") : null,
+          p.replikation ? h("span", null, p.replikation) : null,
+          p.fondsgroesse ? h("span", null, T("Fondsgröße ", "fund size ") + p.fondsgroesse) : null,
+          p.domizil ? h("span", null, T("Domizil ", "domicile ") + p.domizil) : null),
+        h("div", { className: "bs-fuss" },
+          p.isin ? h("code", null, p.isin) : null,
+          h("button", { className: "bs-nimm", onClick: () => onUebernehmen(p) }, T("in die Zeile übernehmen", "use in this row")))))),
+      h("p", { className: "bs-sort" }, T("Ohne Rangfolge. Die Reihenfolge stammt aus der gepflegten Liste, sie ist keine Wertung.",
+                                          "No ranking. The order comes from the maintained list; it is not a judgement.")));
+  }
+
+  function PositionsEditor({ depot, onSchliessen }) {
+    const heute = new Date().toISOString().slice(0, 10);
+    const [stand, setStand] = useState(heute);
+    const [betraege, setBetraege] = useState(false); // Hilfsmodus, rein clientseitig
+    const [zeilen, setZeilen] = useState([{ name: "", isin: "", klasse: "aktien", baustein: "welt", gewicht_pct: "", betrag: "" }]);
+    const [beispielFuer, setBeispielFuer] = useState(null); // Index der Zeile
+    const [busy, setBusy] = useState(false);
+    const [meldung, setMeldung] = useState(null);
+    const [ersetzenFrage, setErsetzenFrage] = useState(null);
+
+    const setFeld = (i, feld, wert) => setZeilen(zeilen.map((z, j) => {
+      if (j !== i) return z;
+      const n = Object.assign({}, z, { [feld]: wert });
+      if (feld === "klasse") {
+        const moeglich = LT_BAUSTEIN_ZU(wert);
+        if (moeglich.indexOf(n.baustein) === -1) n.baustein = moeglich[0] || "";
+      }
+      return n;
+    }));
+    const zeileWeg = (i) => setZeilen(zeilen.length > 1 ? zeilen.filter((_, j) => j !== i) : zeilen);
+    const zeileNeu = () => setZeilen(zeilen.concat([{ name: "", isin: "", klasse: "aktien", baustein: "welt", gewicht_pct: "", betrag: "" }]));
+
+    // Betraege bleiben im Browser. Sie werden hier in Prozente uebersetzt
+    // und danach nicht weiter beachtet.
+    const betragSumme = zeilen.reduce((a, z) => a + (ltZahl(z.betrag) || 0), 0);
+    const pctVon = (z) => {
+      if (!betraege) return ltZahl(z.gewicht_pct);
+      const b = ltZahl(z.betrag);
+      if (b == null || betragSumme <= 0) return null;
+      return Math.round((b / betragSumme) * 1000) / 10;
+    };
+    const summe = zeilen.reduce((a, z) => a + (pctVon(z) || 0), 0);
+    const summeOk = Math.abs(summe - 100) <= LT_TOLERANZ;
+    const namenOk = zeilen.every((z) => String(z.name || "").trim().length > 0);
+    const bereit = summeOk && namenOk && !busy && !!stand;
+
+    const senden = (ersetzen) => {
+      setBusy(true); setMeldung(null); setErsetzenFrage(null);
+      const koerper = {
+        depot: depot || null,
+        stand: stand,
+        positionen: zeilen.map((z) => ({
+          name: String(z.name || "").trim(),
+          isin: String(z.isin || "").trim() || null,
+          klasse: z.klasse,
+          baustein: z.baustein,
+          gewicht_pct: pctVon(z),
+        })).filter((z) => z.gewicht_pct != null),
+      };
+      if (ersetzen) koerper.ersetzen = true;
+      fetch(API + "/api/mybook/sockel/snapshot", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(koerper),
+      })
+        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+        .then((res) => {
+          setBusy(false);
+          if (res.code === 404) {
+            setMeldung({ art: "offen", text: T(
+              "Die Einliefer-Strecke ist noch nicht ausgeliefert. Deine Eingaben stehen weiter im Formular, sind aber NICHT gespeichert.",
+              "The submission route is not deployed yet. Your entries remain in the form but are NOT saved.") });
+            return;
+          }
+          if (res.code === 409) { setErsetzenFrage(true); return; }
+          if (res.code === 400 && res.d && res.d.error === "gewicht_summe_invalid") {
+            setMeldung({ art: "fehler", text: T("Der Server hat die Summe zurückgewiesen (" + ltPct(res.d.summe) + " %).",
+                                                "The server rejected the total (" + ltPct(res.d.summe) + " %).") });
+            return;
+          }
+          if (res.code !== 200 || !res.d || !res.d.ok) {
+            setMeldung({ art: "fehler", text: T("Das Einliefern ist fehlgeschlagen. Es wurde nichts geändert.", "Submission failed. Nothing was changed.") });
+            return;
+          }
+          setMeldung({ art: "gut", text: T("Stand " + (ltDatum(res.d.stand) || stand) + " eingeliefert, " + res.d.positionen + " Positionen.",
+                                           "Reporting date " + (ltDatum(res.d.stand) || stand) + " submitted, " + res.d.positionen + " positions.") });
+        })
+        .catch(() => { setBusy(false); setMeldung({ art: "fehler", text: T("Keine Verbindung. Es wurde nichts geändert.", "No connection. Nothing was changed.") }); });
+    };
+
+    const zeile = (z, i) => h("div", { key: i, className: "pe-row" },
+      h("div", { className: "pe-oben" },
+        h("input", { className: "pe-name", type: "text", value: z.name, placeholder: T("Name des Fonds oder Wertpapiers", "Name of the fund or security"),
+          onChange: (e) => setFeld(i, "name", e.target.value) }),
+        h("input", { className: "pe-isin", type: "text", value: z.isin, placeholder: T("ISIN (optional)", "ISIN (optional)"),
+          onChange: (e) => setFeld(i, "isin", e.target.value.toUpperCase()) })),
+      h("div", { className: "pe-unten" },
+        h("select", { value: z.klasse, onChange: (e) => setFeld(i, "klasse", e.target.value) },
+          LT_KLASSEN.map((k) => h("option", { key: k, value: k }, ltName({ ebene: "klasse", schluessel: k })))),
+        h("select", { value: z.baustein, onChange: (e) => setFeld(i, "baustein", e.target.value) },
+          LT_BAUSTEIN_ZU(z.klasse).map((b) => h("option", { key: b, value: b }, ltName({ ebene: "baustein", schluessel: b })))),
+        betraege
+          ? h("label", { className: "ze-f" }, h("span", null, T("Betrag", "Amount")),
+              h("input", { type: "text", inputMode: "decimal", value: z.betrag, placeholder: "0",
+                onChange: (e) => setFeld(i, "betrag", e.target.value) }),
+              h("i", null, T("→ " + (pctVon(z) == null ? "—" : ltPct(pctVon(z)) + " %"), "→ " + (pctVon(z) == null ? "—" : ltPct(pctVon(z)) + " %"))))
+          : h("label", { className: "ze-f" }, h("span", null, T("Anteil", "Weight")),
+              h("input", { type: "text", inputMode: "decimal", value: z.gewicht_pct, placeholder: "0,0",
+                onChange: (e) => setFeld(i, "gewicht_pct", e.target.value) }), h("i", null, "%")),
+        h("button", { className: "pe-bsp", onClick: () => setBeispielFuer(beispielFuer === i ? null : i) },
+          T("Beispiele", "Examples")),
+        zeilen.length > 1 ? h("button", { className: "ze-weg", onClick: () => zeileWeg(i) }, T("entfernen", "remove")) : null),
+      beispielFuer === i ? h(Beispiele, {
+        baustein: z.baustein,
+        onSchliessen: () => setBeispielFuer(null),
+        onUebernehmen: (p) => { setFeld(i, "name", p.name || ""); setFeld(i, "isin", p.isin || ""); setBeispielFuer(null); },
+      }) : null);
+
+    return h("div", { className: "ze pe" },
+      h("div", { className: "ze-kopf" },
+        h("h4", null, T("Stand einliefern", "Submit a reporting date")),
+        h("button", { className: "ze-zu", onClick: onSchliessen }, T("schließen", "close"))),
+
+      h("p", { className: "ze-lead" },
+        T("Ein Stand ist eine Momentaufnahme deiner Struktur zu einem Stichtag. Du trägst Anteile in Prozent ein — keine Beträge, keine Stückzahlen. Der nächste Stand ersetzt diesen nicht, er kommt daneben; der Verlauf bleibt.",
+          "A reporting date is a snapshot of your structure on a given day. You enter weights in percent — no amounts, no quantities. The next one does not replace this one; it sits beside it and the history remains.")),
+
+      h("div", { className: "pe-kopfzeile" },
+        h("label", { className: "ze-f" }, h("span", null, T("Stichtag", "Date")),
+          h("input", { type: "date", value: stand, max: heute, onChange: (e) => setStand(e.target.value) })),
+        h("label", { className: "pe-modus" },
+          h("input", { type: "checkbox", checked: betraege, onChange: (e) => setBetraege(e.target.checked) }),
+          h("span", null, T("Mit Beträgen rechnen", "Work with amounts")))),
+
+      betraege ? h("p", { className: "pe-warn" },
+        T("Beträge sind nur eine Rechenhilfe in deinem Browser. Gesendet werden ausschließlich die daraus errechneten Prozente — kein Betrag verlässt dieses Fenster.",
+          "Amounts are only a calculation aid inside your browser. Only the resulting percentages are sent — no amount leaves this window.")) : null,
+
+      h("div", { className: "pe-liste" }, zeilen.map(zeile)),
+      h("button", { className: "pe-plus", onClick: zeileNeu }, T("Position hinzufügen", "Add position")),
+
+      h("div", { className: "ze-summe" + (summeOk ? " ok" : "") },
+        summeOk
+          ? T("Die Anteile ergeben " + ltPct(summe) + " % — vollständig.", "The weights add up to " + ltPct(summe) + " % — complete.")
+          : (summe < 100
+              ? T("Die Anteile ergeben " + ltPct(summe) + " % — es fehlen " + ltPct(100 - summe) + " Punkte.",
+                  "The weights add up to " + ltPct(summe) + " % — " + ltPct(100 - summe) + " points missing.")
+              : T("Die Anteile ergeben " + ltPct(summe) + " % — " + ltPct(summe - 100) + " Punkte zu viel.",
+                  "The weights add up to " + ltPct(summe) + " % — " + ltPct(summe - 100) + " points too many."))),
+      !namenOk ? h("div", { className: "ze-summe" }, T("Jede Position braucht einen Namen.", "Every position needs a name.")) : null,
+
+      ersetzenFrage ? h("div", { className: "ze-meld offen" },
+        h("div", null, T("Für den " + (ltDatum(stand) || stand) + " liegt bereits ein Stand vor. Ersetzen?",
+                         "A reporting date already exists for " + (ltDatum(stand) || stand) + ". Replace it?")),
+        h("div", { style: { marginTop: 12, display: "flex", gap: 14, alignItems: "center" } },
+          h(Button, { variant: "oracle", onClick: () => senden(true) }, T("Ersetzen", "Replace")),
+          h("button", { className: "ze-abbr", onClick: () => setErsetzenFrage(null) }, T("Abbrechen", "Cancel")))) : null,
+
+      meldung ? h("div", { className: "ze-meld " + meldung.art }, meldung.text) : null,
+
+      h("div", { className: "ze-fuss" },
+        h(Button, { variant: "oracle", disabled: !bereit, onClick: () => senden(false) },
+          busy ? T("wird gesendet…", "sending…") : T("Stand einliefern", "Submit reporting date")),
+        h("button", { className: "ze-abbr", onClick: onSchliessen }, T("Abbrechen", "Cancel"))),
+
+      h("p", { className: "ze-hinweis" },
+        T("Eine einzelne Position löschen gibt es nicht. Ein Stand ist ein Stichtag — du lieferst einen neuen Stand ohne sie, und der alte bleibt Verlauf.",
+          "There is no deleting a single position. A reporting date is a snapshot — you submit a new one without it, and the old one remains history.")));
+  }
+
   function Langfrist() {
     const [an, setAn] = useState(ltGelesen());
     const [stand, setStand] = useState("laedt"); // laedt | ok | leer | fehler | gesperrt
     const [depots, setDepots] = useState([]);
     const [offen, setOffen] = useState({});
     const [editor, setEditor] = useState(null); // null | { depot, start }
+    const [posEditor, setPosEditor] = useState(null); // null | { depot }
 
     useEffect(() => {
       if (!an) return;
@@ -825,8 +1100,11 @@
         h("p", null, T("Beides bleibt bei dir. PYTHAI schlägt keine Struktur vor und bewertet keine — es stellt den Abstand dar, den du selbst definiert hast.",
                        "Both remain yours. PYTHAI proposes no structure and judges none — it shows the distance you defined yourself.")),
         h("div", { style: { marginTop: 18 } },
-          h(Button, { variant: "oracle", onClick: () => setEditor({ depot: null, start: null }) },
-            T("Zielstruktur festlegen", "Define target structure"))),
+          h("div", { style: { display: "flex", gap: 12, flexWrap: "wrap" } },
+            h(Button, { variant: "oracle", onClick: () => setEditor({ depot: null, start: null }) },
+              T("Zielstruktur festlegen", "Define target structure")),
+            h(Button, { variant: "ghost", onClick: () => setPosEditor({ depot: null }) },
+              T("Stand einliefern", "Submit reporting date")))),
         h("div", { className: "bald" }, T("Der Weg, einen Depotauszug einzuliefern, folgt im naechsten Schritt.", "The way to submit a portfolio statement follows in the next step.")));
     } else if (stand === "ok") {
       koerper = depots.map((dep, di) => {
@@ -867,12 +1145,15 @@
           h("div", { style: { marginTop: 18 } },
             h("button", { className: "lt-mehr", onClick: () => setEditor({ depot: dep.depot, start: zeilen.filter((z) => z.ziel_pct != null) }) },
               dep.ziel_gueltig_ab == null ? T("Zielstruktur festlegen", "Define target structure")
-                                          : T("Zielstruktur \u00E4ndern", "Change target structure"))));
+                                          : T("Zielstruktur \u00E4ndern", "Change target structure")),
+            h("button", { className: "lt-mehr", style: { marginLeft: 22 }, onClick: () => setPosEditor({ depot: dep.depot }) },
+              T("Neuen Stand einliefern", "Submit new reporting date"))));
       });
     }
 
     return h("div", { className: "lt" }, kopf, erklaerung,
       editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, onSchliessen: () => setEditor(null) }) : null,
+      posEditor ? h(PositionsEditor, { depot: posEditor.depot, onSchliessen: () => setPosEditor(null) }) : null,
       koerper,
       h("p", { className: "lt-fuss" },
         T("Darstellung einer selbst festgelegten Struktur zum genannten Stichtag. Keine Anlageberatung, keine Empfehlung, keine Aufforderung zu irgendeiner Transaktion. Keine Beträge, keine Stückzahlen — die Struktur zählt, nicht das Vermögen.",
