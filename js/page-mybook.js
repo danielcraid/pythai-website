@@ -775,7 +775,7 @@
     return zs.map((z) => ltPct(z.ziel_pct) + " % " + ltName(z)).join(" · ");
   };
 
-  function ZielEditor({ depot, start, onSchliessen, weiterLabel, onGespeichert }) {
+  function ZielEditor({ depot, start, ist, onSchliessen, weiterLabel, onGespeichert }) {
     const [zeilen, setZeilen] = useState(() => {
       if (Array.isArray(start) && start.length) {
         return start.map((z) => ({
@@ -864,6 +864,32 @@
         }));
       if (!neu.length) return;
       setZeilen(zeilen.filter((z) => z.ebene !== "baustein").concat(neu));
+    };
+
+    // Daniel, 12.08.: "die Bausteine, die dem FFB-Portfolio entsprechen".
+    // Der ehrliche Weg dahin fuehrt nicht ueber eine Vorlage fuer ALLE, sondern
+    // ueber den EIGENEN Depotstand: das FE liest die ist_pct-Zeilen des
+    // Members und schreibt sie als Ziel. Bleibt im Konto des Nutzers, geht
+    // niemanden sonst etwas an, und es wird nichts geschaetzt.
+    const istBrauchbar = Array.isArray(ist) && ist.some((z) =>
+      z && z.ist_pct != null && (z.ebene === "klasse" ? LT_KLASSEN.indexOf(z.schluessel) !== -1
+                                                      : z.ebene === "baustein" && !!LT_ZU_KLASSE[z.schluessel]));
+
+    const istAlsZiel = () => {
+      setVorlage(null);
+      const band = (sch) => {
+        const alt = zeilen.find((z) => z.schluessel === sch);
+        return alt && alt.band_rel_pct !== "" && alt.band_rel_pct != null ? alt.band_rel_pct : LT_BAND_START;
+      };
+      const feld = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
+      const klassen = LT_KLASSEN.map((k) => {
+        const q = (ist || []).find((z) => z.ebene === "klasse" && z.schluessel === k);
+        return { ebene: "klasse", schluessel: k, ziel_pct: q && q.ist_pct != null ? feld(q.ist_pct) : "", band_rel_pct: band(k) };
+      });
+      const bausteine = (ist || [])
+        .filter((z) => z.ebene === "baustein" && LT_ZU_KLASSE[z.schluessel] && z.ist_pct != null)
+        .map((z) => ({ ebene: "baustein", schluessel: z.schluessel, ziel_pct: feld(z.ist_pct), band_rel_pct: band(z.schluessel) }));
+      setZeilen(klassen.concat(bausteine));
     };
 
     const bausteineGleich = () => {
@@ -1105,7 +1131,11 @@
         h("div", { className: "ze-summe" + (kOk ? " ok" : "") }, summenSatz(sK, kOk, T("Die Klassen", "The classes"))),
         h("div", { className: "ze-hinzu" },
           h("span", null, T("ohne Tippen:", "without typing:")),
-          h("button", { onClick: klassenGleich }, T("gleichmäßig aufteilen", "split evenly")))),
+          h("button", { onClick: klassenGleich }, T("gleichmäßig aufteilen", "split evenly")),
+          istBrauchbar ? h("button", { onClick: istAlsZiel,
+            title: T("Übernimmt Klassen UND Bausteine aus deinem letzten eingelieferten Stand.",
+                     "Takes classes AND building blocks from your last submitted reporting date.") },
+            T("meine heutige Struktur als Ziel übernehmen", "adopt my current structure as target")) : null)),
 
       h("div", { className: "ze-grp" },
         h("div", { className: "ze-grp-t" }, T("Bausteine", "Building blocks")),
@@ -2000,7 +2030,7 @@
                   : T("Bausteine ansehen ▾ (" + rest.length + ")", "View building blocks ▾ (" + rest.length + ")")),
             auf ? h("div", { style: { marginTop: 8 } }, rest.map(zeile)) : null) : null,
           h("div", { style: { marginTop: 18 } },
-            h("button", { className: "lt-mehr", onClick: () => setEditor({ depot: dep.depot, start: zeilen.filter((z) => z.ziel_pct != null) }) },
+            h("button", { className: "lt-mehr", onClick: () => setEditor({ depot: dep.depot, start: zeilen.filter((z) => z.ziel_pct != null), ist: zeilen }) },
               dep.ziel_gueltig_ab == null ? T("Zielstruktur festlegen", "Define target structure")
                                           : T("Zielstruktur \u00E4ndern", "Change target structure")),
             h("button", { className: "lt-mehr", style: { marginLeft: 22 }, onClick: () => setPosEditor({ depot: dep.depot }) },
@@ -2010,7 +2040,7 @@
     }
 
     return h("div", { className: "lt" }, kopf, erklaerung,
-      editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, onSchliessen: () => setEditor(null) }) : null,
+      editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, ist: editor.ist || null, onSchliessen: () => setEditor(null) }) : null,
       posEditor ? h(PositionsEditor, { depot: posEditor.depot, onSchliessen: () => setPosEditor(null) }) : null,
       koerper,
       h("p", { className: "lt-fuss" },
