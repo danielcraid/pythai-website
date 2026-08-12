@@ -145,6 +145,7 @@
   #mb-root .toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;}
   #mb-root .rep{display:flex;align-items:center;gap:10px;font-family:var(--font-ui);font-size:14px;color:var(--mist);cursor:pointer;}
   #mb-root h2.mb{font-family:var(--font-oracle);font-weight:400;font-size:30px;margin:6px 0 18px;color:var(--parch);}
+  #mb-root p.mb-lead{font-family:var(--font-ui);font-size:14px;line-height:1.65;color:var(--text-secondary,#9BA3B2);margin:-8px 0 20px;max-width:640px;}
   #mb-root .vtog{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
   #mb-root .vtog button{background:none;border:none;padding:7px 13px;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);cursor:pointer;}
   #mb-root .vtog button.on{background:var(--grad-gold);color:var(--text-on-gold);}
@@ -284,6 +285,8 @@
   #mb-root .lt-row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid var(--line);}
   #mb-root .lt-row .satz{font-family:var(--font-ui);font-size:14px;line-height:1.5;color:var(--mist);min-width:0;}
   #mb-root .lt-row .satz b{color:var(--parch);font-weight:600;}
+  #mb-root .lt-kauf{background:none;border:1px solid var(--line);border-radius:999px;color:var(--mist);font-family:var(--font-ui);font-size:11.5px;padding:4px 11px;cursor:pointer;flex:0 0 auto;white-space:nowrap;}
+  #mb-root .lt-kauf:hover{border-color:var(--oracle);color:var(--oracle-b);}
   #mb-root .lt-row .marke{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;flex:0 0 auto;color:var(--ash);}
   #mb-root .lt-row .marke.aus{color:#E7A062;}
   #mb-root .lt-row.b-aus{background:rgba(207,122,78,.05);}
@@ -1427,7 +1430,7 @@
                                           "No ranking. The order comes from the maintained list; it is not a judgement.")));
   }
 
-  function PositionsEditor({ depot, onSchliessen, start, weiterLabel, onGespeichert, zielGewichte }) {
+  function PositionsEditor({ depot, onSchliessen, start, weiterLabel, onGespeichert, zielGewichte, hinweis }) {
     const heute = new Date().toISOString().slice(0, 10);
     const [stand, setStand] = useState(heute);
     const [betraege, setBetraege] = useState(false); // Hilfsmodus, rein clientseitig
@@ -1551,6 +1554,8 @@
       h("div", { className: "ze-kopf" },
         h("h4", null, T("Stand einliefern", "Submit a reporting date")),
         h("button", { className: "ze-zu", onClick: onSchliessen }, T("schließen", "close"))),
+
+      hinweis ? h("div", { className: "ze-meld offen" }, hinweis) : null,
 
       h("p", { className: "ze-lead" },
         T("Ein Stand ist eine Momentaufnahme deiner Struktur zu einem Stichtag. Du trägst Anteile in Prozent ein — keine Beträge, keine Stückzahlen. Der nächste Stand ersetzt diesen nicht, er kommt daneben; der Verlauf bleibt.",
@@ -1892,7 +1897,9 @@
           if (!lebt || res.code !== 200 || !res.d || !res.d.ok) return;
           const karte = {};
           Object.keys(res.d.bausteine || {}).forEach((b) => {
-            (res.d.bausteine[b] || []).forEach((p) => { if (p && p.isin && p.name) karte[p.isin] = p.name; });
+            (res.d.bausteine[b] || []).forEach((p) => {
+              if (p && p.isin) karte[p.isin] = { name: p.name || p.isin, baustein: b };
+            });
           });
           setIsinNamen(karte);
         })
@@ -1919,15 +1926,14 @@
 
     const kopf = h("div", { className: "lt-head" },
       h("div", null,
-        h("div", { className: "lt-eyebrow" }, T("Fl\u00E4che drei", "Surface three")),
-        h("h3", { className: "lt-title" }, T("Langfrist-Thesen", "Long-term theses"))),
+        h("h3", { className: "lt-title" }, T("Deine Langfrist-Struktur", "Your long-term structure"))),
       h("div", { className: "lt-sw" },
         h("span", null, an ? T("an", "on") : T("aus", "off")),
         h("button", {
           className: "sw " + (an ? "on" : "off"),
           "aria-pressed": an ? "true" : "false",
-          title: T("Langfrist-Thesen ein- oder ausblenden. Es werden keine Daten gel\u00F6scht.",
-                   "Show or hide long-term theses. No data is deleted."),
+          title: T("Langfrist-Struktur ein- oder ausblenden. Es werden keine Daten gel\u00F6scht.",
+                   "Show or hide the long-term structure. No data is deleted."),
           onClick: () => { const n = !an; setAn(n); ltSchreiben(n); sfx("button-004-toggle"); }
         }, h("span", { className: "knob" }))));
 
@@ -2000,7 +2006,43 @@
         const gekauft = zielPos.filter((z) => (z.ist_pct || 0) > 0).length;
         const aufbau = ohneStand || (zielPos.length > 0 && gekauft < zielPos.length);
 
-        const posName = (z) => z.name || isinNamen[z.schluessel] || z.schluessel;
+        const posName = (z) => z.name || (isinNamen[z.schluessel] && isinNamen[z.schluessel].name) || z.schluessel;
+        const posBaustein = (z) => (isinNamen[z.schluessel] && isinNamen[z.schluessel].baustein) || null;
+
+        // Ein Stand ist immer das GANZE Depot. Wer eine Position nachtraegt,
+        // bekommt deshalb den letzten Stand vorbefuellt und ergaenzt die neue
+        // Zeile — sonst wuerde der neue Stand alles Uebrige stillschweigend
+        // auf null setzen.
+        const gehalten = () => zeilen
+          .filter((z) => z.ebene === "position" && (z.ist_pct || 0) > 0)
+          .map((z) => {
+            const b = posBaustein(z);
+            return { name: posName(z), isin: z.schluessel,
+              klasse: (b && LT_ZU_KLASSE[b]) || "aktien", baustein: b || "welt",
+              gewicht_pct: String(z.ist_pct).replace(".", ","), betrag: "" };
+          });
+
+        const standFuer = (z) => {
+          const alt = gehalten();
+          const b = z.ebene === "position" ? posBaustein(z) : z.schluessel;
+          const neu = {
+            name: z.ebene === "position" ? posName(z) : "",
+            isin: z.ebene === "position" ? z.schluessel : "",
+            klasse: (b && LT_ZU_KLASSE[b]) || "aktien",
+            baustein: b && LT_ZU_KLASSE[b] ? b : (LT_BAUSTEIN_ZU("aktien")[0] || "welt"),
+            gewicht_pct: "", betrag: "",
+          };
+          const schon = alt.some((x) => x.isin && neu.isin && x.isin === neu.isin);
+          setPosEditor({
+            depot: dep.depot,
+            start: schon ? alt : alt.concat([neu]),
+            hinweis: alt.length
+              ? T("Die Prozente stammen aus deinem letzten Stand. Ein neuer Kauf verschiebt alle Anteile — trage die neuen Werte ein oder rechne über Beträge.",
+                  "The percentages come from your last reporting date. A new purchase shifts every share — enter the new values or work from amounts.")
+              : T("Erster Stand: trage ein, was du heute tatsächlich hältst. Die Anteile müssen zusammen 100 % ergeben — 100 % dessen, was schon da ist.",
+                  "First reporting date: enter what you actually hold today. The shares must add up to 100 % — 100 % of what is already there."),
+          });
+        };
         const geplant = (z) => z.ziel_pct != null
           && (ohneStand || (z.ebene === "position" && !((z.ist_pct || 0) > 0)));
 
@@ -2013,6 +2055,12 @@
                   ? T("Ziel " + ltPct(z.ziel_pct) + " %.", "target " + ltPct(z.ziel_pct) + " %.")
                   : T("Ziel " + ltPct(z.ziel_pct) + " % — noch nicht gekauft.", "target " + ltPct(z.ziel_pct) + " % — not bought yet."))
               : ltAussage(z)),
+          geplant(z) && (z.ebene === "baustein" || z.ebene === "position")
+            ? h("button", { className: "lt-kauf",
+                title: T("Öffnet den Stand-Editor mit deinem letzten Stand und dieser Zeile.",
+                         "Opens the reporting-date editor with your last reporting date and this row."),
+                onClick: () => standFuer(z) }, T("gekauft — Stand einliefern", "bought — submit reporting date"))
+            : null,
           h("div", { className: "marke" + (geplant(z) ? " plan" : (z.verdikt === "band_verletzt" && !aufbau ? " aus" : "")) },
             geplant(z) ? T("geplant", "planned")
               : z.verdikt === "band_verletzt" ? T("au\u00DFerhalb", "outside")
@@ -2062,7 +2110,10 @@
 
     return h("div", { className: "lt" }, kopf, erklaerung,
       editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, ist: editor.ist || null, onSchliessen: () => setEditor(null) }) : null,
-      posEditor ? h(PositionsEditor, { depot: posEditor.depot, onSchliessen: () => setPosEditor(null) }) : null,
+      posEditor ? h(PositionsEditor, { depot: posEditor.depot, start: posEditor.start || null,
+        hinweis: posEditor.hinweis || null,
+        onGespeichert: () => setNachladen((n) => n + 1),
+        onSchliessen: () => setPosEditor(null) }) : null,
       koerper,
       h("p", { className: "lt-fuss" },
         T("Darstellung einer selbst festgelegten Struktur zum genannten Stichtag. Keine Anlageberatung, keine Empfehlung, keine Aufforderung zu irgendeiner Transaktion. Keine Beträge, keine Stückzahlen — die Struktur zählt, nicht das Vermögen.",
@@ -2493,7 +2544,10 @@
               h("button", { className: !simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(false); } }, T("Detail", "Detail"))),
             h("label", { className: "rep" }, h("button", { className: "sw " + (summary ? "on" : "off"), onClick: () => { sfx("button-004-toggle"); setSummary(!summary); } }, h("span", { className: "knob" })), T("Tägliche My-Book-Summary", "Daily My-Book summary")),
             h(Button, { variant: "oracle", size: "sm", disabled: count >= MAX, onClick: addTopic }, T("+ Topic hinzufügen", "+ Add topic")))),
-        h("h2", { className: "mb" }, T("Deine Topics auf einen Blick.", "Your topics at a glance.")),
+        h("h2", { className: "mb" }, T("Deine Thesen", "Your theses")),
+        h("p", { className: "mb-lead" },
+          T("Einzelne Positionen mit deinen Marken, Kill-Triggern und der Verweildauer. Jede These hat ein Ende — hier siehst du, wie sie steht.",
+            "Individual positions with your levels, kill-triggers and holding time. Every thesis has an end — here is how it stands.")),
         rows.length ? (simple ? h("div", { className: "simplelist" }, rows.map((p) => {
           // 10.07.2026 (Daniel-Catch Prosus WACKELT/INTAKT): Einfach-Liste zeigt
           // jetzt dieselbe konsolidierte Status-Pill wie die Detail-Karte —
