@@ -1990,19 +1990,28 @@
         // Aufbauphase: es gibt Ziel-Positionen, die noch nicht im Depot liegen.
         // Dann ist eine Abweichung kein Verstoss, sondern ein offener Kauf —
         // die Verdikte bleiben, die Alarm-Optik nicht.
+        // Ohne eingelieferten Stand haelt der Member per Definition nichts.
+        // Jede Zeile dann als "ausserhalb des Bandes" zu melden, waere zwar
+        // rechnerisch richtig und trotzdem Unsinn: es gibt keine Abweichung,
+        // es gibt noch keinen Anfang. Die Verdikte des Servers bleiben
+        // unangetastet — nur die Sprache stimmt jetzt zur Lage.
+        const ohneStand = !dep.stand;
         const zielPos = zeilen.filter((z) => z.ebene === "position" && z.ziel_pct != null);
         const gekauft = zielPos.filter((z) => (z.ist_pct || 0) > 0).length;
-        const aufbau = zielPos.length > 0 && gekauft < zielPos.length;
+        const aufbau = ohneStand || (zielPos.length > 0 && gekauft < zielPos.length);
 
         const posName = (z) => z.name || isinNamen[z.schluessel] || z.schluessel;
-        const geplant = (z) => z.ebene === "position" && z.ziel_pct != null && !((z.ist_pct || 0) > 0);
+        const geplant = (z) => z.ziel_pct != null
+          && (ohneStand || (z.ebene === "position" && !((z.ist_pct || 0) > 0)));
 
         const zeile = (z, i) => h("div", { key: i, className: "lt-row" + (z.verdikt === "band_verletzt" && !aufbau ? " b-aus" : "") },
           h("div", { className: "satz" },
             h("b", null, z.ebene === "position" ? posName(z) : ltName(z)),
             " \u00B7 ",
             geplant(z)
-              ? T("Ziel " + ltPct(z.ziel_pct) + " % — noch nicht gekauft.", "target " + ltPct(z.ziel_pct) + " % — not bought yet.")
+              ? (ohneStand
+                  ? T("Ziel " + ltPct(z.ziel_pct) + " %.", "target " + ltPct(z.ziel_pct) + " %.")
+                  : T("Ziel " + ltPct(z.ziel_pct) + " % — noch nicht gekauft.", "target " + ltPct(z.ziel_pct) + " % — not bought yet."))
               : ltAussage(z)),
           h("div", { className: "marke" + (geplant(z) ? " plan" : (z.verdikt === "band_verletzt" && !aufbau ? " aus" : "")) },
             geplant(z) ? T("geplant", "planned")
@@ -2012,16 +2021,21 @@
               : T("kein Ziel", "no target")));
         return h("div", { key: dep.depot || di },
           h("div", { className: "lt-stand" },
-            h("span", null, T("Stand: ", "As of: ") + (ltDatum(dep.stand) || "—")),
+            h("span", null, ohneStand
+              ? T("Noch kein Stand eingeliefert", "No reporting date submitted yet")
+              : T("Stand: ", "As of: ") + ltDatum(dep.stand)),
             dep.stand_alter_tage != null ? h("span", { className: "alt" },
               dep.stand_alter_tage === 0 ? T("heute", "today")
                 : dep.stand_alter_tage === 1 ? T("vor 1 Tag", "1 day ago")
                 : T("vor " + dep.stand_alter_tage + " Tagen", dep.stand_alter_tage + " days ago")) : null,
             dep.depot ? h("span", { className: "depot" }, dep.depot) : null),
-          aufbau ? h("p", { className: "lt-aufbau" },
+          ohneStand ? h("p", { className: "lt-aufbau" },
+            T("Deine Zielstruktur steht. Was du tatsächlich hältst, weiß die Fläche noch nicht — liefere einen Stand ein, dann zeigt sie den Abstand dazu.",
+              "Your target structure is in place. The surface does not yet know what you actually hold — submit a reporting date and it will show the distance."))
+          : aufbau ? h("p", { className: "lt-aufbau" },
             T("Aufbauphase: " + gekauft + " von " + zielPos.length + " Zielpositionen im Depot. Was fehlt, ist noch nicht gekauft — keine Abweichung, die etwas verlangt.",
               "Build-up phase: " + gekauft + " of " + zielPos.length + " target positions in the portfolio. What is missing has simply not been bought yet — not a deviation that demands anything.")) : null,
-          h("p", { className: "lt-warn" },
+          ohneStand ? null : h("p", { className: "lt-warn" },
             T("Die Zahlen beziehen sich auf diesen Stichtag und bewegen sich bis zum n\u00E4chsten Auszug nicht.",
               "The figures refer to that reporting date and do not move until the next statement.")),
           dep.ziel_gueltig_ab == null ? h("div", { className: "lt-leer", style: { marginBottom: 20 } },
