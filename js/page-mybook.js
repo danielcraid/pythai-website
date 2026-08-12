@@ -1217,9 +1217,27 @@
     "Examples that satisfy the category — the same list for every member. Not a recommendation, no check of your personal suitability. You decide.",
   ];
 
+  // Anzeigenamen gehoeren ins FE (Vertrag B6). Die Datei liefert Codes;
+  // wie sie beim Member heissen, entscheidet hier. Unbekannte Werte gehen
+  // unveraendert durch — lieber ein roher Code als ein erfundener Text.
+  const LT_WERT = {
+    thesaurierend: ["thesaurierend", "accumulating"],
+    ausschuettend: ["ausschüttend", "distributing"],
+    physisch: ["physisch", "physical"],
+    synthetisch: ["synthetisch", "synthetic"],
+    gross: ["groß", "large"],
+    mittel: ["mittel", "medium"],
+    klein: ["klein", "small"],
+  };
+  const ltWert = (x) => {
+    const k = String(x == null ? "" : x).trim();
+    const t = LT_WERT[k];
+    return t ? T(t[0], t[1]) : k;
+  };
+
   // B7 · Beispiele je Baustein. Holt die kuratierte Liste, zeigt sie
   // neutral nebeneinander, ohne Rangfolge.
-  function Beispiele({ baustein, onUebernehmen, onSchliessen, nurAnsicht, vorab, waehlbar, gewaehlt, onWaehlen }) {
+  function Beispiele({ baustein, onUebernehmen, onSchliessen, nurAnsicht, vorab, waehlbar, gewaehlt, onWaehlen, ohneZusatz }) {
     // vorab: bereits geladene Antwort (Einrichtungsstrecke laedt einmal fuer
     // alle Bausteine, statt pro Baustein neu zu fragen).
     const [stand, setStand] = useState(vorab ? vorab.stand : "laedt"); // laedt | ok | offen | fehler
@@ -1259,17 +1277,17 @@
 
     return h("div", { className: "bs" }, kopf,
       h("p", { className: "bs-label" }, T(LT_PFLICHT_LABEL[0], LT_PFLICHT_LABEL[1])),
-      h("p", { className: "bs-label warn" }, T(
+      ohneZusatz ? null : h("p", { className: "bs-label warn" }, T(
         "Exemplarisch, keine Empfehlung. Ob ein Produkt wirklich in diesen Baustein gehört und zu dir passt, prüfst du selbst — im Factsheet des Anbieters, nicht hier.",
         "Illustrative, not a recommendation. Whether a product truly belongs in this building block and suits you is yours to check — in the provider's factsheet, not here.")),
       h("div", { className: "bs-liste" }, liste.map((p, i) => h("div", { key: p.isin || i, className: "bs-item" },
         h("div", { className: "bs-name" }, p.name || "—"),
         h("div", { className: "bs-fakten" },
           p.anbieter ? h("span", null, p.anbieter) : null,
-          p.ausschuettung ? h("span", null, T("Aussch\u00FCttung ", "distribution ") + p.ausschuettung) : null,
+          p.ausschuettung ? h("span", null, ltWert(p.ausschuettung)) : null,
           p.ter_pct != null ? h("span", null, T("laufende Kosten ", "ongoing charges ") + ltPct(p.ter_pct) + " %") : null,
-          p.replikation ? h("span", null, p.replikation) : null,
-          p.fondsgroesse ? h("span", null, T("Fondsgröße ", "fund size ") + p.fondsgroesse) : null,
+          p.replikation ? h("span", null, ltWert(p.replikation)) : null,
+          p.fondsgroesse ? h("span", null, T("Fondsgröße ", "fund size ") + ltWert(p.fondsgroesse)) : null,
           p.domizil ? h("span", null, T("Domizil ", "domicile ") + p.domizil) : null),
         h("div", { className: "bs-fuss" },
           p.isin ? h("code", null, p.isin) : null,
@@ -1722,7 +1740,7 @@
                         zielPct(b) != null ? h("span", null, T("Ziel ", "target ") + ltPct(zielPct(b)) + " %") : null,
                         produktVon(b) ? h("i", null, T("gewählt: ", "chosen: ") + produktVon(b).name) : null),
                       h(Beispiele, {
-                        baustein: b, vorab: bs, waehlbar: true,
+                        baustein: b, vorab: bs, waehlbar: true, ohneZusatz: true,
                         gewaehlt: wahl[b] || null,
                         onWaehlen: (p) => { setEigen(Object.assign({}, eigen, { [b]: null })); setWahl(Object.assign({}, wahl, { [b]: p.isin || "" })); },
                       }),
@@ -1742,6 +1760,9 @@
           T("Hier ordnest du deiner Struktur konkrete Produkte zu. Die Listen sind für alle Member identisch und ungeprüft auf deine persönliche Situation — PYTHAI kauft nichts, führt keine Order aus und verlinkt keinen Broker. Dieser Schritt schreibt nur, wenn du eine Bausteine-Aufteilung übernimmst.",
             "Here you assign concrete products to your structure. The lists are identical for all members and not checked against your personal situation — PYTHAI buys nothing, places no order and links to no broker. This step only writes if you adopt a building-block split.")),
         h(WarrenChips, { fragen: EIN_FRAGEN_PRODUKTE }),
+        bausteine.length ? h("p", { className: "bs-label warn", style: { marginTop: 16 } }, T(
+          "Exemplarisch, keine Empfehlung. Ob ein Produkt wirklich in den jeweiligen Baustein gehört und zu dir passt, prüfst du selbst — im Factsheet des Anbieters, nicht hier.",
+          "Illustrative, not a recommendation. Whether a product truly belongs in the respective building block and suits you is yours to check — in the provider's factsheet, not here.")) : null,
         bausteinTeil,
         h("div", { className: "ein-fuss" },
           h("button", { className: "ein-weiter", onClick: () => setSchritt(3) },
