@@ -737,6 +737,10 @@
      aenderbar; liefert die Vorlage ein Band, gilt das der Vorlage.
      ------------------------------------------------------------ */
   const LT_BAND_START = "20";
+  // Der Server verlangt eine Depot-Kennung (a-z0-9_-). "null" ist keine —
+  // das war der Grund fuer depot_invalid. Hat der Member noch kein Depot,
+  // legt die Strecke diese Kennung an; sie steht sichtbar im Editor.
+  const LT_DEPOT_STANDARD = "struktur_1";
 
   // Vorlagen-Zeilen -> die Zahlen-Zeile unter dem Namen. Nur Klassen,
   // weil die Karte sonst zur Tabelle wird; Bausteine kommen beim
@@ -791,7 +795,44 @@
     const hinzu = (schluessel) => {
       if (zeilen.some((z) => z.schluessel === schluessel)) return;
       setVorlage(null);
-      setZeilen(zeilen.concat([{ ebene: "baustein", schluessel: schluessel, ziel_pct: "", band_rel_pct: "25" }]));
+      setZeilen(zeilen.concat([{ ebene: "baustein", schluessel: schluessel, ziel_pct: "", band_rel_pct: LT_BAND_START }]));
+    };
+
+    // --- Rechenhilfen, keine Vorschlaege -------------------------------
+    // Eine gleichmaessige Teilung ist Arithmetik auf DEINER Auswahl: sie
+    // erfindet keine Struktur, sie tippt nur nicht ab. Deshalb ist sie
+    // erlaubt, wo ein generierter Vorschlag es nicht waere.
+    const kommaZahl = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
+
+    const klassenGleich = () => {
+      setVorlage(null);
+      const ks = zeilen.filter((z) => z.ebene === "klasse");
+      if (!ks.length) return;
+      const teil = 100 / ks.length;
+      setZeilen(zeilen.map((z) => z.ebene === "klasse"
+        ? Object.assign({}, z, { ziel_pct: kommaZahl(teil) }) : z));
+    };
+
+    const bausteineAlle = () => {
+      setVorlage(null);
+      // Nur zu Klassen, die ueberhaupt ein Gewicht haben.
+      const aktiv = zeilen.filter((z) => z.ebene === "klasse" && (ltZahl(z.ziel_pct) || 0) > 0).map((z) => z.schluessel);
+      const fehlt = LT_BAUSTEINE.filter((b) => aktiv.indexOf(LT_ZU_KLASSE[b]) !== -1 && !zeilen.some((z) => z.schluessel === b));
+      if (!fehlt.length) return;
+      setZeilen(zeilen.concat(fehlt.map((b) => ({ ebene: "baustein", schluessel: b, ziel_pct: "", band_rel_pct: LT_BAND_START }))));
+    };
+
+    const bausteineGleich = () => {
+      setVorlage(null);
+      setZeilen(zeilen.map((z) => {
+        if (z.ebene !== "baustein") return z;
+        const k = LT_ZU_KLASSE[z.schluessel];
+        const kz = zeilen.find((x) => x.ebene === "klasse" && x.schluessel === k);
+        const kp = kz ? ltZahl(kz.ziel_pct) : null;
+        const n = zeilen.filter((x) => x.ebene === "baustein" && LT_ZU_KLASSE[x.schluessel] === k).length;
+        if (kp == null || !n) return z;
+        return Object.assign({}, z, { ziel_pct: kommaZahl(kp / n) });
+      }));
     };
 
     // Eine Vorlage ersetzt das GANZE Formular. Die Klassen-Zeilen bleiben
@@ -848,7 +889,7 @@
     const senden = () => {
       setBusy(true); setMeldung(null);
       const koerper = {
-        depot: depot || null,
+        depot: depot || LT_DEPOT_STANDARD,
         quelle: vorlage ? "vorlage:" + vorlage : "inhaber_entscheidung",
         zeilen: zeilen
           .filter((z) => ltZahl(z.ziel_pct) != null)
@@ -975,7 +1016,10 @@
       h("div", { className: "ze-grp" },
         h("div", { className: "ze-grp-t" }, T("Klassen", "Classes")),
         zeilen.map((z, i) => z.ebene === "klasse" ? zeileFeld(z, i) : null),
-        h("div", { className: "ze-summe" + (kOk ? " ok" : "") }, summenSatz(sK, kOk, T("Die Klassen", "The classes")))),
+        h("div", { className: "ze-summe" + (kOk ? " ok" : "") }, summenSatz(sK, kOk, T("Die Klassen", "The classes"))),
+        h("div", { className: "ze-hinzu" },
+          h("span", null, T("ohne Tippen:", "without typing:")),
+          h("button", { onClick: klassenGleich }, T("gleichmäßig aufteilen", "split evenly")))),
 
       h("div", { className: "ze-grp" },
         h("div", { className: "ze-grp-t" }, T("Bausteine", "Building blocks")),
@@ -987,8 +1031,14 @@
                   "The building blocks add up to " + ltPct(sB) + " % \u2014 a subset of the classes, which is allowed.")
               : T("Die Bausteine ergeben " + ltPct(sB) + " % \u2014 mehr als 100 ist nicht m\u00F6glich.",
                   "The building blocks add up to " + ltPct(sB) + " % \u2014 more than 100 is not possible.")) : null,
+        h("div", { className: "ze-hinzu" },
+          h("span", null, T("ohne Tippen:", "without typing:")),
+          offeneBausteine.length ? h("button", { onClick: bausteineAlle },
+            T("alle Bausteine der gewählten Klassen hinzufügen", "add all building blocks of the chosen classes")) : null,
+          hatB ? h("button", { onClick: bausteineGleich },
+            T("je Klasse gleichmäßig aufteilen", "split evenly within each class")) : null),
         offeneBausteine.length ? h("div", { className: "ze-hinzu" },
-          h("span", null, T("hinzufügen:", "add:")),
+          h("span", null, T("einzeln hinzufügen:", "add individually:")),
           offeneBausteine.map((b) => h("button", { key: b, onClick: () => hinzu(b) }, ltName({ ebene: "baustein", schluessel: b })))) : null),
 
       meldung ? h("div", { className: "ze-meld " + meldung.art }, meldung.text) : null,
@@ -999,6 +1049,9 @@
         h("button", { className: "ze-abbr", onClick: onSchliessen }, T("Abbrechen", "Cancel"))),
 
       h("p", { className: "ze-hinweis" },
+        T("Depot-Kennung: " + (depot || LT_DEPOT_STANDARD) + ". ", "Portfolio key: " + (depot || LT_DEPOT_STANDARD) + ". ")),
+
+      h("p", { className: "ze-hinweis", style: { marginTop: 6 } },
         T("Jedes Speichern erzeugt eine neue Version. Speicherst du am selben Tag noch einmal, ersetzt das die heutige Version — die Stände früherer Tage bleiben als Verlauf erhalten.",
           "Each save creates a new version. Saving again on the same day replaces today's version — earlier days remain as history.")));
   }
@@ -1137,7 +1190,7 @@
     const senden = (ersetzen) => {
       setBusy(true); setMeldung(null); setErsetzenFrage(null);
       const koerper = {
-        depot: depot || null,
+        depot: depot || LT_DEPOT_STANDARD,
         stand: stand,
         positionen: zeilen.map((z) => ({
           name: String(z.name || "").trim(),
@@ -1370,7 +1423,7 @@
         const t = vK.find((x) => x.schluessel === k.schluessel);
         return t && Number(t.ziel_pct) === Number(k.ziel_pct);
       });
-      const koerper = { depot: null, quelle: gleich ? "vorlage:" + v.key : "inhaber_entscheidung", zeilen: klassen.concat(vB) };
+      const koerper = { depot: LT_DEPOT_STANDARD, quelle: gleich ? "vorlage:" + v.key : "inhaber_entscheidung", zeilen: klassen.concat(vB) };
       fetch(API + "/api/mybook/sockel/ziel", {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
