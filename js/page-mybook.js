@@ -201,6 +201,8 @@
   #mb-root .lt-stand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:22px 0 4px;font-family:var(--font-mono);font-size:12.5px;color:var(--parch);}
   #mb-root .lt-stand .alt{color:var(--ash);font-size:11.5px;}
   #mb-root .lt-stand .depot{color:var(--ash);font-size:11px;letter-spacing:.06em;}
+  #mb-root .lt-aufbau{font-family:var(--font-ui);font-size:13px;line-height:1.6;color:var(--parch);margin:0 0 10px;padding:11px 15px;background:rgba(212,169,78,.06);border-left:3px solid var(--oracle);border-radius:0 8px 8px 0;}
+  #mb-root .lt-row .marke.plan{color:var(--oracle);}
   #mb-root .lt-warn{font-family:var(--font-ui);font-size:12px;color:var(--ash);margin:0 0 18px;}
 
   /* --- Nachtrag 4 · Einrichtungsstrecke (C.7) --- */
@@ -327,6 +329,13 @@
   #mb-root .ze-weg:hover{color:var(--ox-b);}
   #mb-root .ze-fest{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;color:var(--line);flex:0 0 auto;}
 
+  #mb-root .ze-prod{display:block;padding:0 0 12px 2px;border-bottom:1px solid var(--line);}
+  #mb-root .ze-prod-kopf{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+  #mb-root .ze-prod-kopf span{font-family:var(--font-ui);font-size:12.5px;color:var(--ash);}
+  #mb-root .ze-prod-kopf span.hat{color:var(--text-secondary,#9BA3B2);}
+  #mb-root .ze-prod-kopf button{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;color:var(--oracle-b);}
+  #mb-root .ze-prod-kopf button:hover{color:var(--oracle);}
+  #mb-root .ze-prod-auf{margin:12px 0 0;}
   #mb-root .ze-band{margin:22px 0 0;padding-top:16px;border-top:1px solid var(--line);}
   #mb-root .ze-band p{font-family:var(--font-ui);font-size:12.5px;line-height:1.65;color:var(--ash);margin:0;max-width:600px;}
   #mb-root .ze-band-z{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:10px 0 0;}
@@ -352,6 +361,7 @@
   #mb-root .ze-vor-k.an{border-color:var(--oracle);background:rgba(212,169,78,.05);}
   #mb-root .ze-vor-k b{display:block;font-family:var(--font-ui);font-weight:600;font-size:13.5px;color:var(--parch);margin:0 0 4px;}
   #mb-root .ze-vor-k span{display:block;font-family:var(--font-mono);font-size:11px;line-height:1.55;color:var(--text-secondary,#9BA3B2);}
+  #mb-root .bs-perf{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--text-secondary,#9BA3B2);margin:14px 0 0;padding-left:11px;border-left:2px solid var(--line);}
   #mb-root .bs-label.warn{color:var(--text-secondary,#9BA3B2);}
   #mb-root .ze-vor-k em{display:block;font-family:var(--font-ui);font-style:normal;font-size:12px;line-height:1.55;color:var(--ash);margin-top:6px;}
   #mb-root .ze-vor-quelle{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:var(--text-secondary,#9BA3B2);margin:13px 0 0;}
@@ -793,6 +803,36 @@
     // die Vorlage — genau das wandert als quelle ins Backend.
     const [vorlage, setVorlage] = useState(null);
     const [bandOffen, setBandOffen] = useState(false);
+    // Nachtrag V2: die Produktwahl gehoert in den Ziel-Editor. Sie aendert
+    // KEINE Gewichte — sie sagt nur, WOMIT ein Baustein gefuellt werden soll.
+    const [wahl, setWahl] = useState({});          // baustein -> ISIN
+    const [eigen, setEigen] = useState({});        // baustein -> { name, isin }
+    const [produktOffen, setProduktOffen] = useState(null); // baustein | null
+    const [bs, setBs] = useState(null);            // B7-Antwort, einmal geladen
+
+    useEffect(() => {
+      let lebt = true;
+      fetch(API + "/api/mybook/sockel/produktbeispiele", { credentials: "include" })
+        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+        .then((res) => {
+          if (!lebt) return;
+          if (res.code === 404) { setBs({ stand: "offen", bausteine: {} }); return; }
+          if (res.code !== 200 || !res.d || !res.d.ok) { setBs({ stand: "fehler", bausteine: {} }); return; }
+          setBs({ stand: "ok", bausteine: res.d.bausteine || {} });
+        })
+        .catch(() => { if (lebt) setBs({ stand: "fehler", bausteine: {} }); });
+      return () => { lebt = false; };
+    }, []);
+
+    // Eigene Eingabe schlaegt Listenauswahl — sie ist die spaetere Handlung.
+    const produktVon = (b) => {
+      const e = eigen[b];
+      if (e && String(e.isin || "").trim()) return { name: String(e.name || "").trim() || String(e.isin).trim(), isin: String(e.isin).trim().toUpperCase() };
+      const i = wahl[b];
+      if (!i || !bs || bs.stand !== "ok") return null;
+      const p = ((bs.bausteine || {})[b] || []).find((x) => x.isin === i);
+      return p ? { name: p.name || i, isin: p.isin } : null;
+    };
     const [vStand, setVStand] = useState("laedt"); // laedt | ok | leer | fehler | nicht_da
     const [vListe, setVListe] = useState([]);
 
@@ -941,7 +981,13 @@
     const hatB = zeilen.some((z) => z.ebene === "baustein");
     const kOk = Math.abs(sK - 100) <= LT_TOLERANZ;
     const bOk = !hatB || sB <= 100 + LT_TOLERANZ;
-    const bereit = kOk && bOk && !busy;
+    // Die Positions-Ebene erbt die Baustein-Gewichte, kann also nie groesser
+    // werden als sie. Geprueft wird sie trotzdem — geerbt ist nicht bewiesen.
+    const sP = zeilen
+      .filter((z) => z.ebene === "baustein" && produktVon(z.schluessel))
+      .reduce((a, z) => a + (ltZahl(z.ziel_pct) || 0), 0);
+    const pOk = sP <= 100 + LT_TOLERANZ;
+    const bereit = kOk && bOk && pOk && !busy;
 
     // Je Klasse: passen die Bausteine unter ihr Dach? Der Server prueft das
     // nicht (er kennt nur die Gesamt-Teilmenge), also sagen wir es hier.
@@ -979,7 +1025,17 @@
             ebene: z.ebene, schluessel: z.schluessel,
             ziel_pct: ltZahl(z.ziel_pct),
             band_rel_pct: ltZahl(z.band_rel_pct),
-          })),
+          }))
+          // Nachtrag V2: die dritte Ebene. Ein gewaehltes Produkt erbt Gewicht
+          // und Band SEINES Bausteins — die Wahl verschiebt nichts.
+          .concat(zeilen
+            .filter((z) => z.ebene === "baustein" && ltZahl(z.ziel_pct) != null && produktVon(z.schluessel))
+            .map((z) => ({
+              ebene: "position",
+              schluessel: produktVon(z.schluessel).isin,
+              ziel_pct: ltZahl(z.ziel_pct),
+              band_rel_pct: ltZahl(z.band_rel_pct),
+            }))),
       };
       fetch(API + "/api/mybook/sockel/ziel", {
         method: "POST", credentials: "include",
@@ -1017,7 +1073,9 @@
                                                 "Saving failed. Nothing was changed.") });
             return;
           }
-          if (typeof onGespeichert === "function") onGespeichert(koerper);
+          if (typeof onGespeichert === "function") onGespeichert(koerper, zeilen
+            .filter((z) => z.ebene === "baustein" && produktVon(z.schluessel))
+            .map((z) => Object.assign({ baustein: z.schluessel }, produktVon(z.schluessel))));
           setMeldung({ art: "gut", text: T("Gespeichert, gültig ab " + (ltDatum(res.d.gueltig_ab) || "heute") + ".",
                                            "Saved, valid from " + (ltDatum(res.d.gueltig_ab) || "today") + ".") });
         })
@@ -1043,6 +1101,43 @@
         ? h("button", { className: "ze-weg", title: T("Zeile aus der nächsten Version nehmen", "Drop this row from the next version"),
             onClick: () => entfernen(i) }, T("entfernen", "remove"))
         : h("span", { className: "ze-fest" }, T("fest", "fixed")));
+
+    // Unter jedem Baustein: welches Produkt soll ihn fuellen? Die Auswahl
+    // aendert kein Gewicht, sie haengt nur einen Namen an die Zeile.
+    const produktZeile = (b) => {
+      const p = produktVon(b);
+      const offen = produktOffen === b;
+      const liste = bs && bs.stand === "ok" ? ((bs.bausteine || {})[b] || []) : [];
+      return h("div", { key: "p-" + b, className: "ze-prod" },
+        h("div", { className: "ze-prod-kopf" },
+          p ? h("span", { className: "hat" }, p.name) : h("span", null, T("noch kein Produkt gewählt", "no product chosen yet")),
+          h("button", { onClick: () => setProduktOffen(offen ? null : b) },
+            offen ? T("schließen", "close") : p ? T("ändern", "change") : T("Produkt wählen", "choose product"))),
+        offen ? h("div", { className: "ze-prod-auf" },
+          bs == null ? h("p", { className: "bs-hin" }, T("Wird geladen…", "Loading…"))
+            : liste.length ? h(Beispiele, {
+                baustein: b, vorab: bs, waehlbar: true, gewaehlt: p ? p.isin : null,
+                onWaehlen: (x) => {
+                  setEigen(Object.assign({}, eigen, { [b]: null }));
+                  setWahl(Object.assign({}, wahl, { [b]: x.isin }));
+                  setProduktOffen(null);
+                },
+              })
+            : h("p", { className: "bs-hin" }, T(
+                "Für diese Kategorie sind noch keine kuratierten Beispiele hinterlegt. Du kannst unten ein eigenes Produkt eintragen.",
+                "No curated examples are on file for this category yet. You can enter your own product below.")),
+          h("div", { className: "ein-eigen" },
+            h("span", null, T("oder eigenes Produkt:", "or your own product:")),
+            h("input", { type: "text", placeholder: T("Name", "Name"),
+              value: (eigen[b] && eigen[b].name) || "",
+              onChange: (e) => { setWahl(Object.assign({}, wahl, { [b]: null }));
+                setEigen(Object.assign({}, eigen, { [b]: Object.assign({ name: "", isin: "" }, eigen[b], { name: e.target.value }) })); } }),
+            h("input", { type: "text", placeholder: "ISIN",
+              className: ltIsinOk((eigen[b] && eigen[b].isin) || "") ? "" : "ungueltig",
+              value: (eigen[b] && eigen[b].isin) || "",
+              onChange: (e) => { setWahl(Object.assign({}, wahl, { [b]: null }));
+                setEigen(Object.assign({}, eigen, { [b]: Object.assign({ name: "", isin: "" }, eigen[b], { isin: e.target.value.toUpperCase() }) })); } }))) : null);
+    };
 
     // Das Band gehoert nicht in jede Zeile. Es steht in aller Regel auf
     // einem Wert fuer alle — dann ist eine Spalte voller "20" nur Rauschen.
@@ -1139,7 +1234,9 @@
 
       h("div", { className: "ze-grp" },
         h("div", { className: "ze-grp-t" }, T("Bausteine", "Building blocks")),
-        hatB ? zeilen.map((z, i) => z.ebene === "baustein" ? zeileFeld(z, i) : null)
+        hatB ? zeilen.map((z, i) => z.ebene === "baustein"
+                 ? h("div", { key: "g-" + z.schluessel }, zeileFeld(z, i), produktZeile(z.schluessel))
+                 : null)
              : h("p", { className: "ze-leer" }, T("Noch keine Bausteine. Eine Struktur nur aus Klassen ist vollständig — Bausteine sind die feinere Ebene darunter.",
                                                   "No building blocks yet. A structure of classes alone is complete — building blocks are the finer level below.")),
         hatB ? h("div", { className: "ze-summe" + (bOk ? " ok" : "") },
@@ -1147,6 +1244,17 @@
                   "The building blocks add up to " + ltPct(sB) + " % \u2014 a subset of the classes, which is allowed.")
               : T("Die Bausteine ergeben " + ltPct(sB) + " % \u2014 mehr als 100 ist nicht m\u00F6glich.",
                   "The building blocks add up to " + ltPct(sB) + " % \u2014 more than 100 is not possible.")) : null,
+        hatB ? h("div", { className: "ze-summe" + (zeilen.filter((z) => z.ebene === "baustein").every((z) => produktVon(z.schluessel)) ? " ok" : "") },
+          (function () {
+            const bsZ = zeilen.filter((z) => z.ebene === "baustein");
+            const mit = bsZ.filter((z) => produktVon(z.schluessel)).length;
+            if (!mit) return T("Noch kein Produkt gewählt. Die Struktur lässt sich auch ohne speichern — Produkte kannst du jederzeit nachtragen.",
+                               "No product chosen yet. The structure can be saved without them — products can be added at any time.");
+            return mit === bsZ.length
+              ? T("Für alle " + bsZ.length + " Bausteine ist ein Produkt gewählt.", "A product is chosen for all " + bsZ.length + " building blocks.")
+              : T(mit + " von " + bsZ.length + " Bausteinen haben ein Produkt.", mit + " of " + bsZ.length + " building blocks have a product.");
+          })()) : null,
+
         klassenKonflikte.length ? h("div", { className: "ze-summe" },
           klassenKonflikte.map((c) => T(
             "Die Bausteine unter " + ltName({ ebene: "klasse", schluessel: c.klasse }) + " ergeben " + ltPct(c.summe)
@@ -1185,8 +1293,8 @@
         T("Depot-Kennung: " + (depot || LT_DEPOT_STANDARD) + ". ", "Portfolio key: " + (depot || LT_DEPOT_STANDARD) + ". ")),
 
       h("p", { className: "ze-hinweis", style: { marginTop: 6 } },
-        T("Jedes Speichern erzeugt eine neue Version. Speicherst du am selben Tag noch einmal, ersetzt das die heutige Version — die Stände früherer Tage bleiben als Verlauf erhalten.",
-          "Each save creates a new version. Saving again on the same day replaces today's version — earlier days remain as history.")));
+        T("Gespeichert werden drei Ebenen: Klassen, Bausteine und — sofern gewählt — je Baustein das Produkt. Jedes Speichern erzeugt eine neue Version; speicherst du am selben Tag noch einmal, ersetzt das die heutige. Die Stände früherer Tage bleiben als Verlauf erhalten.",
+          "Three levels are saved: classes, building blocks and — where chosen — one product per building block. Each save creates a new version; saving again on the same day replaces today's. Earlier days remain as history.")));
   }
 
   /* ============================================================
@@ -1288,7 +1396,12 @@
           p.ter_pct != null ? h("span", null, T("laufende Kosten ", "ongoing charges ") + ltPct(p.ter_pct) + " %") : null,
           p.replikation ? h("span", null, ltWert(p.replikation)) : null,
           p.fondsgroesse ? h("span", null, T("Fondsgröße ", "fund size ") + ltWert(p.fondsgroesse)) : null,
-          p.domizil ? h("span", null, T("Domizil ", "domicile ") + p.domizil) : null),
+          p.domizil ? h("span", null, T("Domizil ", "domicile ") + p.domizil) : null,
+          // Regel 2: die Zahl bekommt KEINE eigene Farbe und keine Hervorhebung.
+          // Sie steht wie jedes andere Sachkriterium in der Zeile.
+          p.perf_1y_pct != null ? h("span", null,
+            T("1 Jahr ", "1 year ") + (p.perf_1y_pct > 0 ? "+" : "") + ltPct(p.perf_1y_pct) + " %"
+            + (p.perf_stand ? " (" + (ltDatum(p.perf_stand) || p.perf_stand) + ")" : "")) : null),
         h("div", { className: "bs-fuss" },
           p.isin ? h("code", null, p.isin) : null,
           waehlbar
@@ -1297,6 +1410,19 @@
                 gewaehlt && p.isin && gewaehlt === p.isin ? T("ausgewählt", "selected") : T("auswählen", "select"))
             : (nurAnsicht ? null
               : h("button", { className: "bs-nimm", onClick: () => onUebernehmen(p) }, T("in die Zeile übernehmen", "use in this row"))))))),
+      // Regel 1 und 3: beide haengen an der Anzeige, nicht an der Seite —
+      // sie erscheinen genau dort, wo Zahlen zur Wertentwicklung stehen.
+      liste.some((p) => p && p.perf_1y_pct != null)
+        ? h("p", { className: "bs-perf" },
+            T("Vergangene Wertentwicklung ist kein verlässlicher Indikator für künftige Ergebnisse.",
+              "Past performance is not a reliable indicator of future results."),
+            " ",
+            T("Die Produkte einer Kategorie können unterschiedlichen Indizes folgen — ein Unterschied in der Wertentwicklung ist deshalb meist eine Frage des Index, nicht der Qualität.",
+              "Products within a category may track different indices — a difference in performance is therefore usually a matter of the index, not of quality."))
+        : null,
+
+      // Regel 2: die Reihenfolge kommt unveraendert aus der Liste. Hier wird
+      // NICHT nach Wertentwicklung sortiert, gefiltert oder hervorgehoben.
       h("p", { className: "bs-sort" }, T("Ohne Rangfolge. Die Reihenfolge stammt aus der gepflegten Liste, sie ist keine Wertung.",
                                           "No ranking. The order comes from the maintained list; it is not a judgement.")));
   }
@@ -1536,279 +1662,99 @@
      kein Broker-Link, keine Order.
      ============================================================ */
   function Einrichtung({ onFertig, onAbbruch }) {
+    // Nachtrag V2 (Daniel, 12.08. abends): zwei Schritte statt drei.
+    // Ziel und Produktwahl sind EIN Vorgang mit EINEM Speichern-Klick;
+    // der Stand wird danach nachgetragen, so oft man will.
     const [schritt, setSchritt] = useState(1);
-    const [zielZeilen, setZielZeilen] = useState([]);
+    const [produkte, setProdukte] = useState([]); // aus Schritt 1 uebernommen
+    const [zielKarte, setZielKarte] = useState({}); // baustein -> ziel_pct
     const [istWahl, setIstWahl] = useState(null); // null | "null" | "depot"
-    const [bs, setBs] = useState(null); // Schritt 2: einmal geladen, fuer alle Bausteine
-    const [vl, setVl] = useState(null); // Muster (B4) — nur fuer die Bausteine-Ergaenzung
-    const [wahl, setWahl] = useState({}); // baustein -> ISIN aus der Liste
-    const [eigen, setEigen] = useState({}); // baustein -> { name, isin } selbst eingetragen
-    const [zBusy, setZBusy] = useState(false);
-    const [zMeldung, setZMeldung] = useState(null);
+    const [fertig, setFertig] = useState(false);
 
-    // Zielgewicht eines Bausteins aus der gespeicherten Zielstruktur.
-    const zielPct = (b) => {
-      const z = zielZeilen.find((x) => x.ebene === "baustein" && x.schluessel === b);
-      return z && z.ziel_pct != null ? z.ziel_pct : null;
-    };
-
-    // Das effektiv gewaehlte Produkt je Baustein: eigene Eingabe schlaegt
-    // Listenauswahl, weil sie die spaetere Handlung ist.
-    const produktVon = (b) => {
-      const e = eigen[b];
-      if (e && String(e.name || "").trim()) return { name: String(e.name).trim(), isin: String(e.isin || "").trim(), quelle: "eigen" };
-      const i = wahl[b];
-      if (!i || !bs || bs.stand !== "ok") return null;
-      const p = ((bs.bausteine || {})[b] || []).find((x) => x.isin === i);
-      return p ? { name: p.name || i, isin: p.isin || "", quelle: "liste" } : null;
-    };
-
-    // Bausteine-Ebene aus einem Muster uebernehmen. Die KLASSEN des Nutzers
-    // bleiben unangetastet — uebernommen wird nur die feinere Ebene.
-    // quelle sagt die Wahrheit: "vorlage:<key>" nur, wenn auch die Klassen
-    // Zeile fuer Zeile denen des Musters entsprechen.
-    const bausteineUebernehmen = (v) => {
-      setZBusy(true); setZMeldung(null);
-      const klassen = zielZeilen.filter((z) => z.ebene === "klasse");
-      const vB = (v.zeilen || []).filter((z) => z.ebene === "baustein" && LT_ZU_KLASSE[z.schluessel])
-        .map((z) => ({ ebene: "baustein", schluessel: z.schluessel, ziel_pct: z.ziel_pct, band_rel_pct: z.band_rel_pct == null ? null : z.band_rel_pct }));
-      const vK = (v.zeilen || []).filter((z) => z.ebene === "klasse");
-      const gleich = klassen.length === vK.length && klassen.every((k) => {
-        const t = vK.find((x) => x.schluessel === k.schluessel);
-        return t && Number(t.ziel_pct) === Number(k.ziel_pct);
-      });
-      const koerper = { depot: LT_DEPOT_STANDARD, quelle: gleich ? "vorlage:" + v.key : "inhaber_entscheidung", zeilen: klassen.concat(vB) };
-      fetch(API + "/api/mybook/sockel/ziel", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(koerper),
-      })
-        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
-        .then((res) => {
-          setZBusy(false);
-          if (res.code === 200 && res.d && res.d.ok) { setZielZeilen(koerper.zeilen); return; }
-          setZMeldung(T("Das Übernehmen ist fehlgeschlagen (" + res.code + "). Deine bisherige Zielstruktur ist unverändert.",
-                        "Adopting failed (" + res.code + "). Your existing target structure is unchanged."));
-        })
-        .catch(() => {
-          setZBusy(false);
-          setZMeldung(T("Keine Verbindung. Deine bisherige Zielstruktur ist unverändert.",
-                        "No connection. Your existing target structure is unchanged."));
-        });
-    };
-
-    // Muster laden, sobald Schritt 2 sie braucht.
-    useEffect(() => {
-      if (schritt !== 2 || vl) return;
-      let lebt = true;
-      fetch(API + "/api/mybook/sockel/vorlagen", { credentials: "include" })
-        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
-        .then((res) => {
-          if (!lebt) return;
-          if (res.code !== 200 || !res.d || !res.d.ok) { setVl({ stand: "fehler", liste: [] }); return; }
-          setVl({ stand: "ok", liste: Array.isArray(res.d.vorlagen) ? res.d.vorlagen.filter((v) => v && v.key) : [] });
-        })
-        .catch(() => { if (lebt) setVl({ stand: "fehler", liste: [] }); });
-      return () => { lebt = false; };
-    }, [schritt, vl]);
-
-    // Schritt 2 laedt die kuratierte Liste EINMAL, nicht je Baustein.
-    useEffect(() => {
-      if (schritt !== 2 || bs) return;
-      let lebt = true;
-      fetch(API + "/api/mybook/sockel/produktbeispiele", { credentials: "include" })
-        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
-        .then((res) => {
-          if (!lebt) return;
-          if (res.code === 404) { setBs({ stand: "offen", bausteine: {} }); return; }
-          if (res.code !== 200 || !res.d || !res.d.ok) { setBs({ stand: "fehler", bausteine: {} }); return; }
-          setBs({ stand: "ok", bausteine: res.d.bausteine || {} });
-        })
-        .catch(() => { if (lebt) setBs({ stand: "fehler", bausteine: {} }); });
-      return () => { lebt = false; };
-    }, [schritt, bs]);
-
-    // Die Kette zeigt drei Dinge auf einen Blick: was abgehakt ist, wo man
-    // steht, was noch kommt. Erledigte Schritte sind anklickbar — zurueck
-    // gehen darf man immer, spaeter springen nicht.
     const SCHRITTE = [
-      { n: 1, t: T("Ziel", "Target"), u: T("Struktur festlegen", "define structure") },
-      { n: 2, t: T("Produkte", "Products"), u: T("Bausteine füllen", "fill building blocks") },
-      { n: 3, t: T("Stand", "Reporting date"), u: T("heutige Struktur", "today's structure") },
+      { n: 1, t: T("Zielstruktur", "Target structure"), u: T("Muster, Gewichte, Produkte", "pattern, weights, products") },
+      { n: 2, t: T("Stand", "Reporting date"), u: T("was du schon hältst", "what you already hold") },
     ];
 
     const kette = h("div", { className: "ein-kette" }, SCHRITTE.map((sch, i) => {
-      const fertig = schritt > sch.n;
+      const ist_fertig = schritt > sch.n;
       const jetzt = schritt === sch.n;
-      const zurueck = fertig && schritt < 4;
+      const zurueck = ist_fertig;
       return h("div", { key: sch.n, className: "ein-glied" + (i ? " mit-linie" : "") },
-        i ? h("span", { className: "ein-linie" + (fertig || jetzt ? " an" : "") }) : null,
+        i ? h("span", { className: "ein-linie" + (ist_fertig || jetzt ? " an" : "") }) : null,
         h("button", {
-          className: "ein-stufe" + (jetzt ? " jetzt" : "") + (fertig ? " fertig" : ""),
+          className: "ein-stufe" + (jetzt ? " jetzt" : "") + (ist_fertig ? " fertig" : ""),
           disabled: !zurueck,
           title: zurueck ? T("zurück zu Schritt " + sch.n, "back to step " + sch.n) : "",
           onClick: zurueck ? () => setSchritt(sch.n) : undefined,
         },
-          h("span", { className: "ein-nr" }, fertig ? "\u2713" : String(sch.n)),
+          h("span", { className: "ein-nr" }, ist_fertig ? "✓" : String(sch.n)),
           h("span", { className: "ein-lab" },
             h("b", null, sch.t),
-            h("em", null, fertig ? T("abgeschlossen", "done") : jetzt ? T("du bist hier", "you are here") : sch.u))));
+            h("em", null, ist_fertig ? T("abgeschlossen", "done") : jetzt ? T("du bist hier", "you are here") : sch.u))));
     }));
 
-    const kopf = h("div", null,
-      h("div", { className: "ein-kopf" },
-        kette,
-        schritt < 4 ? h("button", { className: "ein-raus", onClick: onAbbruch },
-          T("Einrichtung abbrechen", "Cancel setup")) : null));
-
-    const bausteine = zielZeilen.filter((z) => z.ebene === "baustein").map((z) => z.schluessel);
-
-    // Was aus Schritt 2 in Schritt 3 wandert: Produkt, Kategorie, Baustein.
-    // KEIN Gewicht — was jemand heute haelt, weiss nur er selbst.
-    const gewaehlteZeilen = bausteine
-      .map((b) => ({ b: b, p: produktVon(b) }))
-      .filter((x) => x.p)
-      .map((x) => ({ name: x.p.name, isin: x.p.isin || "", klasse: LT_ZU_KLASSE[x.b] || "aktien", baustein: x.b, gewicht_pct: "", betrag: "" }));
-    const zielKarte = {};
-    bausteine.forEach((b) => { const z = zielPct(b); if (z != null) zielKarte[b] = z; });
+    const kopf = h("div", { className: "ein-kopf" }, kette,
+      h("button", { className: "ein-raus", onClick: onAbbruch }, T("Einrichtung abbrechen", "Cancel setup")));
 
     let koerper = null;
 
     if (schritt === 1) {
       koerper = h("div", null,
-        h("h4", { className: "ein-t" }, T("Schritt 1 — deine Zielstruktur", "Step 1 — your target structure")),
+        h("h4", { className: "ein-t" }, T("Schritt 1 — Zielstruktur und Produkte", "Step 1 — target structure and products")),
         h("p", { className: "ein-p" },
-          T("Du wählst die Anteile, gegen die später gemessen wird. Ein Muster als Startpunkt zu nehmen ist erlaubt, aber nicht nötig — jede Zahl bleibt änderbar. Erst der Klick unten schreibt etwas.",
-            "You choose the shares that will later be measured against. Taking a pattern as a starting point is allowed but not required — every number stays editable. Only the click below writes anything.")),
-        h(WarrenChips, { fragen: EIN_FRAGEN_ZIEL }),
+          T("Ein Muster als Startpunkt, die Gewichte nach deinem Kopf, und je Baustein ein Produkt aus der Beispiel-Liste. Die Produktwahl verschiebt kein Gewicht — sie hält fest, womit du den Baustein füllen willst. Ein Klick speichert alles zusammen.",
+            "A pattern as a starting point, the weights as you want them, and one product per building block from the example list. Choosing a product shifts no weight — it records what you intend to fill the block with. One click saves it all together.")),
+        h(WarrenChips, { fragen: EIN_FRAGEN_ZIEL.concat(EIN_FRAGEN_PRODUKTE) }),
         h(ZielEditor, {
           depot: null, start: null,
-          weiterLabel: T("Als mein Ziel übernehmen", "Adopt as my target"),
-          onGespeichert: (k) => { setZielZeilen(Array.isArray(k && k.zeilen) ? k.zeilen : []); setSchritt(2); },
+          weiterLabel: T("Zielstruktur speichern", "Save target structure"),
+          onGespeichert: (k, ps) => {
+            setProdukte(Array.isArray(ps) ? ps : []);
+            const karte = {};
+            ((k && k.zeilen) || []).forEach((z) => { if (z.ebene === "baustein" && z.ziel_pct != null) karte[z.schluessel] = z.ziel_pct; });
+            setZielKarte(karte);
+            setSchritt(2);
+          },
           onSchliessen: onAbbruch,
         }));
     }
 
-    if (schritt === 2) {
-      // Was steht schon fest, und was fehlt? Bausteine sind die feinere
-      // Ebene unter den Klassen; ohne sie gibt es keine Produkt-Kategorien.
-      const musterMitB = (vl && vl.stand === "ok" ? vl.liste : [])
-        .filter((v) => Array.isArray(v.zeilen) && v.zeilen.some((z) => z.ebene === "baustein" && LT_ZU_KLASSE[z.schluessel]));
-
-      const bausteinTeil = !bausteine.length
-        ? h("div", { style: { marginTop: 20 } },
-            h("p", { className: "ein-p" },
-              T("Deine Zielstruktur steht bisher nur auf der Klassen-Ebene. Produkt-Kategorien hängen an Bausteinen — du kannst die Bausteine-Aufteilung eines Musters übernehmen oder sie später selbst eintragen.",
-                "So far your target structure sits at the class level only. Product categories hang off building blocks — you can adopt a pattern's building-block split or enter it yourself later.")),
-            vl == null ? h("p", { className: "ein-p" }, T("Muster werden geladen…", "Loading patterns…"))
-              : vl.stand !== "ok" ? h("p", { className: "ein-p" },
-                  T("Die Muster sind gerade nicht abrufbar.", "The patterns cannot be retrieved right now."))
-              : !musterMitB.length ? h("p", { className: "ein-p" },
-                  T("Zurzeit liefert kein Muster eine Bausteine-Ebene. Du kannst Bausteine im Ziel-Editor selbst ergänzen — dieser Schritt ist so lange überspringbar.",
-                    "No pattern currently carries a building-block level. You can add building blocks yourself in the target editor — until then this step can be skipped."))
-              : h("div", null,
-                  h("p", { className: "ze-vor-pflicht", style: { marginTop: 14 } },
-                    T("Muster zur freien Auswahl — keine Empfehlung. Du entscheidest.",
-                      "Patterns to choose from freely — not a recommendation. You decide.")),
-                  h("div", { className: "ze-vor-liste" },
-                    musterMitB.map((v) => h("button", {
-                      key: v.key, className: "ze-vor-k", disabled: zBusy,
-                      onClick: () => bausteineUebernehmen(v),
-                    },
-                      h("b", null, v.name || v.key),
-                      h("span", null, (v.zeilen || [])
-                        .filter((z) => z.ebene === "baustein" && z.ziel_pct != null)
-                        .map((z) => ltPct(z.ziel_pct) + " % " + ltName(z)).join(" · ")),
-                      h("em", null, T("Übernimmt nur die Bausteine-Ebene. Deine Klassen-Anteile bleiben, wie du sie festgelegt hast.",
-                                      "Adopts the building-block level only. Your class shares stay as you defined them."))))),
-                  zMeldung ? h("p", { className: "ein-p" }, zMeldung) : null))
-
-        : (bs == null
-            ? h("p", { className: "ein-p", style: { marginTop: 18 } }, T("Wird geladen…", "Loading…"))
-            : bs.stand === "offen"
-              ? h("p", { className: "ein-p", style: { marginTop: 18 } },
-                  T("Beispiele folgen nach redaktioneller Prüfung. Bis dahin stehen hier keine Namen und keine ISIN — du kannst im nächsten Schritt trotzdem eigene Produkte eintragen.",
-                    "Examples follow after editorial review. Until then no names and no ISINs appear here — you can still enter your own products in the next step."))
-              : bs.stand === "fehler"
-                ? h("p", { className: "ein-p", style: { marginTop: 18 } },
-                    T("Die Liste ist gerade nicht abrufbar. Das ist ein technischer Fehler auf unserer Seite — der Schritt ist überspringbar.",
-                      "The list cannot be retrieved right now. That is a technical fault on our side — the step can be skipped."))
-                : h("div", { style: { marginTop: 18 } },
-                    bausteine.map((b) => h("div", { key: b, className: "ein-bs" },
-                      h("div", { className: "ein-bs-kopf" },
-                        h("b", null, ltName({ ebene: "baustein", schluessel: b })),
-                        zielPct(b) != null ? h("span", null, T("Ziel ", "target ") + ltPct(zielPct(b)) + " %") : null,
-                        produktVon(b) ? h("i", null, T("gewählt: ", "chosen: ") + produktVon(b).name) : null),
-                      h(Beispiele, {
-                        baustein: b, vorab: bs, waehlbar: true, ohneZusatz: true,
-                        gewaehlt: wahl[b] || null,
-                        onWaehlen: (p) => { setEigen(Object.assign({}, eigen, { [b]: null })); setWahl(Object.assign({}, wahl, { [b]: p.isin || "" })); },
-                      }),
-                      h("div", { className: "ein-eigen" },
-                        h("span", null, T("oder eigenes Produkt:", "or your own product:")),
-                        h("input", { type: "text", placeholder: T("Name", "Name"),
-                          value: (eigen[b] && eigen[b].name) || "",
-                          onChange: (e) => { setWahl(Object.assign({}, wahl, { [b]: null })); setEigen(Object.assign({}, eigen, { [b]: Object.assign({ name: "", isin: "" }, eigen[b], { name: e.target.value }) })); } }),
-                        h("input", { type: "text", placeholder: T("ISIN (optional)", "ISIN (optional)"),
-                          className: ltIsinOk((eigen[b] && eigen[b].isin) || "") ? "" : "ungueltig",
-                          value: (eigen[b] && eigen[b].isin) || "",
-                          onChange: (e) => { setWahl(Object.assign({}, wahl, { [b]: null })); setEigen(Object.assign({}, eigen, { [b]: Object.assign({ name: "", isin: "" }, eigen[b], { isin: e.target.value.toUpperCase() }) })); } }))))));
-
+    if (schritt === 2 && !fertig) {
       koerper = h("div", null,
-        h("h4", { className: "ein-t" }, T("Schritt 2 — Bausteine und Produkte", "Step 2 — building blocks and products")),
+        h("h4", { className: "ein-t" }, T("Deine Zielstruktur steht.", "Your target structure is in place.")),
         h("p", { className: "ein-p" },
-          T("Hier ordnest du deiner Struktur konkrete Produkte zu. Die Listen sind für alle Member identisch und ungeprüft auf deine persönliche Situation — PYTHAI kauft nichts, führt keine Order aus und verlinkt keinen Broker. Dieser Schritt schreibt nur, wenn du eine Bausteine-Aufteilung übernimmst.",
-            "Here you assign concrete products to your structure. The lists are identical for all members and not checked against your personal situation — PYTHAI buys nothing, places no order and links to no broker. This step only writes if you adopt a building-block split.")),
-        h(WarrenChips, { fragen: EIN_FRAGEN_PRODUKTE }),
-        bausteine.length ? h("p", { className: "bs-label warn", style: { marginTop: 16 } }, T(
-          "Exemplarisch, keine Empfehlung. Ob ein Produkt wirklich in den jeweiligen Baustein gehört und zu dir passt, prüfst du selbst — im Factsheet des Anbieters, nicht hier.",
-          "Illustrative, not a recommendation. Whether a product truly belongs in the respective building block and suits you is yours to check — in the provider's factsheet, not here.")) : null,
-        bausteinTeil,
-        h("div", { className: "ein-fuss" },
-          h("button", { className: "ein-weiter", onClick: () => setSchritt(3) },
-            T("Weiter zum Stand", "Continue to reporting date")),
-          h("button", { className: "ein-raus", onClick: () => setSchritt(1) }, T("zurück zum Ziel", "back to the target"))));
-    }
-
-    if (schritt === 3) {
-      koerper = h("div", null,
-        h("h4", { className: "ein-t" }, T("Schritt 3 — wie es heute aussieht", "Step 3 — how it looks today")),
-        h("p", { className: "ein-p" },
-          T("Zum Schluss brauchst du einen Stichtag: die Struktur, die du heute tatsächlich hältst. Ohne ihn gibt es keinen Abstand zum Ziel — nur das Ziel.",
-            "Finally you need a reporting date: the structure you actually hold today. Without it there is no distance to the target — only the target.")),
+          T("Ab jetzt zeigt die Fläche sie an — auch wenn du noch nichts gekauft hast. Gekaufte Positionen trägst du nach, wann immer du willst; ein Depot ist immer hundert Prozent dessen, was schon da ist.",
+            "From now on the surface shows it — even if you have not bought anything yet. You add purchased positions whenever you like; a portfolio is always a hundred percent of what is already there.")),
         h(WarrenChips, { fragen: EIN_FRAGEN_IST }),
 
-        gewaehlteZeilen.length ? h("p", { className: "ein-p", style: { marginTop: 14 } },
-          T("Deine Auswahl aus Schritt 2 steht im Editor bereit — mit Namen und ISIN, aber ohne Gewichte. Trage ein, was du HEUTE hältst; wer noch nichts gekauft hat, trägt Geldmarkt ein.",
-            "Your selection from step 2 is ready in the editor — with names and ISINs but without weights. Enter what you hold TODAY; if you have not bought anything yet, enter money market.")) : null,
-
         istWahl == null ? h("div", { className: "ein-wahl" },
-          h("button", { onClick: () => setIstWahl("null") },
-            h("b", null, T("Ich fange bei null an", "I am starting from zero")),
-            h("span", null, T("Noch nichts gekauft. Der Editor startet mit einer Zeile Geldmarkt zu 100 % — das ist die ehrliche Beschreibung von Bargeld. Ändere sie, sobald sich das ändert.",
-                              "Nothing bought yet. The editor starts with one money-market row at 100 % — the honest description of cash. Change it as soon as that changes."))),
-          h("button", { onClick: () => setIstWahl("depot") },
-            h("b", null, T("Ich habe schon ein Depot", "I already have a portfolio")),
-            h("span", null, T("Trage deine Positionen in Prozent ein. Beträge und Stückzahlen verlangt PYTHAI nicht und speichert es nirgends.",
-                              "Enter your positions in percent. PYTHAI does not ask for amounts or quantities and stores them nowhere.")))) : null,
+          h("button", { onClick: onFertig },
+            h("b", null, T("Noch nichts gekauft — Fläche ansehen", "Nothing bought yet — view the surface")),
+            h("span", null, T("Deine Zielpositionen stehen als „geplant“ da. Sobald du kaufst, trägst du den Stand hier nach.",
+                              "Your target positions appear as “planned”. As soon as you buy, you add the reporting date here."))),
+          h("button", { onClick: () => setIstWahl(produkte.length ? "depot" : "null") },
+            h("b", null, T("Ich habe schon gekauft — Stand nachtragen", "I have already bought — add a reporting date")),
+            h("span", null, T("Trage ein, was du heute hältst, in Prozent. Beträge sind erlaubt und werden im Browser umgerechnet — gespeichert werden nur Prozente.",
+                              "Enter what you hold today, in percent. Amounts are allowed and converted in the browser — only percentages are stored.")))) : null,
 
         istWahl != null ? h(PositionsEditor, {
           depot: null,
-          start: istWahl === "null"
-            ? [{ name: T("Geldmarkt (Bargeld)", "Money market (cash)"), isin: "", klasse: "geldmarkt", baustein: "geldmarkt", gewicht_pct: "100", betrag: "" }]
-            : (gewaehlteZeilen.length ? gewaehlteZeilen : null),
+          start: produkte.length
+            ? produkte.map((p) => ({ name: p.name, isin: p.isin, klasse: LT_ZU_KLASSE[p.baustein] || "aktien", baustein: p.baustein, gewicht_pct: "", betrag: "" }))
+            : null,
+          weiterLabel: T("Stand speichern", "Save reporting date"),
           zielGewichte: zielKarte,
-          weiterLabel: T("Stand übernehmen und fertig", "Adopt reporting date and finish"),
-          onGespeichert: () => setSchritt(4),
+          onGespeichert: () => setFertig(true),
           onSchliessen: () => setIstWahl(null),
         }) : null,
 
-        h("div", { className: "ein-fuss" },
-          h("button", { className: "ein-raus", onClick: () => setSchritt(2) },
-            T("zurück zu den Produkten", "back to products"))));
+        istWahl != null ? h("div", { className: "ein-fuss" },
+          h("button", { className: "ein-raus", onClick: () => setSchritt(1) },
+            T("zurück zur Zielstruktur", "back to the target structure"))) : null);
     }
 
-    if (schritt === 4) {
+    if (fertig) {
       koerper = h("div", null,
         h("h4", { className: "ein-t" }, T("Fertig.", "Done.")),
         h("p", { className: "ein-p" },
@@ -1933,6 +1879,26 @@
     const [posEditor, setPosEditor] = useState(null); // null | { depot }
     const [nachladen, setNachladen] = useState(0);
     const [einrichtung, setEinrichtung] = useState(false);
+    // Nachtrag V2: die DB kennt den Produktnamen erst nach dem ersten Stand.
+    // Bis dahin loest das FE die ISIN ueber die kuratierte Liste auf.
+    const [isinNamen, setIsinNamen] = useState({});
+
+    useEffect(() => {
+      if (!an) return;
+      let lebt = true;
+      fetch(API + "/api/mybook/sockel/produktbeispiele", { credentials: "include" })
+        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+        .then((res) => {
+          if (!lebt || res.code !== 200 || !res.d || !res.d.ok) return;
+          const karte = {};
+          Object.keys(res.d.bausteine || {}).forEach((b) => {
+            (res.d.bausteine[b] || []).forEach((p) => { if (p && p.isin && p.name) karte[p.isin] = p.name; });
+          });
+          setIsinNamen(karte);
+        })
+        .catch(() => {});
+      return () => { lebt = false; };
+    }, [an]);
 
     useEffect(() => {
       if (!an) return;
@@ -2020,10 +1986,27 @@
         const klassen = zeilen.filter((z) => z.ebene === "klasse");
         const rest = zeilen.filter((z) => z.ebene !== "klasse");
         const auf = !!offen[dep.depot];
-        const zeile = (z, i) => h("div", { key: i, className: "lt-row" + (z.verdikt === "band_verletzt" ? " b-aus" : "") },
-          h("div", { className: "satz" }, h("b", null, ltName(z)), " \u00B7 ", ltAussage(z)),
-          h("div", { className: "marke" + (z.verdikt === "band_verletzt" ? " aus" : "") },
-            z.verdikt === "band_verletzt" ? T("au\u00DFerhalb", "outside")
+
+        // Aufbauphase: es gibt Ziel-Positionen, die noch nicht im Depot liegen.
+        // Dann ist eine Abweichung kein Verstoss, sondern ein offener Kauf —
+        // die Verdikte bleiben, die Alarm-Optik nicht.
+        const zielPos = zeilen.filter((z) => z.ebene === "position" && z.ziel_pct != null);
+        const gekauft = zielPos.filter((z) => (z.ist_pct || 0) > 0).length;
+        const aufbau = zielPos.length > 0 && gekauft < zielPos.length;
+
+        const posName = (z) => z.name || isinNamen[z.schluessel] || z.schluessel;
+        const geplant = (z) => z.ebene === "position" && z.ziel_pct != null && !((z.ist_pct || 0) > 0);
+
+        const zeile = (z, i) => h("div", { key: i, className: "lt-row" + (z.verdikt === "band_verletzt" && !aufbau ? " b-aus" : "") },
+          h("div", { className: "satz" },
+            h("b", null, z.ebene === "position" ? posName(z) : ltName(z)),
+            " \u00B7 ",
+            geplant(z)
+              ? T("Ziel " + ltPct(z.ziel_pct) + " % — noch nicht gekauft.", "target " + ltPct(z.ziel_pct) + " % — not bought yet.")
+              : ltAussage(z)),
+          h("div", { className: "marke" + (geplant(z) ? " plan" : (z.verdikt === "band_verletzt" && !aufbau ? " aus" : "")) },
+            geplant(z) ? T("geplant", "planned")
+              : z.verdikt === "band_verletzt" ? T("au\u00DFerhalb", "outside")
               : z.verdikt === "im_band" ? T("im Band", "in band")
               : z.verdikt === "ohne_band" ? T("kein Band", "no band")
               : T("kein Ziel", "no target")));
@@ -2035,6 +2018,9 @@
                 : dep.stand_alter_tage === 1 ? T("vor 1 Tag", "1 day ago")
                 : T("vor " + dep.stand_alter_tage + " Tagen", dep.stand_alter_tage + " days ago")) : null,
             dep.depot ? h("span", { className: "depot" }, dep.depot) : null),
+          aufbau ? h("p", { className: "lt-aufbau" },
+            T("Aufbauphase: " + gekauft + " von " + zielPos.length + " Zielpositionen im Depot. Was fehlt, ist noch nicht gekauft — keine Abweichung, die etwas verlangt.",
+              "Build-up phase: " + gekauft + " of " + zielPos.length + " target positions in the portfolio. What is missing has simply not been bought yet — not a deviation that demands anything.")) : null,
           h("p", { className: "lt-warn" },
             T("Die Zahlen beziehen sich auf diesen Stichtag und bewegen sich bis zum n\u00E4chsten Auszug nicht.",
               "The figures refer to that reporting date and do not move until the next statement.")),
@@ -2047,8 +2033,8 @@
             klassen.map(zeile)) : null,
           rest.length ? h("div", { className: "lt-grp" },
             h("button", { className: "lt-mehr", onClick: () => setOffen(Object.assign({}, offen, { [dep.depot]: !auf })) },
-              auf ? T("Bausteine schlie\u00DFen ▴", "Close building blocks ▴")
-                  : T("Bausteine ansehen ▾ (" + rest.length + ")", "View building blocks ▾ (" + rest.length + ")")),
+              auf ? T("Bausteine und Produkte schlie\u00DFen ▴", "Close building blocks and products ▴")
+                  : T("Bausteine und Produkte ansehen ▾ (" + rest.length + ")", "View building blocks and products ▾ (" + rest.length + ")")),
             auf ? h("div", { style: { marginTop: 8 } }, rest.map(zeile)) : null) : null,
           h("div", { style: { marginTop: 18 } },
             h("button", { className: "lt-mehr", onClick: () => setEditor({ depot: dep.depot, start: zeilen.filter((z) => z.ziel_pct != null), ist: zeilen }) },
