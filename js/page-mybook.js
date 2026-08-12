@@ -206,6 +206,23 @@
   /* --- Nachtrag 4 · Einrichtungsstrecke (C.7) --- */
   #mb-root .ein{margin:20px 0 0;}
   #mb-root .ein-kopf{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  #mb-root .ein-kette{display:flex;align-items:stretch;flex-wrap:wrap;gap:0;flex:1 1 420px;min-width:0;}
+  #mb-root .ein-glied{display:flex;align-items:center;min-width:0;}
+  #mb-root .ein-linie{display:block;width:26px;height:1px;background:var(--line);flex:0 0 auto;margin:0 4px;}
+  #mb-root .ein-linie.an{background:var(--oracle);}
+  #mb-root .ein-stufe{display:flex;align-items:center;gap:9px;background:none;border:none;padding:6px 2px;text-align:left;cursor:default;min-width:0;}
+  #mb-root .ein-stufe:not([disabled]){cursor:pointer;}
+  #mb-root .ein-nr{flex:0 0 auto;width:22px;height:22px;border-radius:999px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;color:var(--ash);}
+  #mb-root .ein-lab{display:block;min-width:0;}
+  #mb-root .ein-lab b{display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:400;color:var(--ash);}
+  #mb-root .ein-lab em{display:block;font-family:var(--font-ui);font-style:normal;font-size:11.5px;color:var(--line);margin-top:2px;}
+  #mb-root .ein-stufe.jetzt .ein-nr{border-color:var(--oracle);color:var(--oracle);}
+  #mb-root .ein-stufe.jetzt .ein-lab b{color:var(--oracle);}
+  #mb-root .ein-stufe.jetzt .ein-lab em{color:var(--text-secondary,#9BA3B2);}
+  #mb-root .ein-stufe.fertig .ein-nr{border-color:var(--bull);color:var(--bull);}
+  #mb-root .ein-stufe.fertig .ein-lab b{color:var(--mist);}
+  #mb-root .ein-stufe.fertig:hover .ein-lab b{color:var(--oracle-b);}
+  #mb-root .ein-stufe.fertig:hover .ein-nr{border-color:var(--oracle);}
   #mb-root .ein-schritte{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
   #mb-root .ein-schritte b{font-weight:400;color:var(--ash);}
   #mb-root .ein-schritte b.jetzt{color:var(--oracle);}
@@ -310,6 +327,12 @@
   #mb-root .ze-weg:hover{color:var(--ox-b);}
   #mb-root .ze-fest{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;color:var(--line);flex:0 0 auto;}
 
+  #mb-root .ze-band{margin:22px 0 0;padding-top:16px;border-top:1px solid var(--line);}
+  #mb-root .ze-band p{font-family:var(--font-ui);font-size:12.5px;line-height:1.65;color:var(--ash);margin:0;max-width:600px;}
+  #mb-root .ze-band-z{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:10px 0 0;}
+  #mb-root .ze-band-z span{font-family:var(--font-ui);font-size:12.5px;color:var(--text-secondary,#9BA3B2);}
+  #mb-root .ze-band-z button{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;color:var(--oracle-b);}
+  #mb-root .ze-band-z button:hover{color:var(--oracle);}
   #mb-root .ze-summe{font-family:var(--font-ui);font-size:13px;color:#E7A062;margin:12px 0 0;}
   #mb-root .ze-summe.ok{color:var(--bull);}
   #mb-root .ze-leer{font-family:var(--font-ui);font-size:13px;line-height:1.6;color:var(--ash);margin:0;}
@@ -329,6 +352,7 @@
   #mb-root .ze-vor-k.an{border-color:var(--oracle);background:rgba(212,169,78,.05);}
   #mb-root .ze-vor-k b{display:block;font-family:var(--font-ui);font-weight:600;font-size:13.5px;color:var(--parch);margin:0 0 4px;}
   #mb-root .ze-vor-k span{display:block;font-family:var(--font-mono);font-size:11px;line-height:1.55;color:var(--text-secondary,#9BA3B2);}
+  #mb-root .bs-label.warn{color:var(--text-secondary,#9BA3B2);}
   #mb-root .ze-vor-k em{display:block;font-family:var(--font-ui);font-style:normal;font-size:12px;line-height:1.55;color:var(--ash);margin-top:6px;}
   #mb-root .ze-vor-quelle{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:var(--text-secondary,#9BA3B2);margin:13px 0 0;}
 
@@ -768,6 +792,7 @@
     // angefasst wird, ist es die Entscheidung des Inhabers und nicht mehr
     // die Vorlage — genau das wandert als quelle ins Backend.
     const [vorlage, setVorlage] = useState(null);
+    const [bandOffen, setBandOffen] = useState(false);
     const [vStand, setVStand] = useState("laedt"); // laedt | ok | leer | fehler | nicht_da
     const [vListe, setVListe] = useState([]);
 
@@ -822,6 +847,25 @@
       setZeilen(zeilen.concat(fehlt.map((b) => ({ ebene: "baustein", schluessel: b, ziel_pct: "", band_rel_pct: LT_BAND_START }))));
     };
 
+    // Punkt 3 (Daniel, 12.08.): die Baustein-Gewichtung eines Musters
+    // direkt kopieren. Uebernommen wird NUR die Baustein-Ebene; die Klassen
+    // bleiben die Entscheidung des Nutzers. Passt beides nicht zusammen,
+    // sagt die Zeile darunter es — geblockt wird es nicht, weil eine
+    // Teilmenge laut Vertrag zulaessig ist.
+    const bausteineAusVorlage = (v) => {
+      setVorlage(null);
+      const feld = (x) => x == null ? "" : String(x).replace(".", ",");
+      const neu = (v.zeilen || [])
+        .filter((z) => z.ebene === "baustein" && LT_ZU_KLASSE[z.schluessel])
+        .map((z) => ({
+          ebene: "baustein", schluessel: z.schluessel,
+          ziel_pct: feld(z.ziel_pct),
+          band_rel_pct: z.band_rel_pct == null ? LT_BAND_START : feld(z.band_rel_pct),
+        }));
+      if (!neu.length) return;
+      setZeilen(zeilen.filter((z) => z.ebene !== "baustein").concat(neu));
+    };
+
     const bausteineGleich = () => {
       setVorlage(null);
       setZeilen(zeilen.map((z) => {
@@ -872,6 +916,18 @@
     const kOk = Math.abs(sK - 100) <= LT_TOLERANZ;
     const bOk = !hatB || sB <= 100 + LT_TOLERANZ;
     const bereit = kOk && bOk && !busy;
+
+    // Je Klasse: passen die Bausteine unter ihr Dach? Der Server prueft das
+    // nicht (er kennt nur die Gesamt-Teilmenge), also sagen wir es hier.
+    const klassenKonflikte = LT_KLASSEN.map((k) => {
+      const bs = zeilen.filter((z) => z.ebene === "baustein" && LT_ZU_KLASSE[z.schluessel] === k);
+      if (!bs.length) return null;
+      const summe = bs.reduce((a, z) => a + (ltZahl(z.ziel_pct) || 0), 0);
+      const kz = zeilen.find((z) => z.ebene === "klasse" && z.schluessel === k);
+      const kp = kz ? ltZahl(kz.ziel_pct) : null;
+      if (kp == null || summe <= kp + LT_TOLERANZ) return null;
+      return { klasse: k, summe: summe, kp: kp };
+    }).filter(Boolean);
 
     // Summen-Anzeige in Worten, nicht als nackte Zahl — dieselbe Sprache
     // wie die Baender oben.
@@ -952,15 +1008,45 @@
         h("input", { type: "text", inputMode: "decimal", value: z.ziel_pct, placeholder: "0,0",
           onChange: (e) => setFeld(i, "ziel_pct", e.target.value) }),
         h("i", null, "%")),
-      h("label", { className: "ze-f" },
+      bandZeigen ? h("label", { className: "ze-f" },
         h("span", null, T("Band", "Band")),
         h("input", { type: "text", inputMode: "decimal", value: z.band_rel_pct, placeholder: "20",
           onChange: (e) => setFeld(i, "band_rel_pct", e.target.value) }),
-        h("i", null, "%")),
+        h("i", null, "%")) : null,
       z.ebene === "baustein"
         ? h("button", { className: "ze-weg", title: T("Zeile aus der nächsten Version nehmen", "Drop this row from the next version"),
             onClick: () => entfernen(i) }, T("entfernen", "remove"))
         : h("span", { className: "ze-fest" }, T("fest", "fixed")));
+
+    // Das Band gehoert nicht in jede Zeile. Es steht in aller Regel auf
+    // einem Wert fuer alle — dann ist eine Spalte voller "20" nur Rauschen.
+    // Sichtbar wird es je Zeile erst, wenn es sich unterscheidet oder wenn
+    // der Nutzer es ausdruecklich aufklappt.
+    const baender = zeilen.map((z) => String(z.band_rel_pct == null ? "" : z.band_rel_pct));
+    const bandEinheitlich = baender.every((b) => b === baender[0]);
+    const bandZeigen = bandOffen || !bandEinheitlich;
+    const bandWert = bandEinheitlich ? (baender[0] || "") : "";
+    const bandAlle = (wert) => { setVorlage(null); setZeilen(zeilen.map((z) => Object.assign({}, z, { band_rel_pct: wert }))); };
+
+    const bandBlock = h("div", { className: "ze-band" },
+      h("p", null,
+        T("Toleranzband — ab wie weit weg vom Ziel eine Zeile als „außerhalb“ gilt. 20 % heißt: bei einem Ziel von 40 % meldet die Fläche ab 32 % oder ab 48 %.",
+          "Tolerance band — how far from target a row counts as “outside”. 20 % means: at a target of 40 % the surface reports from 32 % or from 48 %.")),
+      bandZeigen
+        ? h("div", { className: "ze-band-z" },
+            h("span", null, bandEinheitlich
+              ? T("Je Zeile einstellbar.", "Adjustable per row.")
+              : T("Die Zeilen haben unterschiedliche Bänder — deshalb steht die Spalte offen.",
+                  "The rows carry different bands — that is why the column is open.")),
+            bandEinheitlich ? h("button", { onClick: () => setBandOffen(false) },
+              T("ein Wert für alle", "one value for all")) : null)
+        : h("div", { className: "ze-band-z" },
+            h("label", { className: "ze-f" },
+              h("span", null, T("für alle", "for all")),
+              h("input", { type: "text", inputMode: "decimal", value: bandWert, placeholder: LT_BAND_START,
+                onChange: (e) => bandAlle(e.target.value) }),
+              h("i", null, "%")),
+            h("button", { onClick: () => setBandOffen(true) }, T("je Zeile einstellen", "set per row"))));
 
     const offeneBausteine = LT_BAUSTEINE.filter((b) => !zeilen.some((z) => z.schluessel === b));
 
@@ -1010,8 +1096,8 @@
           vorlage
             ? T("Die Vorlage steht unverändert im Formular. Sobald du eine Zahl änderst, wird daraus deine eigene Struktur.",
                 "The template stands unchanged in the form. As soon as you change a number it becomes your own structure.")
-            : T("Eine Vorlage füllt die Felder unten. Ändern kannst du danach jede Zahl — auch das Band.",
-                "A template fills the fields below. Afterwards you can change every number — the band included.")) : null),
+            : T("Eine Vorlage füllt die Felder unten. Ändern kannst du danach jede Zahl.",
+                "A template fills the fields below. Afterwards you can change every number.")) : null),
 
       h("div", { className: "ze-grp" },
         h("div", { className: "ze-grp-t" }, T("Klassen", "Classes")),
@@ -1031,6 +1117,21 @@
                   "The building blocks add up to " + ltPct(sB) + " % \u2014 a subset of the classes, which is allowed.")
               : T("Die Bausteine ergeben " + ltPct(sB) + " % \u2014 mehr als 100 ist nicht m\u00F6glich.",
                   "The building blocks add up to " + ltPct(sB) + " % \u2014 more than 100 is not possible.")) : null,
+        klassenKonflikte.length ? h("div", { className: "ze-summe" },
+          klassenKonflikte.map((c) => T(
+            "Die Bausteine unter " + ltName({ ebene: "klasse", schluessel: c.klasse }) + " ergeben " + ltPct(c.summe)
+              + " % — mehr als die Klasse selbst (" + ltPct(c.kp) + " %). ",
+            "The building blocks under " + ltName({ ebene: "klasse", schluessel: c.klasse }) + " add up to " + ltPct(c.summe)
+              + " % — more than the class itself (" + ltPct(c.kp) + " %). ")).join("")) : null,
+
+        vStand === "ok" && vListe.some((v) => (v.zeilen || []).some((z) => z.ebene === "baustein"))
+          ? h("div", { className: "ze-hinzu" },
+              h("span", null, T("1:1 aus einem Muster:", "1:1 from a pattern:")),
+              vListe.filter((v) => (v.zeilen || []).some((z) => z.ebene === "baustein"))
+                .map((v) => h("button", { key: v.key, onClick: () => bausteineAusVorlage(v) },
+                  T("Bausteine aus „" + (v.name || v.key) + "“", "Building blocks from “" + (v.name || v.key) + "”"))))
+          : null,
+
         h("div", { className: "ze-hinzu" },
           h("span", null, T("ohne Tippen:", "without typing:")),
           offeneBausteine.length ? h("button", { onClick: bausteineAlle },
@@ -1040,6 +1141,8 @@
         offeneBausteine.length ? h("div", { className: "ze-hinzu" },
           h("span", null, T("einzeln hinzufügen:", "add individually:")),
           offeneBausteine.map((b) => h("button", { key: b, onClick: () => hinzu(b) }, ltName({ ebene: "baustein", schluessel: b })))) : null),
+
+      bandBlock,
 
       meldung ? h("div", { className: "ze-meld " + meldung.art }, meldung.text) : null,
 
@@ -1126,6 +1229,9 @@
 
     return h("div", { className: "bs" }, kopf,
       h("p", { className: "bs-label" }, T(LT_PFLICHT_LABEL[0], LT_PFLICHT_LABEL[1])),
+      h("p", { className: "bs-label warn" }, T(
+        "Exemplarisch, keine Empfehlung. Ob ein Produkt wirklich in diesen Baustein gehört und zu dir passt, prüfst du selbst — im Factsheet des Anbieters, nicht hier.",
+        "Illustrative, not a recommendation. Whether a product truly belongs in this building block and suits you is yours to check — in the provider's factsheet, not here.")),
       h("div", { className: "bs-liste" }, liste.map((p, i) => h("div", { key: p.isin || i, className: "bs-item" },
         h("div", { className: "bs-name" }, p.name || "—"),
         h("div", { className: "bs-fakten" },
@@ -1474,17 +1580,38 @@
       return () => { lebt = false; };
     }, [schritt, bs]);
 
-    const marke = (n, txt) => h("b", {
-      className: schritt === n ? "jetzt" : (schritt > n ? "fertig" : ""),
-    }, n + " " + txt);
+    // Die Kette zeigt drei Dinge auf einen Blick: was abgehakt ist, wo man
+    // steht, was noch kommt. Erledigte Schritte sind anklickbar — zurueck
+    // gehen darf man immer, spaeter springen nicht.
+    const SCHRITTE = [
+      { n: 1, t: T("Ziel", "Target"), u: T("Struktur festlegen", "define structure") },
+      { n: 2, t: T("Produkte", "Products"), u: T("Bausteine füllen", "fill building blocks") },
+      { n: 3, t: T("Stand", "Reporting date"), u: T("heutige Struktur", "today's structure") },
+    ];
 
-    const kopf = h("div", { className: "ein-kopf" },
-      h("div", { className: "ein-schritte" },
-        marke(1, T("Ziel", "Target")), h("i", null, "·"),
-        marke(2, T("Produkte", "Products")), h("i", null, "·"),
-        marke(3, T("Stand", "Reporting date"))),
-      schritt < 4 ? h("button", { className: "ein-raus", onClick: onAbbruch },
-        T("Einrichtung abbrechen", "Cancel setup")) : null);
+    const kette = h("div", { className: "ein-kette" }, SCHRITTE.map((sch, i) => {
+      const fertig = schritt > sch.n;
+      const jetzt = schritt === sch.n;
+      const zurueck = fertig && schritt < 4;
+      return h("div", { key: sch.n, className: "ein-glied" + (i ? " mit-linie" : "") },
+        i ? h("span", { className: "ein-linie" + (fertig || jetzt ? " an" : "") }) : null,
+        h("button", {
+          className: "ein-stufe" + (jetzt ? " jetzt" : "") + (fertig ? " fertig" : ""),
+          disabled: !zurueck,
+          title: zurueck ? T("zurück zu Schritt " + sch.n, "back to step " + sch.n) : "",
+          onClick: zurueck ? () => setSchritt(sch.n) : undefined,
+        },
+          h("span", { className: "ein-nr" }, fertig ? "\u2713" : String(sch.n)),
+          h("span", { className: "ein-lab" },
+            h("b", null, sch.t),
+            h("em", null, fertig ? T("abgeschlossen", "done") : jetzt ? T("du bist hier", "you are here") : sch.u))));
+    }));
+
+    const kopf = h("div", null,
+      h("div", { className: "ein-kopf" },
+        kette,
+        schritt < 4 ? h("button", { className: "ein-raus", onClick: onAbbruch },
+          T("Einrichtung abbrechen", "Cancel setup")) : null));
 
     const bausteine = zielZeilen.filter((z) => z.ebene === "baustein").map((z) => z.schluessel);
 
@@ -1589,7 +1716,7 @@
         h("div", { className: "ein-fuss" },
           h("button", { className: "ein-weiter", onClick: () => setSchritt(3) },
             T("Weiter zum Stand", "Continue to reporting date")),
-          h("button", { className: "ein-raus", onClick: () => setSchritt(1) }, T("zurück", "back"))));
+          h("button", { className: "ein-raus", onClick: () => setSchritt(1) }, T("zurück zum Ziel", "back to the target"))));
     }
 
     if (schritt === 3) {
@@ -1625,8 +1752,9 @@
           onSchliessen: () => setIstWahl(null),
         }) : null,
 
-        istWahl == null ? h("div", { className: "ein-fuss" },
-          h("button", { className: "ein-raus", onClick: () => setSchritt(2) }, T("zurück", "back"))) : null);
+        h("div", { className: "ein-fuss" },
+          h("button", { className: "ein-raus", onClick: () => setSchritt(2) },
+            T("zurück zu den Produkten", "back to products"))));
     }
 
     if (schritt === 4) {
