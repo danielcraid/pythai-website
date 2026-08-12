@@ -409,6 +409,7 @@
   #mb-root .pe-unten{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:9px;}
   #mb-root .pe-unten select{background:var(--input,#1D212A);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-ui);font-size:12.5px;padding:7px 9px;}
   #mb-root .pe-unten select:focus{outline:none;border-color:var(--oracle);}
+  #mb-root .pe-ziel{font-family:var(--font-mono);font-size:11.5px;color:var(--oracle);white-space:nowrap;}
   #mb-root .pe-bsp{background:none;border:1px solid var(--bull);border-radius:999px;color:var(--bull);font-family:var(--font-ui);font-size:12px;padding:5px 12px;cursor:pointer;}
   #mb-root .pe-bsp:hover{background:rgba(111,207,154,.08);}
   #mb-root .pe-plus{background:none;border:1px dashed var(--line);border-radius:8px;color:var(--mist);font-family:var(--font-ui);font-size:13px;padding:10px 16px;cursor:pointer;margin:16px 0 0;width:100%;}
@@ -1439,7 +1440,17 @@
                                           "No ranking. The order comes from the maintained list; it is not a judgement.")));
   }
 
-  function PositionsEditor({ depot, onSchliessen, start, weiterLabel, onGespeichert, zielGewichte, hinweis }) {
+  function PositionsEditor({ depot, onSchliessen, start, weiterLabel, onGespeichert, zielGewichte, hinweis, budget }) {
+    // Was soll diese Zeile laut Ziel sein? Steht direkt neben dem Feld, in dem
+    // der Betrag eingetragen wird — sonst muesste man es sich merken.
+    const zielVon = (z) => (zielGewichte && z && zielGewichte[z.baustein] != null) ? zielGewichte[z.baustein] : null;
+    const euroText = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    const zielText = (z) => {
+      const p = zielVon(z);
+      if (p == null) return null;
+      const eur = (budget != null && budget > 0) ? Math.round((budget * p) / 100) : null;
+      return T("Ziel " + ltPct(p) + " %", "target " + ltPct(p) + " %") + (eur != null ? " · " + euroText(eur) + " €" : "");
+    };
     const heute = new Date().toISOString().slice(0, 10);
     const [stand, setStand] = useState(heute);
     // Voreinstellung: mit Betraegen rechnen. Niemand kennt seine Anteile in
@@ -1566,6 +1577,7 @@
           : h("label", { className: "ze-f" }, h("span", null, T("Anteil", "Weight")),
               h("input", { type: "text", inputMode: "decimal", value: z.gewicht_pct, placeholder: "0,0",
                 onChange: (e) => setFeld(i, "gewicht_pct", e.target.value) }), h("i", null, "%")),
+        zielText(z) ? h("span", { className: "pe-ziel" }, zielText(z)) : null,
         h("button", { className: "pe-bsp", onClick: () => setBeispielFuer(beispielFuer === i ? null : i) },
           T("Beispiele", "Examples")),
         zeilen.length > 1 ? h("button", { className: "ze-weg", onClick: () => zeileWeg(i) }, T("entfernen", "remove")) : null),
@@ -2054,6 +2066,11 @@
         const gekauft = zielPos.filter((z) => (z.ist_pct || 0) > 0).length;
         const aufbau = ohneStand || (zielPos.length > 0 && gekauft < zielPos.length);
 
+        // Zielgewicht je Baustein — wandert in den Stand-Editor, damit dort
+        // neben jedem Betragsfeld steht, wie gross die Zeile werden soll.
+        const zielKarte = {};
+        zeilen.forEach((z) => { if (z.ebene === "baustein" && z.ziel_pct != null) zielKarte[z.schluessel] = z.ziel_pct; });
+
         const posName = (z) => z.name || (isinNamen[z.schluessel] && isinNamen[z.schluessel].name) || z.schluessel;
         const posBaustein = (z) => (isinNamen[z.schluessel] && isinNamen[z.schluessel].baustein) || null;
 
@@ -2083,6 +2100,7 @@
           const schon = alt.some((x) => x.isin && neu.isin && x.isin === neu.isin);
           setPosEditor({
             depot: dep.depot,
+            ziel: zielKarte,
             start: schon ? alt : alt.concat([neu]),
             hinweis: alt.length
               ? T("Die Prozente stammen aus deinem letzten Stand. Ein neuer Kauf verschiebt alle Anteile — trage die neuen Werte ein oder rechne über Beträge.",
@@ -2153,7 +2171,7 @@
             h("button", { className: "lt-mehr", onClick: () => setEditor({ depot: dep.depot, start: zeilen.filter((z) => z.ziel_pct != null), ist: zeilen }) },
               dep.ziel_gueltig_ab == null ? T("Zielstruktur festlegen", "Define target structure")
                                           : T("Zielstruktur \u00E4ndern", "Change target structure")),
-            h("button", { className: "lt-mehr", style: { marginLeft: 22 }, onClick: () => setPosEditor({ depot: dep.depot }) },
+            h("button", { className: "lt-mehr", style: { marginLeft: 22 }, onClick: () => setPosEditor({ depot: dep.depot, ziel: zielKarte, start: gehalten().length ? gehalten() : null }) },
               T("Neuen Stand einliefern", "Submit new reporting date"))),
           dep.depot ? h(DepotLoeschen, { depot: dep.depot, onGeloescht: () => setNachladen((n) => n + 1) }) : null);
       });
@@ -2163,6 +2181,8 @@
       editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, ist: editor.ist || null, onSchliessen: () => setEditor(null) }) : null,
       posEditor ? h(PositionsEditor, { depot: posEditor.depot, start: posEditor.start || null,
         hinweis: posEditor.hinweis || null,
+        zielGewichte: posEditor.ziel || null,
+        budget: (budgetZahl != null && budgetZahl > 0) ? budgetZahl : null,
         onGespeichert: () => setNachladen((n) => n + 1),
         onSchliessen: () => setPosEditor(null) }) : null,
       koerper,
