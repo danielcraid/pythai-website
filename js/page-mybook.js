@@ -285,6 +285,15 @@
   #mb-root .lt-row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid var(--line);}
   #mb-root .lt-row .satz{font-family:var(--font-ui);font-size:14px;line-height:1.5;color:var(--mist);min-width:0;}
   #mb-root .lt-row .satz b{color:var(--parch);font-weight:600;}
+  #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:auto;justify-content:flex-end;}
+  #mb-root .lt-eur{font-family:var(--font-mono);font-size:12px;color:var(--oracle);white-space:nowrap;}
+  #mb-root .lt-budget{margin:20px 0 0;padding:14px 16px;background:rgba(255,255,255,.015);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:0 8px 8px 0;}
+  #mb-root .lt-budget label{display:inline-flex;align-items:center;gap:9px;}
+  #mb-root .lt-budget label span{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .lt-budget label i{font-family:var(--font-mono);font-size:12px;color:var(--ash);font-style:normal;}
+  #mb-root .lt-budget input{width:120px;background:var(--input,#0B0D11);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-mono);font-size:13px;padding:7px 10px;text-align:right;}
+  #mb-root .lt-budget input:focus{outline:none;border-color:var(--oracle);}
+  #mb-root .lt-budget p{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--ash);margin:9px 0 0;max-width:620px;}
   #mb-root .lt-kauf{background:none;border:1px solid var(--line);border-radius:999px;color:var(--mist);font-family:var(--font-ui);font-size:11.5px;padding:4px 11px;cursor:pointer;flex:0 0 auto;white-space:nowrap;}
   #mb-root .lt-kauf:hover{border-color:var(--oracle);color:var(--oracle-b);}
   #mb-root .lt-row .marke{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;flex:0 0 auto;color:var(--ash);}
@@ -400,8 +409,8 @@
   #mb-root .pe-unten{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:9px;}
   #mb-root .pe-unten select{background:var(--input,#1D212A);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-ui);font-size:12.5px;padding:7px 9px;}
   #mb-root .pe-unten select:focus{outline:none;border-color:var(--oracle);}
-  #mb-root .pe-bsp{background:none;border:1px solid var(--line);border-radius:999px;color:var(--mist);font-family:var(--font-ui);font-size:12px;padding:5px 12px;cursor:pointer;}
-  #mb-root .pe-bsp:hover{border-color:var(--oracle);color:var(--oracle-b);}
+  #mb-root .pe-bsp{background:none;border:1px solid var(--bull);border-radius:999px;color:var(--bull);font-family:var(--font-ui);font-size:12px;padding:5px 12px;cursor:pointer;}
+  #mb-root .pe-bsp:hover{background:rgba(111,207,154,.08);}
   #mb-root .pe-plus{background:none;border:1px dashed var(--line);border-radius:8px;color:var(--mist);font-family:var(--font-ui);font-size:13px;padding:10px 16px;cursor:pointer;margin:16px 0 0;width:100%;}
   #mb-root .pe-plus:hover{border-color:var(--oracle);color:var(--oracle-b);}
 
@@ -1433,7 +1442,10 @@
   function PositionsEditor({ depot, onSchliessen, start, weiterLabel, onGespeichert, zielGewichte, hinweis }) {
     const heute = new Date().toISOString().slice(0, 10);
     const [stand, setStand] = useState(heute);
-    const [betraege, setBetraege] = useState(false); // Hilfsmodus, rein clientseitig
+    // Voreinstellung: mit Betraegen rechnen. Niemand kennt seine Anteile in
+    // Prozent — jeder kennt seine Betraege. Umgerechnet wird im Browser,
+    // ueber den Draht gehen weiterhin AUSSCHLIESSLICH Prozente (Vertrag B2).
+    const [betraege, setBetraege] = useState(true);
     const [zeilen, setZeilen] = useState(() => (Array.isArray(start) && start.length)
       ? start.map((z) => Object.assign({ name: "", isin: "", klasse: "aktien", baustein: "welt", gewicht_pct: "", betrag: "" }, z))
       : [{ name: "", isin: "", klasse: "aktien", baustein: "welt", gewicht_pct: "", betrag: "" }]);
@@ -1441,6 +1453,19 @@
     const [busy, setBusy] = useState(false);
     const [meldung, setMeldung] = useState(null);
     const [ersetzenFrage, setErsetzenFrage] = useState(null);
+
+    // Mehrere Felder in EINEM Zug. Zwei setFeld-Aufrufe nacheinander lesen
+    // beide denselben alten Zustand — der zweite ueberschreibt den ersten.
+    // Genau daran ging beim Uebernehmen aus den Beispielen der Name verloren.
+    const setFelder = (i, obj) => setZeilen(zeilen.map((z, j) => {
+      if (j !== i) return z;
+      const n = Object.assign({}, z, obj);
+      if (obj.klasse) {
+        const moeglich = LT_BAUSTEIN_ZU(obj.klasse);
+        if (moeglich.indexOf(n.baustein) === -1) n.baustein = moeglich[0] || "";
+      }
+      return n;
+    }));
 
     const setFeld = (i, feld, wert) => setZeilen(zeilen.map((z, j) => {
       if (j !== i) return z;
@@ -1547,7 +1572,7 @@
       beispielFuer === i ? h(Beispiele, {
         baustein: z.baustein,
         onSchliessen: () => setBeispielFuer(null),
-        onUebernehmen: (p) => { setFeld(i, "name", p.name || ""); setFeld(i, "isin", p.isin || ""); setBeispielFuer(null); },
+        onUebernehmen: (p) => { setFelder(i, { name: p.name || "", isin: p.isin || "" }); setBeispielFuer(null); },
       }) : null);
 
     return h("div", { className: "ze pe" },
@@ -1887,6 +1912,17 @@
     // Nachtrag V2: die DB kennt den Produktnamen erst nach dem ersten Stand.
     // Bis dahin loest das FE die ISIN ueber die kuratierte Liste auf.
     const [isinNamen, setIsinNamen] = useState({});
+    // Rechenhilfe, nichts weiter: die Zahl bleibt in diesem Browser, wird
+    // nicht gespeichert und geht nie an den Server. Vertrag C.2 bleibt
+    // unangetastet — ueber den Draht laufen weiterhin nur Prozente.
+    const [budget, setBudget] = useState("");
+    const budgetZahl = ltZahl(budget);
+    const inEuro = (pct) => (budgetZahl == null || budgetZahl <= 0 || pct == null)
+      ? null
+      : Math.round((budgetZahl * pct) / 100);
+    // Ganze Euro. Nachkommastellen taeuschen hier eine Genauigkeit vor,
+    // die eine Planungshilfe nicht hat.
+    const euroText = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
     useEffect(() => {
       if (!an) return;
@@ -1936,6 +1972,18 @@
                    "Show or hide the long-term structure. No data is deleted."),
           onClick: () => { const n = !an; setAn(n); ltSchreiben(n); sfx("button-004-toggle"); }
         }, h("span", { className: "knob" }))));
+
+    const budgetFeld = h("div", { className: "lt-budget" },
+      h("label", null,
+        h("span", null, T("Langfrist-Budget", "Long-term budget")),
+        h("input", { type: "text", inputMode: "decimal", value: budget, placeholder: "z. B. 10000",
+          onChange: (e) => setBudget(e.target.value) }),
+        h("i", null, "€")),
+      h("p", null, budgetZahl != null && budgetZahl > 0
+        ? T("Jede Zeile zeigt zusätzlich, welcher Betrag ihrem Zielanteil entspricht. Die Zahl bleibt in diesem Browser — sie wird nicht gespeichert und nicht gesendet.",
+            "Every row additionally shows the amount matching its target share. The number stays in this browser — it is neither stored nor sent.")
+        : T("Optional. Trag eine Summe ein, dann rechnet die Fläche jeden Zielanteil in Euro um — nur zur Orientierung, nur in diesem Browser.",
+            "Optional. Enter a sum and the surface converts every target share into euros — for orientation only, only in this browser.")));
 
     const erklaerung = h("p", { className: "lt-lead" },
       T("Das norwegische Prinzip: eine breit gestreute Zielstruktur, feste Anteile, und keine Meinung zum n\u00E4chsten Quartal. Hier z\u00E4hlt nicht der Tag, sondern der Abstand zum Ziel.",
@@ -2054,19 +2102,22 @@
               ? (ohneStand
                   ? T("Ziel " + ltPct(z.ziel_pct) + " %.", "target " + ltPct(z.ziel_pct) + " %.")
                   : T("Ziel " + ltPct(z.ziel_pct) + " % — noch nicht gekauft.", "target " + ltPct(z.ziel_pct) + " % — not bought yet."))
-              : ltAussage(z)),
-          geplant(z) && (z.ebene === "baustein" || z.ebene === "position")
-            ? h("button", { className: "lt-kauf",
-                title: T("Öffnet den Stand-Editor mit deinem letzten Stand und dieser Zeile.",
-                         "Opens the reporting-date editor with your last reporting date and this row."),
-                onClick: () => standFuer(z) }, T("gekauft — Stand einliefern", "bought — submit reporting date"))
-            : null,
-          h("div", { className: "marke" + (geplant(z) ? " plan" : (z.verdikt === "band_verletzt" && !aufbau ? " aus" : "")) },
-            geplant(z) ? T("geplant", "planned")
-              : z.verdikt === "band_verletzt" ? T("au\u00DFerhalb", "outside")
-              : z.verdikt === "im_band" ? T("im Band", "in band")
-              : z.verdikt === "ohne_band" ? T("kein Band", "no band")
-              : T("kein Ziel", "no target")));
+              : ltAussage(z),
+            inEuro(z.ziel_pct) != null
+              ? h("span", { className: "lt-eur" }, " = " + euroText(inEuro(z.ziel_pct)) + " €") : null),
+          h("div", { className: "lt-rechts" },
+            h("div", { className: "marke" + (geplant(z) ? " plan" : (z.verdikt === "band_verletzt" && !aufbau ? " aus" : "")) },
+              geplant(z) ? T("geplant", "planned")
+                : z.verdikt === "band_verletzt" ? T("au\u00DFerhalb", "outside")
+                : z.verdikt === "im_band" ? T("im Band", "in band")
+                : z.verdikt === "ohne_band" ? T("kein Band", "no band")
+                : T("kein Ziel", "no target")),
+            geplant(z) && (z.ebene === "baustein" || z.ebene === "position")
+              ? h("button", { className: "lt-kauf",
+                  title: T("Öffnet den Stand-Editor mit deinem letzten Stand und dieser Zeile.",
+                           "Opens the reporting-date editor with your last reporting date and this row."),
+                  onClick: () => standFuer(z) }, T("gekauft — Stand einliefern", "bought — submit reporting date"))
+              : null));
         return h("div", { key: dep.depot || di },
           h("div", { className: "lt-stand" },
             h("span", null, ohneStand
@@ -2108,7 +2159,7 @@
       });
     }
 
-    return h("div", { className: "lt" }, kopf, erklaerung,
+    return h("div", { className: "lt" }, kopf, erklaerung, budgetFeld,
       editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, ist: editor.ist || null, onSchliessen: () => setEditor(null) }) : null,
       posEditor ? h(PositionsEditor, { depot: posEditor.depot, start: posEditor.start || null,
         hinweis: posEditor.hinweis || null,
