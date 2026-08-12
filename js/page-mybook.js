@@ -2062,9 +2062,18 @@
         // es gibt noch keinen Anfang. Die Verdikte des Servers bleiben
         // unangetastet — nur die Sprache stimmt jetzt zur Lage.
         const ohneStand = !dep.stand;
+        // Aufbau misst an dem, was da ist: gibt es Positions-Ziele, zaehlen die;
+        // sonst die Bausteine. Vorher haing alles an Positions-Zeilen — fehlten
+        // die, sprang die Anzeige sofort in die Alarm-Optik, obwohl von sechs
+        // Bausteinen erst einer gekauft war.
         const zielPos = zeilen.filter((z) => z.ebene === "position" && z.ziel_pct != null);
-        const gekauft = zielPos.filter((z) => (z.ist_pct || 0) > 0).length;
-        const aufbau = ohneStand || (zielPos.length > 0 && gekauft < zielPos.length);
+        const zielBs = zeilen.filter((z) => z.ebene === "baustein" && z.ziel_pct != null);
+        const basis = zielPos.length ? zielPos : zielBs;
+        const gekauft = basis.filter((z) => (z.ist_pct || 0) > 0).length;
+        const aufbau = ohneStand || (basis.length > 0 && gekauft < basis.length);
+        const einheit = zielPos.length
+          ? T("Zielpositionen", "target positions")
+          : T("Bausteinen", "building blocks");
 
         // Zielgewicht je Baustein — wandert in den Stand-Editor, damit dort
         // neben jedem Betragsfeld steht, wie gross die Zeile werden soll.
@@ -2109,8 +2118,7 @@
                   "First reporting date: enter what you actually hold today. The shares must add up to 100 % — 100 % of what is already there."),
           });
         };
-        const geplant = (z) => z.ziel_pct != null
-          && (ohneStand || (z.ebene === "position" && !((z.ist_pct || 0) > 0)));
+        const geplant = (z) => z.ziel_pct != null && !((z.ist_pct || 0) > 0);
 
         const zeile = (z, i) => h("div", { key: i, className: "lt-row" + (z.verdikt === "band_verletzt" && !aufbau ? " b-aus" : "") },
           h("div", { className: "satz" },
@@ -2150,8 +2158,8 @@
             T("Deine Zielstruktur steht. Was du tatsächlich hältst, weiß die Fläche noch nicht — liefere einen Stand ein, dann zeigt sie den Abstand dazu.",
               "Your target structure is in place. The surface does not yet know what you actually hold — submit a reporting date and it will show the distance."))
           : aufbau ? h("p", { className: "lt-aufbau" },
-            T("Aufbauphase: " + gekauft + " von " + zielPos.length + " Zielpositionen im Depot. Was fehlt, ist noch nicht gekauft — keine Abweichung, die etwas verlangt.",
-              "Build-up phase: " + gekauft + " of " + zielPos.length + " target positions in the portfolio. What is missing has simply not been bought yet — not a deviation that demands anything.")) : null,
+            T("Aufbauphase: " + gekauft + " von " + basis.length + " " + einheit + " im Depot. Was fehlt, ist noch nicht gekauft — keine Abweichung, die etwas verlangt.",
+              "Build-up phase: " + gekauft + " of " + basis.length + " " + einheit + " in the portfolio. What is missing has simply not been bought yet — not a deviation that demands anything.")) : null,
           ohneStand ? null : h("p", { className: "lt-warn" },
             T("Die Zahlen beziehen sich auf diesen Stichtag und bewegen sich bis zum n\u00E4chsten Auszug nicht.",
               "The figures refer to that reporting date and do not move until the next statement.")),
