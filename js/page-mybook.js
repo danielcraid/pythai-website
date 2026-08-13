@@ -296,13 +296,16 @@
   #mb-root .ze-einstand i{font-family:var(--font-mono);font-size:12px;font-style:normal;color:var(--ash);}
   #mb-root .ze-einstand em{flex:1 1 240px;min-width:0;font-family:var(--font-ui);font-style:normal;font-size:11.5px;line-height:1.5;color:var(--text-secondary,#9BA3B2);}
   #mb-root .lt-fehlt{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary,#9BA3B2);white-space:nowrap;margin-left:9px;}
-  #mb-root .lt-budget{margin:20px 0 0;padding:14px 16px;background:rgba(255,255,255,.015);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:0 8px 8px 0;}
-  #mb-root .lt-budget label{display:inline-flex;align-items:center;gap:9px;}
-  #mb-root .lt-budget label span{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
-  #mb-root .lt-budget label i{font-family:var(--font-mono);font-size:12px;color:var(--ash);font-style:normal;}
-  #mb-root .lt-budget input{width:120px;background:var(--input,#0B0D11);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-mono);font-size:13px;padding:7px 10px;text-align:right;}
+  /* Werkzeugleiste des Langfrist-Depots — gleicher Rhythmus wie bei den
+     Thesen: Kopf, Leiste, Inhalt. Die Aktionen stehen oben, nicht unter
+     allen Zeilen. */
+  #mb-root .lt-werk{margin:22px 0 6px;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  #mb-root .lt-werk-r{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  #mb-root .lt-budget{display:inline-flex;align-items:center;gap:8px;cursor:help;}
+  #mb-root .lt-budget span{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .lt-budget i{font-family:var(--font-mono);font-size:12px;color:var(--ash);font-style:normal;}
+  #mb-root .lt-budget input{width:104px;background:var(--input,#0B0D11);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-mono);font-size:13px;padding:6px 9px;text-align:right;}
   #mb-root .lt-budget input:focus{outline:none;border-color:var(--oracle);}
-  #mb-root .lt-budget p{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--ash);margin:9px 0 0;max-width:620px;}
   #mb-root .lt-kauf{background:none;border:1px solid var(--line);border-radius:999px;color:var(--mist);font-family:var(--font-ui);font-size:11.5px;padding:4px 11px;cursor:pointer;flex:0 0 auto;white-space:nowrap;}
   #mb-root .lt-kauf:hover{border-color:var(--oracle);color:var(--oracle-b);}
   #mb-root .lt-row .marke{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;flex:0 0 auto;color:var(--ash);}
@@ -2065,17 +2068,16 @@
           onClick: () => { const n = !an; setAn(n); ltSchreiben(n); sfx("button-004-toggle"); }
         }, h("span", { className: "knob" }))));
 
-    const budgetFeld = h("div", { className: "lt-budget" },
-      h("label", null,
-        h("span", null, T("Langfrist-Budget", "Long-term budget")),
-        h("input", { type: "text", inputMode: "decimal", value: budget, placeholder: "z. B. 10000",
-          onChange: (e) => setBudget(e.target.value) }),
-        h("i", null, "€")),
-      h("p", null, budgetZahl != null && budgetZahl > 0
-        ? T("Jede Zeile zeigt zusätzlich, welcher Betrag ihrem Zielanteil entspricht. Die Zahl bleibt in diesem Browser — sie wird nicht gespeichert und nicht gesendet.",
-            "Every row additionally shows the amount matching its target share. The number stays in this browser — it is neither stored nor sent.")
-        : T("Optional. Trag eine Summe ein, dann rechnet die Fläche jeden Zielanteil in Euro um — nur zur Orientierung, nur in diesem Browser.",
-            "Optional. Enter a sum and the surface converts every target share into euros — for orientation only, only in this browser.")));
+    // Das Budget ist eine Rechenhilfe, kein Datenfeld — es gehoert in die
+    // Werkzeugleiste, nicht als Kasten ueber die ganze Flaeche. Die Erklaerung
+    // steht am Feld, nicht als Absatz daneben.
+    const budgetFeld = h("label", { className: "lt-budget",
+      title: T("Nur zur Orientierung. Die Zahl bleibt in diesem Browser — sie wird nicht gespeichert und nicht gesendet.",
+               "For orientation only. The number stays in this browser — it is neither stored nor sent.") },
+      h("span", null, T("Budget", "Budget")),
+      h("input", { type: "text", inputMode: "decimal", value: budget, placeholder: "z. B. 10000",
+        onChange: (e) => setBudget(e.target.value) }),
+      h("i", null, "€"));
 
     const erklaerung = h("p", { className: "lt-lead" },
       T("Das norwegische Prinzip: eine breit gestreute Zielstruktur, feste Anteile, und keine Meinung zum n\u00E4chsten Quartal. Hier z\u00E4hlt nicht der Tag, sondern der Abstand zum Ziel.",
@@ -2161,7 +2163,9 @@
         zeilen.forEach((z) => { if (z.ebene === "baustein" && z.ziel_pct != null) zielKarte[z.schluessel] = z.ziel_pct; });
 
         const posName = (z) => z.name || (isinNamen[z.schluessel] && isinNamen[z.schluessel].name) || z.schluessel;
-        const posBaustein = (z) => (isinNamen[z.schluessel] && isinNamen[z.schluessel].baustein) || null;
+        // Seit B144 steht der Baustein am Satz selbst. Die Browser-Karte ist
+        // nur noch der Notnagel fuer Daten aus der Zeit davor.
+        const posBaustein = (z) => z.baustein || (isinNamen[z.schluessel] && isinNamen[z.schluessel].baustein) || null;
 
         // Ein Stand ist immer das GANZE Depot. Wer eine Position nachtraegt,
         // bekommt deshalb den letzten Stand vorbefuellt und ergaenzt die neue
@@ -2347,17 +2351,60 @@
                   : T("Bausteine und Produkte ansehen ▾ (" + rest.length + ")", "View building blocks and products ▾ (" + rest.length + ")")),
             auf ? h("div", { style: { marginTop: 8 } },
               ordne(rest).map((e, i) => zeile(e.z, i, e))) : null) : null,
-          h("div", { style: { marginTop: 18 } },
+          // Die beiden Aktionen stehen fuer das erste Depot oben in der
+          // Werkzeugleiste — dort, wo bei den Thesen auch gehandelt wird.
+          // Nur bei mehreren Depots braucht jedes seine eigenen Knoepfe.
+          di > 0 ? h("div", { style: { marginTop: 18 } },
             h("button", { className: "lt-mehr", onClick: () => setEditor({ depot: dep.depot, start: zeilen.filter((z) => z.ziel_pct != null), ist: zeilen }) },
               dep.ziel_gueltig_ab == null ? T("Zielstruktur festlegen", "Define target structure")
                                           : T("Zielstruktur \u00E4ndern", "Change target structure")),
             h("button", { className: "lt-mehr", style: { marginLeft: 22 }, onClick: () => setPosEditor({ depot: dep.depot, ziel: zielKarte, start: gehalten().length ? gehalten() : null }) },
-              T("Neuen Stand einliefern", "Submit new reporting date"))),
+              T("Neuen Stand einliefern", "Submit new reporting date"))) : null,
           dep.depot ? h(DepotLoeschen, { depot: dep.depot, onGeloescht: () => setNachladen((n) => n + 1) }) : null);
       });
     }
 
-    return h("div", { className: "lt" }, kopf, erklaerung, budgetFeld,
+    // Werkzeugleiste im Rhythmus der Thesen-Flaeche: Kopf, dann Leiste, dann
+    // Inhalt. Die Aktionen standen bisher ganz unten — nach allen Zeilen, wo
+    // niemand sie sucht.
+    const haupt = (stand === "ok" && Array.isArray(depots) && depots.length) ? depots[0] : null;
+    let werkzeug = null;
+    if (haupt) {
+      const hz = Array.isArray(haupt.zeilen) ? haupt.zeilen : [];
+      const hPos = hz.filter((z) => z.ebene === "position" && z.ziel_pct != null);
+      const hBs = hz.filter((z) => z.ebene === "baustein" && z.ziel_pct != null);
+      const hBasis = ltBasis(hPos, hBs);
+      const hGekauft = hBasis.filter((z) => (z.ist_pct || 0) > 0).length;
+      const hZiel = {};
+      hz.forEach((z) => { if (z.ebene === "baustein" && z.ziel_pct != null) hZiel[z.schluessel] = z.ziel_pct; });
+      const hGehalten = hz
+        .filter((z) => z.ebene === "position" && (z.ist_pct || 0) > 0)
+        .map((z) => {
+          const b = z.baustein || (isinNamen[z.schluessel] && isinNamen[z.schluessel].baustein) || null;
+          return { name: z.name || (isinNamen[z.schluessel] && isinNamen[z.schluessel].name) || z.schluessel,
+            isin: z.schluessel, klasse: (b && LT_ZU_KLASSE[b]) || "aktien", baustein: b || "welt",
+            gewicht_pct: String(z.ist_pct).replace(".", ","), betrag: "" };
+        });
+      werkzeug = h("div", { className: "toolbar lt-werk" },
+        h(PyEyebrow, null, hBasis.length
+          ? T("\u00DCberblick · " + hGekauft + "/" + hBasis.length + " "
+              + (hBasis === hPos ? "Positionen" : "Bausteine") + " im Depot",
+              "Overview · " + hGekauft + "/" + hBasis.length + " "
+              + (hBasis === hPos ? "positions" : "building blocks") + " held")
+          : T("\u00DCberblick", "Overview")),
+        h("div", { className: "lt-werk-r" },
+          budgetFeld,
+          h(Button, { variant: "ghost", size: "sm",
+            onClick: () => setEditor({ depot: haupt.depot, start: hz.filter((z) => z.ziel_pct != null), ist: hz }) },
+            haupt.ziel_gueltig_ab == null ? T("Zielstruktur festlegen", "Define target structure")
+                                          : T("Zielstruktur \u00E4ndern", "Change target structure")),
+          h(Button, { variant: "oracle", size: "sm",
+            onClick: () => setPosEditor({ depot: haupt.depot, ziel: hZiel, start: hGehalten.length ? hGehalten : null }) },
+            T("Neuen Stand einliefern", "Submit new reporting date"))));
+    }
+
+    return h("div", { className: "lt" }, kopf, erklaerung, werkzeug,
+      (haupt || stand !== "ok") ? null : budgetFeld,
       editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, ist: editor.ist || null, onSchliessen: () => setEditor(null) }) : null,
       posEditor ? h(PositionsEditor, { depot: posEditor.depot, start: posEditor.start || null,
         hinweis: posEditor.hinweis || null,
