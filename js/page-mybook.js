@@ -356,6 +356,20 @@
   #mb-root .zed-liste{background:none;border:1px solid var(--bull,#6FCF9A);border-radius:999px;color:var(--bull,#6FCF9A);font-family:var(--font-ui);font-size:12.5px;padding:6px 14px;cursor:pointer;}
   #mb-root .zed-warn{font-family:var(--font-ui);font-size:13px;line-height:1.6;color:#E7A062;margin:12px 0 0;}
   #mb-root .zed-fuss{display:flex;align-items:center;gap:18px;margin:18px 0 0;}
+  /* Mechanik (AP6.9) */
+  #mb-root .mek{margin:16px 0 18px;padding:14px 16px;background:rgba(255,255,255,.014);border:1px solid var(--line);border-left:3px solid var(--oracle);border-radius:0 8px 8px 0;}
+  #mb-root .mek-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--oracle);line-height:1.6;margin-bottom:8px;}
+  #mb-root .mek-fest{font-family:var(--font-ui);font-size:13.5px;line-height:1.65;color:var(--parch);margin:0 0 10px;max-width:760px;}
+  #mb-root .mek-aufbau{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:var(--text-secondary,#9BA3B2);margin:0 0 10px;max-width:760px;}
+  #mb-root .mek-tab{margin-top:12px;}
+  #mb-root .mek-grp{margin:0 0 14px;}
+  #mb-root .mek-grp-t{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ash);margin:0 0 4px;}
+  #mb-root .mek-row{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--line);}
+  #mb-root .mek-n{flex:1 1 200px;min-width:0;font-family:var(--font-ui);font-size:13.5px;color:var(--parch);}
+  #mb-root .mek-z{flex:0 0 auto;font-family:var(--font-mono);font-size:11.5px;color:var(--ash);}
+  #mb-root .mek-d{flex:0 0 auto;font-family:var(--font-mono);font-size:12px;color:var(--text-secondary,#9BA3B2);}
+  #mb-root .mek-d.fehlt{color:var(--oracle-b,#F2CE7A);}
+  #mb-root .mek-rund{flex:1 1 100%;font-family:var(--font-ui);font-size:11.5px;color:var(--ash);}
   #mb-root .lt-fuss{font-family:var(--font-ui);font-size:12px;line-height:1.7;color:var(--ash);margin:22px 0 0;max-width:640px;}
 
   @media(max-width:560px){
@@ -2204,6 +2218,75 @@
         h("button", { className: "zed-zu", onClick: onSchliessen }, T("Abbrechen", "Cancel"))));
   }
 
+  // --- Mechanik (AP6.9) ----------------------------------------------------
+  // Der Server liefert die Deltas; die Sprache ist unsere Verantwortung.
+  // "delta_pp positiv = aufstocken" heisst hier NICHT "kaufen", sondern
+  // "bis zu deinem Ziel fehlen X Punkte". Dieselbe Zahl, aber als Abstand zu
+  // einer selbst gesetzten Struktur — nicht als etwas, das fuer den Nutzer
+  // geeignet dargestellt wird. Daran haengt die Paragraph-32-Linie.
+  //
+  // Das label ist Pflicht-Anzeige an JEDER Mechanik-Darstellung (Backend,
+  // 13.08.). Es steht deshalb ausserhalb des Aufklappens.
+  function Mechanik({ m, budget, aufbau, name }) {
+    const [auf, setAuf] = useState(false);
+    if (!m || !m.modus) return null;
+
+    const inEuro = (pp) => (budget == null || budget <= 0 || pp == null)
+      ? null : Math.round((budget * Math.abs(pp)) / 100);
+    const euro = (x) => ltEuro(x);
+
+    const satz = (r) => {
+      const d = typeof r.delta_pp === "number" ? r.delta_pp : null;
+      if (d == null) return "";
+      if (Math.abs(d) < 0.05) return T("auf Ziel", "on target");
+      const eur = inEuro(d);
+      const zusatz = eur != null ? " (" + euro(eur) + " €)" : "";
+      return d > 0
+        ? T("bis zum Ziel fehlen " + ltPct(d) + " Punkte" + zusatz,
+            ltPct(d) + " points short of target" + zusatz)
+        : T(ltPct(Math.abs(d)) + " Punkte ueber Ziel" + zusatz,
+            ltPct(Math.abs(d)) + " points above target" + zusatz);
+    };
+
+    const tabelle = (titel, rows, istPosition) => (Array.isArray(rows) && rows.length)
+      ? h("div", { className: "mek-grp", key: titel },
+          h("div", { className: "mek-grp-t" }, titel),
+          rows.map((r, i) => h("div", { key: i, className: "mek-row" },
+            h("div", { className: "mek-n" },
+              istPosition ? (r.name || r.schluessel) : ltName({ ebene: titel === T("Klassen", "Classes") ? "klasse" : "baustein", schluessel: r.schluessel })),
+            h("div", { className: "mek-z" },
+              T("ist " + ltPct(r.ist_pct) + " % · Ziel " + ltPct(r.ziel_pct) + " %",
+                "actual " + ltPct(r.ist_pct) + " % · target " + ltPct(r.ziel_pct) + " %")),
+            h("div", { className: "mek-d" + (typeof r.delta_pp === "number" && r.delta_pp > 0 ? " fehlt" : "") }, satz(r)),
+            r.rundungsausgleich_pp != null
+              ? h("div", { className: "mek-rund" },
+                  T("darin " + ltPct(r.rundungsausgleich_pp) + " Punkte Rundungsausgleich",
+                    "including " + ltPct(r.rundungsausgleich_pp) + " points rounding adjustment"))
+              : null)))
+      : null;
+
+    const hatTabellen = ["klassen", "bausteine", "positionen"]
+      .some((k) => Array.isArray(m[k]) && m[k].length);
+
+    return h("div", { className: "mek" },
+      h("div", { className: "mek-label" }, m.label),
+      m.feststellung ? h("p", { className: "mek-fest" }, m.feststellung) : null,
+      // Im Aufbau ist der Bandriss rechnerisch erzwungen: wer erst einen von
+      // sechs Bausteinen haelt, haelt darin 100 %. Ohne diesen Satz stuende
+      // die Tabelle im Widerspruch zur Kopfzeile eine Zeile darueber.
+      (aufbau && hatTabellen) ? h("p", { className: "mek-aufbau" },
+        T("Dein Depot ist noch im Aufbau. Ein Teil dieser Abstände ist deshalb kein Abdriften, sondern schlicht noch nicht gekauft — die Tabelle rechnet den Abstand, nicht den Handlungsbedarf.",
+          "Your portfolio is still being built. Part of these distances is therefore not drift but simply not bought yet — the table computes the distance, not a need to act.")) : null,
+      hatTabellen
+        ? h("button", { className: "lt-mehr", onClick: () => setAuf(!auf) },
+            auf ? T("Mechanik schließen ▴", "Close mechanics ▴") : T("Mechanik ansehen ▾", "View mechanics ▾"))
+        : null,
+      (auf && hatTabellen) ? h("div", { className: "mek-tab" },
+        tabelle(T("Klassen", "Classes"), m.klassen, false),
+        tabelle(T("Bausteine", "Building blocks"), m.bausteine, false),
+        tabelle(T("Produkte", "Products"), m.positionen, true)) : null);
+  }
+
   function Langfrist() {
     const [an, setAn] = useState(ltGelesen());
     const [stand, setStand] = useState("laedt"); // laedt | ok | leer | fehler | gesperrt
@@ -2541,9 +2624,15 @@
                   + (inEuro(fehltPp(z)) != null ? " (" + euroText(inEuro(fehltPp(z))) + " €)" : ""))
               : null,
             seitEinstand(z) != null
-              ? h("span", { className: "lt-verlauf" + (seitEinstand(z) >= 0 ? " auf" : " ab"), title: kursTitel(z) },
-                  (seitEinstand(z) >= 0 ? "+" : "\u2212") + ltPct(Math.abs(seitEinstand(z)))
-                  + T(" % seit Einstand", " % since purchase"))
+              ? h("span", { className: "lt-verlauf"
+                    + (Math.abs(seitEinstand(z)) < 0.05 ? "" : (seitEinstand(z) > 0 ? " auf" : " ab")),
+                  title: kursTitel(z) },
+                  // Unter 0,05 Punkten ist es keine Bewegung, sondern Rundung.
+                  // "-0,0 %" behauptet einen Verlust, den es nicht gibt.
+                  (Math.abs(seitEinstand(z)) < 0.05
+                    ? T("unverändert seit Einstand", "unchanged since purchase")
+                    : (seitEinstand(z) > 0 ? "+" : "\u2212") + ltPct(Math.abs(seitEinstand(z)))
+                      + T(" % seit Einstand", " % since purchase")))
               : null),
           h("div", { className: "lt-rechts" },
             h("div", { className: "marke" + (geplant(z) ? " plan" : (z.verdikt === "band_verletzt" && !aufbau ? " aus" : "")) },
@@ -2584,6 +2673,8 @@
           : aufbau ? h("p", { className: "lt-aufbau" },
             T("Aufbauphase: " + gekauft + " von " + basis.length + " " + einheit + " im Depot. Was fehlt, ist noch nicht gekauft — keine Abweichung, die etwas verlangt.",
               "Build-up phase: " + gekauft + " of " + basis.length + " " + einheit + " in the portfolio. What is missing has simply not been bought yet — not a deviation that demands anything.")) : null,
+          dep.mechanik ? h(Mechanik, { m: dep.mechanik, budget: budgetZahl, aufbau: aufbau,
+            name: dep.depot }) : null,
           ohneStand ? null : h("p", { className: "lt-warn" },
             T("Die Zahlen beziehen sich auf diesen Stichtag und bewegen sich bis zum n\u00E4chsten Auszug nicht.",
               "The figures refer to that reporting date and do not move until the next statement.")),
