@@ -342,7 +342,9 @@
   #mb-root .zed-link{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-ui);font-size:12.5px;color:var(--oracle);}
   #mb-root .zed-feld{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap;}
   #mb-root .zed-feld label{flex:0 0 118px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
-  #mb-root .zed-feld input{flex:1 1 220px;min-width:0;background:var(--input,#0B0D11);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-ui);font-size:13.5px;padding:9px 11px;}
+  #mb-root .zed-feld input{flex:0 1 340px;min-width:0;background:var(--input,#0B0D11);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-ui);font-size:13.5px;padding:9px 11px;}
+  #mb-root .zed-feld input.mittel{flex:0 1 210px;font-family:var(--font-mono);letter-spacing:.03em;}
+  #mb-root .zed-feld input.kurz{flex:0 1 132px;font-family:var(--font-mono);text-align:right;}
   #mb-root .zed-feld input:focus{outline:none;border-color:var(--oracle);}
   #mb-root .zed-feld input.ungueltig{border-color:var(--ox-b,#E0726B);}
   #mb-root .zed-feld i{font-family:var(--font-mono);font-size:12px;font-style:normal;color:var(--ash);}
@@ -2113,14 +2115,16 @@
           onChange: (e) => setName(e.target.value) })),
       h("div", { className: "zed-feld" },
         h("label", null, "ISIN"),
-        h("input", { type: "text", className: isinOk ? "" : "ungueltig", value: isin, placeholder: "IE00…",
+        h("input", { type: "text", className: "mittel" + (isinOk ? "" : " ungueltig"), value: isin, placeholder: "IE00…",
           onChange: (e) => setIsin(e.target.value.toUpperCase()) })),
       h("div", { className: "zed-feld" },
         h("label", null, T("Einstandskurs", "Purchase price")),
-        h("input", { type: "text", inputMode: "decimal", className: ekOk ? "" : "ungueltig", value: einstand,
+        // Das Waehrungszeichen steht VOR dem Feld. Hinter einem 600 Pixel
+        // breiten Eingabefeld sieht es niemand.
+        h("i", null, "€"),
+        h("input", { type: "text", inputMode: "decimal", className: "kurz" + (ekOk ? "" : " ungueltig"), value: einstand,
           placeholder: T("z. B. 512,40", "e.g. 512.40"),
-          onChange: (e) => setEinstand(e.target.value) }),
-        h("i", null, "€")),
+          onChange: (e) => setEinstand(e.target.value) })),
       h("p", { className: "zed-hin" },
         T("Kurs je Anteil — nicht die angelegte Summe. Er dient nur dazu, sp\u00E4ter die Ver\u00E4nderung zu zeigen.",
           "Price per share — not the amount invested. It only serves to show the change later.")),
@@ -2417,6 +2421,23 @@
           return out;
         };
 
+        // Der Editor gehoert AN die Zeile, nicht an den Anfang der Flaeche.
+        // Wer auf Bearbeiten drueckt und dann 800 Pixel nach oben springt,
+        // verliert den Zusammenhang zu dem, was er bearbeitet.
+        const editorHier = (z) => (zeilenEditor && zeilenEditor.depot === dep.depot
+          && zeilenEditor.anker === z.ebene + ":" + z.schluessel)
+          ? h(ZeileEditor, {
+              key: "zed-" + z.schluessel,
+              depot: zeilenEditor.depot,
+              baustein: zeilenEditor.baustein,
+              zeilen: zeilen,
+              onGespeichert: () => { setZeilenEditor(null); setNachladen((n) => n + 1); },
+              onSchliessen: () => setZeilenEditor(null),
+              onZurStruktur: () => { setZeilenEditor(null);
+                setEditor({ depot: dep.depot, start: zeilen.filter((y) => y.ziel_pct != null), ist: zeilen }); },
+            })
+          : null;
+
         const zeile = (z, i, opt) => h("div", { key: i, className: "lt-row"
             + ((opt && opt.unter) ? " unter" : "")
             + (z.verdikt === "band_verletzt" && !aufbau ? " b-aus" : "") },
@@ -2459,7 +2480,8 @@
                   title: T("Öffnet nur diese Zeile: Produkt, ISIN und Einstandskurs.",
                            "Opens this row only: product, ISIN and purchase price."),
                   onClick: () => setZeilenEditor({ depot: dep.depot,
-                    baustein: z.ebene === "position" ? (posBaustein(z) || z.baustein) : z.schluessel }) },
+                    baustein: z.ebene === "position" ? (posBaustein(z) || z.baustein) : z.schluessel,
+                    anker: z.ebene + ":" + z.schluessel }) },
                   T("Bearbeiten", "Edit"))
               : null,
             geplant(z) && (z.ebene === "baustein" || z.ebene === "position")
@@ -2493,13 +2515,13 @@
                            "The statement is on file, the target weights are not. Without a target there is no distance to measure — below is how it looks today."))) : null,
           klassen.length ? h("div", { className: "lt-grp" },
             h("div", { className: "lt-grp-t" }, T("Klassen", "Classes")),
-            klassen.map(zeile)) : null,
+            klassen.map((z, i) => [zeile(z, i), editorHier(z)])) : null,
           rest.length ? h("div", { className: "lt-grp" },
             h("button", { className: "lt-mehr", onClick: () => setOffen(Object.assign({}, offen, { [dep.depot]: !auf })) },
               auf ? T("Bausteine und Produkte schlie\u00DFen ▴", "Close building blocks and products ▴")
                   : T("Bausteine und Produkte ansehen ▾ (" + rest.length + ")", "View building blocks and products ▾ (" + rest.length + ")")),
             auf ? h("div", { style: { marginTop: 8 } },
-              ordne(rest).map((e, i) => zeile(e.z, i, e))) : null) : null,
+              ordne(rest).map((e, i) => [zeile(e.z, i, e), editorHier(e.z)])) : null) : null,
           // Die beiden Aktionen stehen fuer das erste Depot oben in der
           // Werkzeugleiste — dort, wo bei den Thesen auch gehandelt wird.
           // Nur bei mehreren Depots braucht jedes seine eigenen Knoepfe.
@@ -2555,18 +2577,6 @@
     return h("div", { className: "lt" }, kopf, erklaerung, werkzeug,
       (haupt || stand !== "ok") ? null : budgetFeld,
       editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, ist: editor.ist || null, onSchliessen: () => setEditor(null) }) : null,
-      zeilenEditor ? h(ZeileEditor, {
-        depot: zeilenEditor.depot,
-        baustein: zeilenEditor.baustein,
-        zeilen: (depots.find((d) => d.depot === zeilenEditor.depot) || {}).zeilen || [],
-        onGespeichert: () => { setZeilenEditor(null); setNachladen((n) => n + 1); },
-        onSchliessen: () => setZeilenEditor(null),
-        onZurStruktur: () => {
-          const d = depots.find((x) => x.depot === zeilenEditor.depot);
-          setZeilenEditor(null);
-          if (d) setEditor({ depot: d.depot, start: (d.zeilen || []).filter((z) => z.ziel_pct != null), ist: d.zeilen });
-        },
-      }) : null,
       posEditor ? h(PositionsEditor, { depot: posEditor.depot, start: posEditor.start || null,
         hinweis: posEditor.hinweis || null,
         zielGewichte: posEditor.ziel || null,
@@ -2995,6 +3005,10 @@
       h(SiteNav, { active: "mybook.html" }),
       h(MyBookHero),
       h(PySection, null,
+        h("h2", { className: "mb" }, T("Deine Thesen", "Your theses")),
+        h("p", { className: "mb-lead" },
+          T("Einzelne Positionen mit deinen Marken, Kill-Triggern und der Verweildauer. Jede These hat ein Ende — hier siehst du, wie sie steht.",
+            "Individual positions with your levels, kill-triggers and holding time. Every thesis has an end — here is how it stands.")),
         h("div", { className: "toolbar" },
           h(PyEyebrow, null, T("Überblick · ", "Overview · ") + count + "/" + MAX + " Topics"),
           h("div", { style: { display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" } },
@@ -3003,10 +3017,7 @@
               h("button", { className: !simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(false); } }, T("Detail", "Detail"))),
             h("label", { className: "rep" }, h("button", { className: "sw " + (summary ? "on" : "off"), onClick: () => { sfx("button-004-toggle"); setSummary(!summary); } }, h("span", { className: "knob" })), T("Tägliche My-Book-Summary", "Daily My-Book summary")),
             h(Button, { variant: "oracle", size: "sm", disabled: count >= MAX, onClick: addTopic }, T("+ Topic hinzufügen", "+ Add topic")))),
-        h("h2", { className: "mb" }, T("Deine Thesen", "Your theses")),
-        h("p", { className: "mb-lead" },
-          T("Einzelne Positionen mit deinen Marken, Kill-Triggern und der Verweildauer. Jede These hat ein Ende — hier siehst du, wie sie steht.",
-            "Individual positions with your levels, kill-triggers and holding time. Every thesis has an end — here is how it stands.")),
+
         rows.length ? (simple ? h("div", { className: "simplelist" }, rows.map((p) => {
           // 10.07.2026 (Daniel-Catch Prosus WACKELT/INTAKT): Einfach-Liste zeigt
           // jetzt dieselbe konsolidierte Status-Pill wie die Detail-Karte —
