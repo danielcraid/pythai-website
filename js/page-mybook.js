@@ -1585,7 +1585,7 @@
                                           "No ranking. The order comes from the maintained list; it is not a judgement.")));
   }
 
-  function PositionsEditor({ depot, onSchliessen, start, weiterLabel, onGespeichert, zielGewichte, hinweis, budget }) {
+  function PositionsEditor({ depot, onSchliessen, start, weiterLabel, onGespeichert, zielGewichte, hinweis, budget, vorher, vorherDatum }) {
     // Was soll diese Zeile laut Ziel sein? Steht direkt neben dem Feld, in dem
     // der Betrag eingetragen wird — sonst muesste man es sich merken.
     const zielVon = (z) => (zielGewichte && z && zielGewichte[z.baustein] != null) ? zielGewichte[z.baustein] : null;
