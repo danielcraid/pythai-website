@@ -332,6 +332,24 @@
   /* Fehler: NIEMALS als "kein Depot" ausgeben */
   #mb-root .lt-fehler{background:rgba(224,114,107,.06);border:1px solid rgba(224,114,107,.3);border-left:3px solid var(--ox-b);border-radius:0 10px 10px 0;padding:18px 22px;margin-top:20px;font-family:var(--font-ui);font-size:13.5px;line-height:1.65;color:var(--parch);}
 
+  /* Zeilen-Editor: eine Zeile, kein Formular fuer die ganze Struktur */
+  #mb-root .zed{background:var(--card,#15181E);border:1px solid var(--line);border-left:3px solid var(--oracle);border-radius:0 10px 10px 0;padding:20px 22px;margin:18px 0 0;}
+  #mb-root .zed-kopf{display:flex;align-items:baseline;justify-content:space-between;gap:14px;}
+  #mb-root .zed-kopf h4{font-family:var(--font-oracle);font-weight:400;font-size:21px;color:var(--parch);margin:0;}
+  #mb-root .zed-zu{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-ui);font-size:12.5px;color:var(--ash);}
+  #mb-root .zed-zu:hover{color:var(--oracle);}
+  #mb-root .zed-ziel{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--text-secondary,#9BA3B2);margin:6px 0 16px;}
+  #mb-root .zed-link{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-ui);font-size:12.5px;color:var(--oracle);}
+  #mb-root .zed-feld{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap;}
+  #mb-root .zed-feld label{flex:0 0 118px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .zed-feld input{flex:1 1 220px;min-width:0;background:var(--input,#0B0D11);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-ui);font-size:13.5px;padding:9px 11px;}
+  #mb-root .zed-feld input:focus{outline:none;border-color:var(--oracle);}
+  #mb-root .zed-feld input.ungueltig{border-color:var(--ox-b,#E0726B);}
+  #mb-root .zed-feld i{font-family:var(--font-mono);font-size:12px;font-style:normal;color:var(--ash);}
+  #mb-root .zed-hin{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--ash);margin:0 0 14px;max-width:560px;}
+  #mb-root .zed-liste{background:none;border:1px solid var(--bull,#6FCF9A);border-radius:999px;color:var(--bull,#6FCF9A);font-family:var(--font-ui);font-size:12.5px;padding:6px 14px;cursor:pointer;}
+  #mb-root .zed-warn{font-family:var(--font-ui);font-size:13px;line-height:1.6;color:#E7A062;margin:12px 0 0;}
+  #mb-root .zed-fuss{display:flex;align-items:center;gap:18px;margin:18px 0 0;}
   #mb-root .lt-fuss{font-family:var(--font-ui);font-size:12px;line-height:1.7;color:var(--ash);margin:22px 0 0;max-width:640px;}
 
   @media(max-width:560px){
@@ -2000,13 +2018,138 @@
             T("Abbrechen", "Cancel")))));
   }
 
+  // Baut den vollstaendigen Ziel-Koerper aus dem gespeicherten Stand und der
+  // EINEN geaenderten Zeile. Ein Ziel-POST ersetzt die ganze Struktur — was
+  // hier fehlt, waere danach geloescht. Deshalb steht das als eigene,
+  // pruefbare Funktion da und nicht mitten im Klick-Handler.
+  const ltZielKoerper = (alle, depot, baustein, isin, einstandZahl) => {
+    const zs = Array.isArray(alle) ? alle : [];
+    const kopf = zs
+      .filter((z) => (z.ebene === "klasse" || z.ebene === "baustein") && z.ziel_pct != null)
+      .map((z) => ({ ebene: z.ebene, schluessel: z.schluessel, ziel_pct: z.ziel_pct, band_rel_pct: z.band_rel_pct }));
+    const andere = zs
+      .filter((z) => z.ebene === "position" && z.baustein && z.baustein !== baustein && z.ziel_pct != null)
+      .map((z) => {
+        const e = { ebene: "position", schluessel: z.schluessel, baustein: z.baustein,
+          ziel_pct: z.ziel_pct, band_rel_pct: z.band_rel_pct };
+        if (typeof z.einstand === "number") { e.einstand = z.einstand; e.waehrung = z.waehrung || "EUR"; }
+        return e;
+      });
+    const bs = zs.find((z) => z.ebene === "baustein" && z.schluessel === baustein) || null;
+    const neu = [];
+    if (LT_ISIN.test(String(isin || "").trim().toUpperCase()) && bs && bs.ziel_pct != null) {
+      const e = { ebene: "position", schluessel: String(isin).trim().toUpperCase(), baustein: baustein,
+        ziel_pct: bs.ziel_pct, band_rel_pct: bs.band_rel_pct };
+      if (einstandZahl != null && einstandZahl > 0) { e.einstand = einstandZahl; e.waehrung = "EUR"; }
+      neu.push(e);
+    }
+    return { depot: depot || LT_DEPOT_STANDARD, quelle: "inhaber_entscheidung",
+      zeilen: kopf.concat(andere).concat(neu) };
+  };
+
+  // --- Zeilen-Editor · eine Zeile, nicht die ganze Struktur -----------------
+  // Bisher fuehrte jeder Bearbeiten-Klick in den vollstaendigen Ziel-Editor
+  // mit allen Klassen, allen Bausteinen und allen Gewichten. Wer ein Produkt
+  // eintragen will, muss nicht durch die halbe Struktur.
+  //
+  // Was hier NICHT editierbar ist: der Zielanteil. Die Gewichte muessen je
+  // Ebene zusammen 100 ergeben; eine Zeile einzeln zu verschieben wuerde die
+  // Summe brechen und der Server wiese es zu Recht zurueck. Deshalb steht der
+  // Anteil hier nur da, mit dem Weg zur Struktur daneben.
+  function ZeileEditor({ depot, zeilen, baustein, onGespeichert, onSchliessen, onZurStruktur }) {
+    const alle = Array.isArray(zeilen) ? zeilen : [];
+    const bsZeile = alle.find((z) => z.ebene === "baustein" && z.schluessel === baustein) || null;
+    const posZeile = alle.find((z) => z.ebene === "position" && z.baustein === baustein) || null;
+
+    const [name, setName] = useState(posZeile ? (posZeile.name || "") : "");
+    const [isin, setIsin] = useState(posZeile ? (posZeile.schluessel || "") : "");
+    const [einstand, setEinstand] = useState(
+      posZeile && typeof posZeile.einstand === "number" ? String(posZeile.einstand).replace(".", ",") : "");
+    const [listeAuf, setListeAuf] = useState(!posZeile);
+    const [busy, setBusy] = useState(false);
+    const [meldung, setMeldung] = useState(null);
+
+    const isinOk = !isin.trim() || ltIsinOk(isin);
+    const ekZahl = ltZahl(einstand);
+    const ekOk = !einstand.trim() || (ekZahl != null && ekZahl > 0);
+    const ekOhneIsin = !!einstand.trim() && !ltIsinOk(isin);
+
+    const senden = () => {
+      setBusy(true); setMeldung(null);
+      fetch(API + "/api/mybook/sockel/ziel", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ltZielKoerper(alle, depot, baustein, isin, ekZahl)),
+      })
+        .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+        .then((res) => {
+          setBusy(false);
+          if (res.code === 200 && res.d && res.d.ok) {
+            if (typeof onGespeichert === "function") onGespeichert();
+            return;
+          }
+          const e = res.d && res.d.error;
+          setMeldung(T("Nicht gespeichert (" + (e || res.code) + "). Es wurde nichts ge\u00E4ndert.",
+                       "Not saved (" + (e || res.code) + "). Nothing was changed."));
+        })
+        .catch(() => { setBusy(false); setMeldung(T("Keine Verbindung. Es wurde nichts ge\u00E4ndert.", "No connection. Nothing was changed.")); });
+    };
+
+    return h("div", { className: "zed" },
+      h("div", { className: "zed-kopf" },
+        h("h4", null, ltName({ ebene: "baustein", schluessel: baustein })),
+        h("button", { className: "zed-zu", onClick: onSchliessen }, T("Schlie\u00DFen", "Close"))),
+
+      bsZeile && bsZeile.ziel_pct != null
+        ? h("p", { className: "zed-ziel" },
+            T("Zielanteil " + ltPct(bsZeile.ziel_pct) + " %", "Target share " + ltPct(bsZeile.ziel_pct) + " %"),
+            h("button", { className: "zed-link", onClick: onZurStruktur },
+              T("Gewichte \u00E4ndern", "change weights")))
+        : null,
+
+      h("div", { className: "zed-feld" },
+        h("label", null, T("Produkt", "Product")),
+        h("input", { type: "text", value: name, placeholder: T("Name des Fonds oder Wertpapiers", "Name of the fund or security"),
+          onChange: (e) => setName(e.target.value) })),
+      h("div", { className: "zed-feld" },
+        h("label", null, "ISIN"),
+        h("input", { type: "text", className: isinOk ? "" : "ungueltig", value: isin, placeholder: "IE00…",
+          onChange: (e) => setIsin(e.target.value.toUpperCase()) })),
+      h("div", { className: "zed-feld" },
+        h("label", null, T("Einstandskurs", "Purchase price")),
+        h("input", { type: "text", inputMode: "decimal", className: ekOk ? "" : "ungueltig", value: einstand,
+          placeholder: T("z. B. 512,40", "e.g. 512.40"),
+          onChange: (e) => setEinstand(e.target.value) }),
+        h("i", null, "€")),
+      h("p", { className: "zed-hin" },
+        T("Kurs je Anteil — nicht die angelegte Summe. Er dient nur dazu, sp\u00E4ter die Ver\u00E4nderung zu zeigen.",
+          "Price per share — not the amount invested. It only serves to show the change later.")),
+
+      h("button", { className: "zed-liste", onClick: () => setListeAuf(!listeAuf) },
+        listeAuf ? T("Beispiele schlie\u00DFen", "Close examples") : T("Beispiele ansehen", "View examples")),
+      listeAuf ? h(Beispiele, { baustein: baustein, waehlbar: true, gewaehlt: ltIsinOk(isin) ? isin : null,
+        onWaehlen: (x) => { setName(x.name || ""); setIsin(x.isin || ""); setListeAuf(false); } }) : null,
+
+      ekOhneIsin ? h("p", { className: "zed-warn" },
+        T("Ein Einstandskurs braucht ein Papier. Trag eine g\u00FCltige ISIN ein oder lass das Kursfeld leer.",
+          "A purchase price needs a security. Enter a valid ISIN or leave the price field empty.")) : null,
+      meldung ? h("p", { className: "zed-warn" }, meldung) : null,
+
+      h("div", { className: "zed-fuss" },
+        h(Button, { variant: "oracle", size: "sm", loading: busy,
+          disabled: busy || !isinOk || !ekOk || ekOhneIsin, onClick: senden },
+          T("Speichern", "Save")),
+        h("button", { className: "zed-zu", onClick: onSchliessen }, T("Abbrechen", "Cancel"))));
+  }
+
   function Langfrist() {
     const [an, setAn] = useState(ltGelesen());
     const [stand, setStand] = useState("laedt"); // laedt | ok | leer | fehler | gesperrt
     const [depots, setDepots] = useState([]);
     const [offen, setOffen] = useState({});
     const [editor, setEditor] = useState(null); // null | { depot, start }
-    const [posEditor, setPosEditor] = useState(null); // null | { depot }
+    const [posEditor, setPosEditor] = useState(null);
+    const [zeilenEditor, setZeilenEditor] = useState(null); // { depot, baustein } // null | { depot }
     const [nachladen, setNachladen] = useState(0);
     const [einrichtung, setEinrichtung] = useState(false);
     // Nachtrag V2: die DB kennt den Produktnamen erst nach dem ersten Stand.
@@ -2311,12 +2454,13 @@
                 : z.verdikt === "im_band" ? T("im Band", "in band")
                 : z.verdikt === "ohne_band" ? T("kein Band", "no band")
                 : T("kein Ziel", "no target")),
-            z.ebene === "position" && !geplant(z)
+            (z.ebene === "baustein" || z.ebene === "position")
               ? h("button", { className: "lt-kauf",
-                  title: T("Öffnet die Zielstruktur, wo Produkt und Einstandskurs dieses Bausteins stehen.",
-                           "Opens the target structure, where this building block's product and purchase price live."),
-                  onClick: () => setEditor({ depot: dep.depot, start: zeilen.filter((y) => y.ziel_pct != null), ist: zeilen }) },
-                  T("Produkt ändern", "change product"))
+                  title: T("Öffnet nur diese Zeile: Produkt, ISIN und Einstandskurs.",
+                           "Opens this row only: product, ISIN and purchase price."),
+                  onClick: () => setZeilenEditor({ depot: dep.depot,
+                    baustein: z.ebene === "position" ? (posBaustein(z) || z.baustein) : z.schluessel }) },
+                  T("Bearbeiten", "Edit"))
               : null,
             geplant(z) && (z.ebene === "baustein" || z.ebene === "position")
               ? h("button", { className: "lt-kauf",
@@ -2411,6 +2555,18 @@
     return h("div", { className: "lt" }, kopf, erklaerung, werkzeug,
       (haupt || stand !== "ok") ? null : budgetFeld,
       editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, ist: editor.ist || null, onSchliessen: () => setEditor(null) }) : null,
+      zeilenEditor ? h(ZeileEditor, {
+        depot: zeilenEditor.depot,
+        baustein: zeilenEditor.baustein,
+        zeilen: (depots.find((d) => d.depot === zeilenEditor.depot) || {}).zeilen || [],
+        onGespeichert: () => { setZeilenEditor(null); setNachladen((n) => n + 1); },
+        onSchliessen: () => setZeilenEditor(null),
+        onZurStruktur: () => {
+          const d = depots.find((x) => x.depot === zeilenEditor.depot);
+          setZeilenEditor(null);
+          if (d) setEditor({ depot: d.depot, start: (d.zeilen || []).filter((z) => z.ziel_pct != null), ist: d.zeilen });
+        },
+      }) : null,
       posEditor ? h(PositionsEditor, { depot: posEditor.depot, start: posEditor.start || null,
         hinweis: posEditor.hinweis || null,
         zielGewichte: posEditor.ziel || null,
