@@ -288,9 +288,24 @@
      auseinander. Ergebnis: Zeilenhoehe 60 statt 21. flex-start richtet
      stattdessen beide Bloecke oben aus. */
   #mb-root .lt-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid var(--line);}
-  #mb-root .lt-row .satz{font-family:var(--font-ui);font-size:14px;line-height:1.5;color:var(--mist);min-width:0;}
+  #mb-root .lt-row .satz{flex:1 1 auto;font-family:var(--font-ui);font-size:14px;line-height:1.5;color:var(--mist);min-width:0;}
   #mb-root .lt-row .satz b{color:var(--parch);font-weight:600;}
-  #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:auto;justify-content:flex-end;min-height:21px;}
+  /* Zahlenspalten: rechtsbuendig, Mono, feste Breiten — sonst tanzen die
+     Kommas und die Tabelle liest sich nicht. */
+  #mb-root .lt-zahlen{display:flex;align-items:baseline;gap:16px;flex:0 0 auto;margin-left:auto;font-family:var(--font-mono);font-size:12px;}
+  #mb-root .lt-zahlen span{display:inline-block;text-align:right;white-space:nowrap;}
+  #mb-root .lt-zahlen .z-ist{min-width:56px;color:var(--parch);}
+  #mb-root .lt-zahlen .z-ist.z-null{color:var(--ash);}
+  #mb-root .lt-zahlen .z-ziel{min-width:56px;color:var(--text-secondary,#9BA3B2);}
+  #mb-root .lt-zahlen .z-eur{min-width:74px;color:var(--parch);}
+  #mb-root .lt-zahlen .z-eur .z-plan{color:var(--oracle);}
+  #mb-root .lt-zahlen .z-delta{min-width:64px;color:var(--text-secondary,#9BA3B2);}
+  #mb-root .lt-zahlen .z-delta.auf{color:var(--bull,#6FCF9A);}
+  #mb-root .lt-zahlen .z-delta.ab{color:var(--ox-b,#E0726B);}
+  #mb-root .lt-zahlen .z-leer{color:var(--ash);}
+  #mb-root .lt-kopfzeile{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:0 2px 5px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .lt-kopfzeile .lt-zahlen span{color:var(--ash);}
+  #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:22px;justify-content:flex-end;min-width:186px;min-height:21px;}
   #mb-root .lt-eur{font-family:var(--font-mono);font-size:12px;color:var(--oracle);white-space:nowrap;}
   #mb-root .pe-vorher{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:#E7A062;margin:0 0 14px;padding:10px 14px;background:rgba(231,160,98,.06);border-left:3px solid #E7A062;border-radius:0 8px 8px 0;}
   #mb-root .lt-gesamt{font-family:var(--font-mono);font-size:12px;color:var(--parch);cursor:help;}
@@ -764,6 +779,20 @@
   // Aus einer Zeile wird eine AUSSAGE — ohne den Namen, damit er daneben
   // fett stehen kann und keine Verb-Kongruenz noetig wird ("Aktien liegen"
   // gegen "Geldmarkt liegt"). Gerechnet wird nichts, nur formuliert.
+  // Nur die Lage in Worten. Die Zahlen stehen in den Spalten daneben —
+  // sie zweimal zu schreiben macht die Zeile lang und die Tabelle unlesbar.
+  const ltLage = (z) => {
+    if (z.verdikt === "kein_ziel" || z.ziel_pct == null) return T("keine Zielstruktur festgelegt", "no target structure defined");
+    if (z.verdikt === "ohne_band") return T("kein Toleranzband hinterlegt", "no tolerance band on file");
+    const pp = z.abw_pp == null ? null : Number(z.abw_pp);
+    if (pp == null) return "";
+    if (Math.abs(pp) < 0.05) return T("genau auf Ziel", "exactly on target");
+    const richtung = pp > 0 ? T("über", "above") : T("unter", "unter");
+    const lage = z.verdikt === "band_verletzt" ? T("außerhalb des Bandes", "outside the band") : T("im Band", "in band");
+    return T(ltPct(Math.abs(pp)) + " Punkte " + richtung + " Ziel, " + lage,
+             ltPct(Math.abs(pp)) + " points " + (pp > 0 ? "above" : "below") + " target, " + lage);
+  };
+
   const ltAussage = (z) => {
     const ist = ltPct(z.ist_pct);
     if (z.verdikt === "kein_ziel" || z.ziel_pct == null) {
@@ -810,6 +839,23 @@
   const ltBetraegeLesen = (depot) => {
     try { const v = JSON.parse(localStorage.getItem(LT_BETRAG_KEY(depot)) || "{}"); return (v && typeof v === "object") ? v : {}; }
     catch (e) { return {}; }
+  };
+
+  // Bis v104 lagen die Summen unter dem BAUSTEIN, seit v105 unter der ISIN.
+  // Ohne Umzug waeren die Eingaben von gestern still verschwunden — und ein
+  // stillschweigender Datenverlust ist schlimmer als eine Fehlermeldung.
+  // Umgezogen wird nur, was eindeutig ist: ein Baustein mit genau einem
+  // Produkt. Alles andere bleibt liegen, statt geraten zu werden.
+  const ltBetraegeUmziehen = (depot, karte, zeilen) => {
+    const zs = Array.isArray(zeilen) ? zeilen : [];
+    const neu = {}; let bewegt = 0;
+    Object.keys(karte || {}).forEach((k) => {
+      if (LT_ISIN.test(k)) { neu[k] = karte[k]; return; }
+      const pos = zs.filter((z) => z.ebene === "position" && z.baustein === k);
+      if (pos.length === 1 && typeof karte[k] === "number") { neu[pos[0].schluessel] = karte[k]; bewegt++; }
+    });
+    if (bewegt) ltBetraegeSchreiben(depot, neu);
+    return bewegt ? neu : karte;
   };
   const ltBetraegeSchreiben = (depot, karte) => {
     try { localStorage.setItem(LT_BETRAG_KEY(depot), JSON.stringify(karte || {})); } catch (e) {}
@@ -2517,7 +2563,7 @@
           const ds = Array.isArray(res.d.depots) ? res.d.depots : [];
           setDepots(ds);
           setMitteilung(res.d.mitteilung || null);
-          if (ds.length) setBetraege(ltBetraegeLesen(ds[0].depot));
+          if (ds.length) setBetraege(ltBetraegeUmziehen(ds[0].depot, ltBetraegeLesen(ds[0].depot), ds[0].zeilen));
           setStand(res.d.vorhanden && ds.length ? "ok" : "leer");
         })
         .catch(() => { if (lebt) setStand("fehler"); });
@@ -2771,6 +2817,33 @@
             })
           : null;
 
+        // Die Zeile trug bisher einen SATZ. Ein Satz kann "noch nicht gekauft"
+        // sagen, aber er kann keine Spalte bilden — deshalb standen an der
+        // Stelle, wo Zahlen hingehoeren, Worte. Ab hier: vier feste Felder,
+        // rechtsbuendig, in Mono. Fehlt ein Wert, steht ein Strich; ein Strich
+        // ist eine Aussage, eine Leerstelle ist keine.
+        const zahl = (x, einheit) => (x == null || isNaN(x))
+          ? h("span", { className: "z-leer" }, "—")
+          : h("span", null, ltPct(x) + (einheit || ""));
+
+        const zahlen = (z) => {
+          const ist = typeof z.ist_pct === "number" ? z.ist_pct : null;
+          const ziel = typeof z.ziel_pct === "number" ? z.ziel_pct : null;
+          const bet = betragVon(z);
+          const v = seitEinstand(z);
+          return h("div", { className: "lt-zahlen" },
+            h("span", { className: "z-ist" + (ist ? "" : " z-null"), title: T("Anteil heute", "share today") }, zahl(ist, " %")),
+            h("span", { className: "z-ziel", title: T("Zielanteil", "target share") }, zahl(ziel, " %")),
+            h("span", { className: "z-eur", title: T("angelegte Summe", "amount invested") },
+              bet != null ? euroText(bet) + " €"
+                : (inEuro(ziel) != null ? h("span", { className: "z-plan" }, euroText(inEuro(ziel)) + " €")
+                                        : h("span", { className: "z-leer" }, "—"))),
+            h("span", { className: "z-delta" + (v == null ? "" : (Math.abs(v) < 0.05 ? "" : (v > 0 ? " auf" : " ab"))),
+              title: kursTitel(z) },
+              v == null ? h("span", { className: "z-leer" }, "—")
+                : (Math.abs(v) < 0.05 ? "±0,0 %" : (v > 0 ? "+" : "\u2212") + ltPct(Math.abs(v)) + " %")));
+        };
+
         const zeile = (z, i, opt) => h("div", { key: i, className: "lt-row"
             + ((opt && opt.unter) ? " unter" : "")
             + (z.verdikt === "band_verletzt" && !aufbau ? " b-aus" : "") },
@@ -2779,36 +2852,16 @@
             (opt && opt.heimatlos) ? h("span", { className: "lt-fehlt" },
               T(" · noch keinem Baustein zugeordnet", " · not yet assigned to a building block")) : null,
             " \u00B7 ",
-            geplant(z)
-              ? (ohneStand
-                  ? T("Ziel " + ltPct(z.ziel_pct) + " %.", "target " + ltPct(z.ziel_pct) + " %.")
-                  : T("Ziel " + ltPct(z.ziel_pct) + " % — noch nicht gekauft.", "target " + ltPct(z.ziel_pct) + " % — not bought yet."))
-              : imAufbau(z) && z.ziel_pct != null
-                ? T("gekauft · Ziel " + ltPct(z.ziel_pct) + " %", "bought · target " + ltPct(z.ziel_pct) + " %")
-                : ltAussage(z),
-            inEuro(z.ziel_pct) != null
-              ? h("span", { className: "lt-eur" },
-                  T(" · Ziel " + euroText(inEuro(z.ziel_pct)) + " €", " · target " + euroText(inEuro(z.ziel_pct)) + " €")) : null,
-            betragVon(z) != null
-              ? h("span", { className: "lt-ist-eur" },
-                  T(" · " + euroText(betragVon(z)) + " € angelegt", " · " + euroText(betragVon(z)) + " € invested")) : null,
-            fehltPp(z) != null
-              ? h("span", { className: "lt-fehlt" },
-                  T(" · bis zu deinem Ziel fehlen " + ltPct(fehltPp(z)) + " Punkte",
-                    " · " + ltPct(fehltPp(z)) + " points short of your target")
-                  + (inEuro(fehltPp(z)) != null ? " (" + euroText(inEuro(fehltPp(z))) + " €)" : ""))
-              : null,
-            seitEinstand(z) != null
-              ? h("span", { className: "lt-verlauf"
-                    + (Math.abs(seitEinstand(z)) < 0.05 ? "" : (seitEinstand(z) > 0 ? " auf" : " ab")),
-                  title: kursTitel(z) },
-                  // Unter 0,05 Punkten ist es keine Bewegung, sondern Rundung.
-                  // "-0,0 %" behauptet einen Verlust, den es nicht gibt.
-                  (Math.abs(seitEinstand(z)) < 0.05
-                    ? T("unverändert seit Einstand", "unchanged since purchase")
-                    : (seitEinstand(z) > 0 ? "+" : "\u2212") + ltPct(Math.abs(seitEinstand(z)))
-                      + T(" % seit Einstand", " % since purchase")))
-              : null),
+            // Der Satz sagt nur noch, WAS los ist. Die Zahlen stehen rechts.
+            geplant(z) ? T("noch nicht gekauft", "not bought yet")
+              : imAufbau(z) ? T("gekauft", "bought")
+              : z.ziel_pct == null ? T("keine Zielstruktur festgelegt", "no target structure defined")
+              : ltLage(z),
+            null,
+            null,
+            null,
+            null),
+          zahlen(z),
           h("div", { className: "lt-rechts" },
             h("div", { className: "marke" + (geplant(z) ? " plan" : (z.verdikt === "band_verletzt" && !aufbau ? " aus" : "")) },
               geplant(z) ? T("geplant", "planned")
@@ -2861,6 +2914,12 @@
                            "The statement is on file, the target weights are not. Without a target there is no distance to measure — below is how it looks today."))) : null,
           klassen.length ? h("div", { className: "lt-grp" },
             h("div", { className: "lt-grp-t" }, T("Klassen", "Classes")),
+            h("div", { className: "lt-kopfzeile" }, h("span", null, ""),
+              h("div", { className: "lt-zahlen" },
+                h("span", { className: "z-ist" }, T("ist", "actual")),
+                h("span", { className: "z-ziel" }, T("Ziel", "target")),
+                h("span", { className: "z-eur" }, T("Summe", "amount")),
+                h("span", { className: "z-delta" }, T("Einstand", "vs. buy")))),
             klassen.map((z, i) => [zeile(z, i), editorHier(z)])) : null,
           rest.length ? h("div", { className: "lt-grp" },
             h("button", { className: "lt-mehr", onClick: () => setOffen(Object.assign({}, offen, { [dep.depot]: !auf })) },
