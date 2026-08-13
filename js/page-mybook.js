@@ -292,6 +292,7 @@
   #mb-root .lt-row .satz b{color:var(--parch);font-weight:600;}
   #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:auto;justify-content:flex-end;min-height:21px;}
   #mb-root .lt-eur{font-family:var(--font-mono);font-size:12px;color:var(--oracle);white-space:nowrap;}
+  #mb-root .pe-vorher{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:#E7A062;margin:0 0 14px;padding:10px 14px;background:rgba(231,160,98,.06);border-left:3px solid #E7A062;border-radius:0 8px 8px 0;}
   #mb-root .lt-gesamt{font-family:var(--font-mono);font-size:12px;color:var(--parch);cursor:help;}
   #mb-root .lt-ist-eur{font-family:var(--font-mono);font-size:12px;color:var(--parch);white-space:nowrap;margin-left:9px;}
   #mb-root .lt-verlauf{font-family:var(--font-mono);font-size:12px;white-space:nowrap;margin-left:9px;}
@@ -341,6 +342,7 @@
   #mb-root .zed-zu{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-ui);font-size:12.5px;color:var(--ash);}
   #mb-root .zed-zu:hover{color:var(--oracle);}
   #mb-root .zed-ziel{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--text-secondary,#9BA3B2);margin:6px 0 16px;}
+  #mb-root .zed-ist{color:var(--parch);}
   #mb-root .zed-link{background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-ui);font-size:12.5px;color:var(--oracle);}
   #mb-root .zed-feld{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap;}
   #mb-root .zed-feld label{flex:0 0 118px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
@@ -826,6 +828,7 @@
   // sie mindestens so vollstaendig ist wie die groebere — sonst meldet eine
   // einzige Zielposition "1 von 1 im Depot", waehrend fuenf Bausteine leer
   // sind. Steht hier oben, damit sie pruefbar ist statt nur behauptet.
+  const ltEuro = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   const ltBetragSumme = (karte) => Object.keys(karte || {})
     .reduce((a, k) => a + (typeof karte[k] === "number" ? karte[k] : 0), 0);
 
@@ -1726,6 +1729,12 @@
         T("Ein Stand ist eine Momentaufnahme deiner Struktur zu einem Stichtag. Du trägst Anteile in Prozent ein — keine Beträge, keine Stückzahlen. Der nächste Stand ersetzt diesen nicht, er kommt daneben; der Verlauf bleibt.",
           "A reporting date is a snapshot of your structure on a given day. You enter weights in percent — no amounts, no quantities. The next one does not replace this one; it sits beside it and the history remains.")),
 
+      vorher > 0 ? h("p", { className: "pe-vorher" },
+        T("Dein letzter Stand" + (vorherDatum ? " vom " + ltDatum(vorherDatum) : "") + " hatte "
+          + vorher + (vorher === 1 ? " Position" : " Positionen") + ". Dieser Stand ersetzt ihn: was hier nicht steht, gilt danach als nicht mehr gehalten. Einzelne Zeilen \u00E4nderst du unten am Baustein mit \u201EBearbeiten\u201C.",
+          "Your last reporting date" + (vorherDatum ? " of " + ltDatum(vorherDatum) : "") + " had "
+          + vorher + (vorher === 1 ? " position" : " positions") + ". This one replaces it: whatever is not listed here counts as no longer held. Individual rows are edited at the building block below via \u201EEdit\u201C.")) : null,
+
       h("div", { className: "pe-kopfzeile" },
         h("label", { className: "ze-f" }, h("span", null, T("Stichtag", "Date")),
           h("input", { type: "date", value: stand, max: heute, onChange: (e) => setStand(e.target.value) })),
@@ -2078,7 +2087,7 @@
   // Ebene zusammen 100 ergeben; eine Zeile einzeln zu verschieben wuerde die
   // Summe brechen und der Server wiese es zu Recht zurueck. Deshalb steht der
   // Anteil hier nur da, mit dem Weg zur Struktur daneben.
-  function ZeileEditor({ depot, zeilen, baustein, onGespeichert, onSchliessen, onZurStruktur }) {
+  function ZeileEditor({ depot, zeilen, baustein, budget, onGespeichert, onSchliessen, onZurStruktur }) {
     const alle = Array.isArray(zeilen) ? zeilen : [];
     const bsZeile = alle.find((z) => z.ebene === "baustein" && z.schluessel === baustein) || null;
     const posZeile = alle.find((z) => z.ebene === "position" && z.baustein === baustein) || null;
@@ -2135,6 +2144,19 @@
       bsZeile && bsZeile.ziel_pct != null
         ? h("p", { className: "zed-ziel" },
             T("Zielanteil " + ltPct(bsZeile.ziel_pct) + " %", "Target share " + ltPct(bsZeile.ziel_pct) + " %"),
+            // Der Bezug, nach dem Daniel gefragt hat: was dieser Baustein vom
+            // GESAMTBUDGET bekommen soll, und was heute drinsteckt.
+            (budget != null && budget > 0)
+              ? h("span", null, T("= " + ltEuro(Math.round(budget * bsZeile.ziel_pct / 100)) + " € von "
+                                  + ltEuro(budget) + " € Budget",
+                                  "= " + ltEuro(Math.round(budget * bsZeile.ziel_pct / 100)) + " € of "
+                                  + ltEuro(budget) + " € budget")) : null,
+            (ltZahl(betrag) != null && ltZahl(betrag) > 0 && budget != null && budget > 0)
+              ? h("span", { className: "zed-ist" },
+                  T("angelegt " + ltEuro(ltZahl(betrag)) + " € = "
+                    + ltPct(ltZahl(betrag) / budget * 100) + " % des Budgets",
+                    "invested " + ltEuro(ltZahl(betrag)) + " € = "
+                    + ltPct(ltZahl(betrag) / budget * 100) + " % of the budget")) : null,
             h("button", { className: "zed-link", onClick: onZurStruktur },
               T("Gewichte \u00E4ndern", "change weights")))
         : null,
@@ -2202,15 +2224,18 @@
     // nicht gespeichert und geht nie an den Server. Vertrag C.2 bleibt
     // unangetastet — ueber den Draht laufen weiterhin nur Prozente.
     const [budget, setBudget] = useState("");
-    // Sobald echte Summen eingetragen sind, rechnet die Flaeche mit ihnen und
-    // nicht mehr mit dem geschaetzten Budget. Eine eingetragene Summe ist eine
-    // Angabe, ein Budget eine Annahme — die Angabe gewinnt.
+    // Zwei verschiedene Zahlen, und sie duerfen sich nicht vermischen:
+    //   Budget       = was insgesamt hineingehen SOLL (Plan)
+    //   Gesamtsumme  = was tatsaechlich drinsteckt (Summe der Zeilen)
+    // Der Zielanteil einer Zeile rechnet gegen das BUDGET. Gegen die bisher
+    // angelegte Summe gerechnet, schrumpft das Ziel mit jedem noch nicht
+    // gekauften Baustein — bei 4.000 von 10.000 stand "Ziel 1.600 €" da,
+    // obwohl das Ziel 4.000 ist. Das war der Logikfehler.
     const betragSumme = ltBetragSumme(betraege);
     const budgetZahl = ltZahl(budget);
-    const rechenBasis = betragSumme > 0 ? betragSumme : budgetZahl;
-    const inEuro = (pct) => (rechenBasis == null || rechenBasis <= 0 || pct == null)
+    const inEuro = (pct) => (budgetZahl == null || budgetZahl <= 0 || pct == null)
       ? null
-      : Math.round((rechenBasis * pct) / 100);
+      : Math.round((budgetZahl * pct) / 100);
     // Ganze Euro. Nachkommastellen taeuschen hier eine Genauigkeit vor,
     // die eine Planungshilfe nicht hat.
     const euroText = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -2480,6 +2505,7 @@
               depot: zeilenEditor.depot,
               baustein: zeilenEditor.baustein,
               zeilen: zeilen,
+              budget: (budgetZahl != null && budgetZahl > 0) ? budgetZahl : null,
               onGespeichert: () => { setZeilenEditor(null); setBetraege(ltBetraegeLesen(dep.depot)); setNachladen((n) => n + 1); },
               onSchliessen: () => setZeilenEditor(null),
               onZurStruktur: () => { setZeilenEditor(null);
@@ -2616,18 +2642,26 @@
               + (hBasis === hPos ? "positions" : "building blocks") + " held")
           : T("\u00DCberblick", "Overview")),
         h("div", { className: "lt-werk-r" },
+          budgetFeld,
           betragSumme > 0
             ? h("span", { className: "lt-gesamt",
                 title: T("Summe der angelegten Betraege aus den Zeilen. Bleibt in diesem Browser.",
                          "Sum of the amounts entered in the rows. Stays in this browser.") },
-                T("Gesamt " + euroText(betragSumme) + " €", "Total " + euroText(betragSumme) + " €"))
-            : budgetFeld,
+                T("angelegt " + euroText(betragSumme) + " €", "invested " + euroText(betragSumme) + " €")
+                + (budgetZahl != null && budgetZahl > 0
+                    ? T(" von " + euroText(budgetZahl) + " €", " of " + euroText(budgetZahl) + " €") : ""))
+            : null,
           h(Button, { variant: "ghost", size: "sm",
             onClick: () => setEditor({ depot: haupt.depot, start: hz.filter((z) => z.ziel_pct != null), ist: hz }) },
             haupt.ziel_gueltig_ab == null ? T("Zielstruktur festlegen", "Define target structure")
                                           : T("Zielstruktur \u00E4ndern", "Change target structure")),
           h(Button, { variant: "oracle", size: "sm",
-            onClick: () => setPosEditor({ depot: haupt.depot, ziel: hZiel, start: hGehalten.length ? hGehalten : null }) },
+            // Daniels Entscheid vom 13.08.: der Stand-Editor beginnt leer.
+            // Bestehende Zeilen aendert man unten am Baustein, nicht hier.
+            // hGehalten bleibt trotzdem berechnet — der Editor sagt damit,
+            // wie viele Positionen der letzte Stand hatte.
+            onClick: () => setPosEditor({ depot: haupt.depot, ziel: hZiel, start: null,
+              vorher: hGehalten.length, vorherDatum: haupt.stand || null }) },
             T("Neuen Stand einliefern", "Submit new reporting date"))));
     }
 
@@ -2635,6 +2669,7 @@
       (haupt || stand !== "ok") ? null : budgetFeld,
       editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, ist: editor.ist || null, onSchliessen: () => setEditor(null) }) : null,
       posEditor ? h(PositionsEditor, { depot: posEditor.depot, start: posEditor.start || null,
+        vorher: posEditor.vorher || 0, vorherDatum: posEditor.vorherDatum || null,
         hinweis: posEditor.hinweis || null,
         zielGewichte: posEditor.ziel || null,
         budget: (budgetZahl != null && budgetZahl > 0) ? budgetZahl : null,
