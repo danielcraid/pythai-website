@@ -772,6 +772,13 @@
     const n = parseFloat(String(s).replace(",", "."));
     return isFinite(n) ? n : null;
   };
+  // Auf welcher Ebene wird der Aufbau gemessen? Der feineren nur dann, wenn
+  // sie mindestens so vollstaendig ist wie die groebere — sonst meldet eine
+  // einzige Zielposition "1 von 1 im Depot", waehrend fuenf Bausteine leer
+  // sind. Steht hier oben, damit sie pruefbar ist statt nur behauptet.
+  const ltBasis = (zielPos, zielBs) =>
+    (zielPos.length && zielPos.length >= zielBs.length) ? zielPos : zielBs;
+
   const ltSumme = (zeilen, ebene) => zeilen
     .filter((z) => z.ebene === ebene)
     .reduce((a, z) => a + (ltZahl(z.ziel_pct) || 0), 0);
@@ -809,8 +816,15 @@
 
   function ZielEditor({ depot, start, ist, onSchliessen, weiterLabel, onGespeichert }) {
     const [zeilen, setZeilen] = useState(() => {
-      if (Array.isArray(start) && start.length) {
-        return start.map((z) => ({
+      // Positions-Zeilen kommen seit dem Nachtrag V2 in der Antwort mit. Sie
+      // gehoeren aber NICHT in diese Tabelle: hier werden Klassen und
+      // Bausteine gewichtet, die Position haengt darunter am Produkt. Landete
+      // sie hier, stuende die ISIN als eigene Gewichtungszeile da — und sie
+      // ginge ohne baustein zurueck an den Server, was seit B144 zu Recht
+      // baustein_invalid ausloest.
+      const roh = Array.isArray(start) ? start.filter((z) => z.ebene !== "position") : [];
+      if (roh.length) {
+        return roh.map((z) => ({
           ebene: z.ebene, schluessel: z.schluessel,
           ziel_pct: z.ziel_pct == null ? "" : String(z.ziel_pct).replace(".", ","),
           band_rel_pct: z.band_rel_pct == null ? "" : String(z.band_rel_pct).replace(".", ","),
@@ -827,13 +841,26 @@
     const [bandOffen, setBandOffen] = useState(false);
     // Nachtrag V2: die Produktwahl gehoert in den Ziel-Editor. Sie aendert
     // KEINE Gewichte — sie sagt nur, WOMIT ein Baustein gefuellt werden soll.
+    // ... und zwar VORBELEGT aus dem, was schon gespeichert ist. Ohne das
+    // oeffnet sich der Editor jedes Mal ohne das bereits gewaehlte Papier:
+    // der Member sieht ein leeres Feld, kann keinen Einstand eintragen, und
+    // ein erneutes Speichern wuerfe die Position stillschweigend weg.
+    const posAus = (feld) => {
+      const out = {};
+      (Array.isArray(start) ? start : []).forEach((z) => {
+        if (z.ebene !== "position" || !z.baustein) return;
+        if (feld === "produkt") out[z.baustein] = { name: z.name || z.schluessel, isin: z.schluessel };
+        else if (typeof z.einstand === "number") out[z.baustein] = String(z.einstand).replace(".", ",");
+      });
+      return out;
+    };
+    const [einstand, setEinstand] = useState(() => posAus("einstand"));
     const [wahl, setWahl] = useState({});          // baustein -> ISIN
-    const [eigen, setEigen] = useState({});        // baustein -> { name, isin }
+    const [eigen, setEigen] = useState(() => posAus("produkt")); // baustein -> { name, isin }
     const [produktOffen, setProduktOffen] = useState(null); // baustein | null
     // baustein -> Einstandskurs als Text. Ein KURS, kein Betrag: er sagt, was
     // ein Anteil gekostet hat, nicht wie viele jemand haelt. Deshalb darf er
     // gespeichert werden, ohne dass Teil C faellt (Positionierung, Abschnitt 2).
-    const [einstand, setEinstand] = useState({});
     const [bs, setBs] = useState(null);            // B7-Antwort, einmal geladen
 
     useEffect(() => {
@@ -2116,10 +2143,10 @@
         // Bausteinen erst einer gekauft war.
         const zielPos = zeilen.filter((z) => z.ebene === "position" && z.ziel_pct != null);
         const zielBs = zeilen.filter((z) => z.ebene === "baustein" && z.ziel_pct != null);
-        const basis = zielPos.length ? zielPos : zielBs;
+        const basis = ltBasis(zielPos, zielBs);
         const gekauft = basis.filter((z) => (z.ist_pct || 0) > 0).length;
         const aufbau = ohneStand || (basis.length > 0 && gekauft < basis.length);
-        const einheit = zielPos.length
+        const einheit = (basis === zielPos)
           ? T("Zielpositionen", "target positions")
           : T("Bausteinen", "building blocks");
 
