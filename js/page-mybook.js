@@ -287,6 +287,7 @@
   #mb-root .lt-row .satz b{color:var(--parch);font-weight:600;}
   #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:auto;justify-content:flex-end;}
   #mb-root .lt-eur{font-family:var(--font-mono);font-size:12px;color:var(--oracle);white-space:nowrap;}
+  #mb-root .lt-fehlt{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary,#9BA3B2);white-space:nowrap;}
   #mb-root .lt-budget{margin:20px 0 0;padding:14px 16px;background:rgba(255,255,255,.015);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:0 8px 8px 0;}
   #mb-root .lt-budget label{display:inline-flex;align-items:center;gap:9px;}
   #mb-root .lt-budget label span{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
@@ -1974,14 +1975,14 @@
 
     const kopf = h("div", { className: "lt-head" },
       h("div", null,
-        h("h3", { className: "lt-title" }, T("Deine Langfrist-Struktur", "Your long-term structure"))),
+        h("h3", { className: "lt-title" }, T("Dein Langfrist-Depot", "Your long-term portfolio"))),
       h("div", { className: "lt-sw" },
         h("span", null, an ? T("an", "on") : T("aus", "off")),
         h("button", {
           className: "sw " + (an ? "on" : "off"),
           "aria-pressed": an ? "true" : "false",
-          title: T("Langfrist-Struktur ein- oder ausblenden. Es werden keine Daten gel\u00F6scht.",
-                   "Show or hide the long-term structure. No data is deleted."),
+          title: T("Langfrist-Depot ein- oder ausblenden. Es werden keine Daten gel\u00F6scht.",
+                   "Show or hide the long-term portfolio. No data is deleted."),
           onClick: () => { const n = !an; setAn(n); ltSchreiben(n); sfx("button-004-toggle"); }
         }, h("span", { className: "knob" }))));
 
@@ -2120,6 +2121,17 @@
         };
         const geplant = (z) => z.ziel_pct != null && !((z.ist_pct || 0) > 0);
 
+        // Was bis zur SELBST gesetzten Zielstruktur fehlt. Reine Arithmetik auf
+        // den Eingaben des Members: Ziel minus Ist. Kein Produkt, kein Zeitpunkt,
+        // keine Empfehlung — das ist die Grenze, und sie liegt genau hier.
+        // Nur unterhalb des Ziels; darueber sagt ltAussage bereits das Noetige.
+        // Bei "geplant" waere es doppelt: dort steht der volle Zielanteil schon.
+        const fehltPp = (z) => {
+          if (z.ziel_pct == null || geplant(z)) return null;
+          const d = z.ziel_pct - (z.ist_pct || 0);
+          return d > LT_TOLERANZ ? d : null;
+        };
+
         const zeile = (z, i) => h("div", { key: i, className: "lt-row" + (z.verdikt === "band_verletzt" && !aufbau ? " b-aus" : "") },
           h("div", { className: "satz" },
             h("b", null, z.ebene === "position" ? posName(z) : ltName(z)),
@@ -2130,7 +2142,13 @@
                   : T("Ziel " + ltPct(z.ziel_pct) + " % — noch nicht gekauft.", "target " + ltPct(z.ziel_pct) + " % — not bought yet."))
               : ltAussage(z),
             inEuro(z.ziel_pct) != null
-              ? h("span", { className: "lt-eur" }, " = " + euroText(inEuro(z.ziel_pct)) + " €") : null),
+              ? h("span", { className: "lt-eur" }, " = " + euroText(inEuro(z.ziel_pct)) + " €") : null,
+            fehltPp(z) != null
+              ? h("span", { className: "lt-fehlt" },
+                  T(" · bis zu deinem Ziel fehlen " + ltPct(fehltPp(z)) + " Punkte",
+                    " · " + ltPct(fehltPp(z)) + " points short of your target")
+                  + (inEuro(fehltPp(z)) != null ? " (" + euroText(inEuro(fehltPp(z))) + " €)" : ""))
+              : null),
           h("div", { className: "lt-rechts" },
             h("div", { className: "marke" + (geplant(z) ? " plan" : (z.verdikt === "band_verletzt" && !aufbau ? " aus" : "")) },
               geplant(z) ? T("geplant", "planned")
