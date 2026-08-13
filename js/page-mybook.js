@@ -762,6 +762,33 @@
     staat_global: ["Staatsanleihen global", "Global sovereigns"],
     renten_defensiv: ["Renten defensiv", "Defensive fixed income"],
   };
+  // Erklaerungen fuer Leute, die nicht taeglich an der Boerse sind. Sie sagen,
+  // WAS eine Sache ist — nicht, ob sie gut ist, was sie bringt oder wie sie
+  // sich verhalten wird. Jede Aussage ueber kuenftige Ertraege oder Eignung
+  // waere an dieser Stelle genau der Schritt ueber die Linie.
+  const LT_ERKLAERUNG = {
+    aktien: ["Anteile an Unternehmen", "shares in companies"],
+    anleihen: ["Kredite an Staaten oder Unternehmen, mit fester Laufzeit", "loans to states or companies, with a fixed term"],
+    geldmarkt: ["sehr kurz laufende Anlagen — der Parkplatz im Depot", "very short-dated holdings — the parking spot in a portfolio"],
+    rohstoffe: ["Rohstoffe wie Metalle, Energie, Agrarg\u00FCter", "raw materials such as metals, energy, agriculture"],
+    immobilien: ["b\u00F6rsennotierte Immobiliengesellschaften", "listed real-estate companies"],
+    welt: ["Unternehmen aus aller Welt in einem Papier", "companies from around the world in one security"],
+    us_core: ["die gro\u00DFen US-Unternehmen", "the large US companies"],
+    us_equal_weight: ["dieselben US-Unternehmen, aber alle gleich gewichtet", "the same US companies, each weighted equally"],
+    europa: ["die gro\u00DFen europ\u00E4ischen Unternehmen", "the large European companies"],
+    em: ["Unternehmen in Schwellenl\u00E4ndern", "companies in emerging markets"],
+    em_value: ["Schwellenl\u00E4nder, Schwerpunkt auf niedrig bewerteten Unternehmen", "emerging markets, focused on low-valued companies"],
+    japan: ["japanische Unternehmen", "Japanese companies"],
+    corp_kurz: ["Unternehmensanleihen mit kurzer Restlaufzeit", "corporate bonds with a short remaining term"],
+    staat_eur_3_5: ["Staatsanleihen der Eurozone, drei bis f\u00FCnf Jahre Laufzeit", "eurozone government bonds, three to five years"],
+    staat_global: ["Staatsanleihen weltweit", "government bonds worldwide"],
+    renten_defensiv: ["ein breiter Mix aus Anleihen", "a broad mix of bonds"],
+  };
+  const ltErklaerung = (z) => {
+    const e = LT_ERKLAERUNG[z && z.schluessel];
+    return e ? T(e[0], e[1]) : null;
+  };
+
   const ltName = (z) => {
     if (z.ebene === "position") return z.name || z.schluessel;
     const n = LT_NAMEN[z.schluessel];
@@ -2882,11 +2909,15 @@
             (opt && opt.heimatlos) ? h("span", { className: "lt-fehlt" },
               T(" · noch keinem Baustein zugeordnet", " · not yet assigned to a building block")) : null,
             " \u00B7 ",
-            // Der Satz sagt nur noch, WAS los ist. Die Zahlen stehen rechts.
-            geplant(z) ? T("noch nicht gekauft", "not bought yet")
-              : imAufbau(z) ? T("gekauft", "bought")
-              : z.ziel_pct == null ? T("keine Zielstruktur festgelegt", "no target structure defined")
-              : ltLage(z),
+            // Klassen und Bausteine sagen, WAS sie sind — der Zustand steht
+            // ohnehin rechts als Marke. Zweimal dasselbe waere Platzverschwendung
+            // und erklaert niemandem etwas.
+            z.ebene !== "position"
+              ? (ltErklaerung(z) || "")
+              : (geplant(z) ? T("noch nicht gekauft", "not bought yet")
+                : imAufbau(z) ? T("gekauft", "bought")
+                : z.ziel_pct == null ? T("keine Zielstruktur festgelegt", "no target structure defined")
+                : ltLage(z)),
             null,
             null,
             null,
