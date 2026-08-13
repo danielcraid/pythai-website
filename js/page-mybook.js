@@ -798,6 +798,9 @@
   // Das ist ehrlich, solange es dransteht, und es ist kein Ersatz fuer die
   // Backend-Entscheidung: sollen Betraege dauerhaft werden, aendert das
   // Teil C und braucht eine Lieferung. Bis dahin: geraetegebunden.
+  // Schluessel ist ab jetzt die ISIN, nicht der Baustein: ein Baustein kann
+  // mehrere Produkte tragen. Alte Eintraege (Baustein-Schluessel) werden beim
+  // Lesen ignoriert — sie sind geraetegebunden und einen Tag alt.
   const LT_BETRAG_KEY = (depot) => "py_lt_betrag_" + (depot || "struktur_1");
   const ltBetraegeLesen = (depot) => {
     try { const v = JSON.parse(localStorage.getItem(LT_BETRAG_KEY(depot)) || "{}"); return (v && typeof v === "object") ? v : {}; }
@@ -2067,7 +2070,16 @@
   // EINEN geaenderten Zeile. Ein Ziel-POST ersetzt die ganze Struktur — was
   // hier fehlt, waere danach geloescht. Deshalb steht das als eigene,
   // pruefbare Funktion da und nicht mitten im Klick-Handler.
-  const ltZielKoerper = (alle, depot, baustein, isin, einstandZahl) => {
+  // Baut den vollstaendigen Ziel-Koerper aus dem gespeicherten Stand und der
+  // neuen Produktliste EINES Bausteins. Ein Ziel-POST ersetzt die ganze
+  // Struktur — was hier fehlt, waere danach geloescht. Deshalb steht das als
+  // eigene, pruefbare Funktion da und nicht mitten im Klick-Handler.
+  //
+  // liste: [{ isin, einstand }] — die Produkte, die dieser Baustein tragen
+  // soll. Der Zielanteil des Bausteins verteilt sich gleichmaessig auf sie.
+  // Eine Gleichverteilung ist keine Empfehlung, sondern die einzige Regel,
+  // die ohne zusaetzliche Eingabe auskommt und die Summe erhaelt.
+  const ltZielKoerper = (alle, depot, baustein, liste) => {
     const zs = Array.isArray(alle) ? alle : [];
     const kopf = zs
       .filter((z) => (z.ebene === "klasse" || z.ebene === "baustein") && z.ziel_pct != null)
@@ -2081,16 +2093,60 @@
         return e;
       });
     const bs = zs.find((z) => z.ebene === "baustein" && z.schluessel === baustein) || null;
+    const gueltig = (Array.isArray(liste) ? liste : [])
+      .filter((x) => x && LT_ISIN.test(String(x.isin || "").trim().toUpperCase()));
     const neu = [];
-    if (LT_ISIN.test(String(isin || "").trim().toUpperCase()) && bs && bs.ziel_pct != null) {
-      const e = { ebene: "position", schluessel: String(isin).trim().toUpperCase(), baustein: baustein,
-        ziel_pct: bs.ziel_pct, band_rel_pct: bs.band_rel_pct };
-      if (einstandZahl != null && einstandZahl > 0) { e.einstand = einstandZahl; e.waehrung = "EUR"; }
-      neu.push(e);
+    if (bs && bs.ziel_pct != null && gueltig.length) {
+      // Gleichmaessig, und der Rest der Division landet auf der ersten Zeile,
+      // damit die Summe des Bausteins exakt aufgeht.
+      const je = Math.round((bs.ziel_pct / gueltig.length) * 10) / 10;
+      let rest = Math.round((bs.ziel_pct - je * gueltig.length) * 10) / 10;
+      gueltig.forEach((x, i) => {
+        const e = { ebene: "position", schluessel: String(x.isin).trim().toUpperCase(), baustein: baustein,
+          ziel_pct: Math.round((je + (i === 0 ? rest : 0)) * 10) / 10, band_rel_pct: bs.band_rel_pct };
+        if (x.einstand != null && x.einstand > 0) { e.einstand = x.einstand; e.waehrung = "EUR"; }
+        neu.push(e);
+      });
     }
     return { depot: depot || LT_DEPOT_STANDARD, quelle: "inhaber_entscheidung",
       zeilen: kopf.concat(andere).concat(neu) };
   };
+
+  // Aus den im Browser eingetragenen Summen wird der Stand: jede Position
+  // bekommt ihren Anteil an der Gesamtsumme. Ueber den Draht gehen damit
+  // AUSSCHLIESSLICH Prozente — der Betrag bleibt hier (Vertrag B2).
+  // Ohne eine einzige Summe gibt es keinen Stand; ein erfundener waere
+  // schlimmer als keiner.
+  const ltStandKoerper = (alle, depot, betraege, heute) => {
+    const zs = Array.isArray(alle) ? alle : [];
+    const pos = zs.filter((z) => z.ebene === "position" && z.baustein);
+    const mit = pos.map((z) => ({ z: z, b: (betraege || {})[z.schluessel] }))
+      .filter((x) => typeof x.b === "number" && x.b > 0);
+    if (!mit.length) return null;
+    // ENTWEDER alle oder keine. Fehlt bei einem Produkt die Summe, waeren die
+    // Anteile der uebrigen zu hoch — und der neue Stand wuerde das Papier
+    // ohne Summe stillschweigend auf null setzen. Ein halber Stand ist
+    // schlimmer als keiner.
+    if (mit.length !== pos.length) return null;
+    const summe = mit.reduce((a, x) => a + x.b, 0);
+    const roh = mit.map((x) => ({
+      name: x.z.name || x.z.schluessel,
+      isin: x.z.schluessel,
+      klasse: LT_ZU_KLASSE[x.z.baustein] || "aktien",
+      baustein: x.z.baustein,
+      gewicht_pct: Math.round((x.b / summe) * 1000) / 10,
+    }));
+    // Rundungsrest auf die groesste Zeile, damit die Summe exakt 100 ergibt.
+    const ist = roh.reduce((a, r) => a + r.gewicht_pct, 0);
+    const diff = Math.round((100 - ist) * 10) / 10;
+    if (diff !== 0 && roh.length) {
+      let gross = 0;
+      roh.forEach((r, i) => { if (r.gewicht_pct > roh[gross].gewicht_pct) gross = i; });
+      roh[gross].gewicht_pct = Math.round((roh[gross].gewicht_pct + diff) * 10) / 10;
+    }
+    return { depot: depot || LT_DEPOT_STANDARD, stand: heute, positionen: roh };
+  };
+
 
   // --- Zeilen-Editor · eine Zeile, nicht die ganze Struktur -----------------
   // Bisher fuehrte jeder Bearbeiten-Klick in den vollstaendigen Ziel-Editor
@@ -2101,20 +2157,22 @@
   // Ebene zusammen 100 ergeben; eine Zeile einzeln zu verschieben wuerde die
   // Summe brechen und der Server wiese es zu Recht zurueck. Deshalb steht der
   // Anteil hier nur da, mit dem Weg zur Struktur daneben.
-  function ZeileEditor({ depot, zeilen, baustein, budget, onGespeichert, onSchliessen, onZurStruktur }) {
+  function ZeileEditor({ depot, zeilen, baustein, isin: isinAlt, budget, betraege,
+                        onGespeichert, onSchliessen, onZurStruktur }) {
     const alle = Array.isArray(zeilen) ? zeilen : [];
     const bsZeile = alle.find((z) => z.ebene === "baustein" && z.schluessel === baustein) || null;
-    const posZeile = alle.find((z) => z.ebene === "position" && z.baustein === baustein) || null;
+    const posZeile = isinAlt ? (alle.find((z) => z.ebene === "position" && z.schluessel === isinAlt) || null) : null;
+    const neuAnlegen = !isinAlt;
 
     const [name, setName] = useState(posZeile ? (posZeile.name || "") : "");
     const [isin, setIsin] = useState(posZeile ? (posZeile.schluessel || "") : "");
     const [einstand, setEinstand] = useState(
       posZeile && typeof posZeile.einstand === "number" ? String(posZeile.einstand).replace(".", ",") : "");
     const [betrag, setBetrag] = useState(() => {
-      const k = ltBetraegeLesen(depot);
-      return k[baustein] != null ? String(k[baustein]).replace(".", ",") : "";
+      const b = (betraege || {})[isinAlt];
+      return typeof b === "number" ? String(b).replace(".", ",") : "";
     });
-    const [listeAuf, setListeAuf] = useState(!posZeile);
+    const [listeAuf, setListeAuf] = useState(neuAnlegen);
     const [busy, setBusy] = useState(false);
     const [meldung, setMeldung] = useState(null);
 
@@ -2122,57 +2180,127 @@
     const ekZahl = ltZahl(einstand);
     const ekOk = !einstand.trim() || (ekZahl != null && ekZahl > 0);
     const ekOhneIsin = !!einstand.trim() && !ltIsinOk(isin);
+    const bZahl = ltZahl(betrag);
 
-    const senden = () => {
+    // Der Kurs, den der Server kennt. Weicht der eingetragene Einstand extrem
+    // davon ab, ist fast immer die SUMME ins Kursfeld geraten — genau der
+    // Fehler, der "-99,7 % seit Einstand" erzeugt hat. Wir raten nicht, wir
+    // fragen nach.
+    const kurs = posZeile && typeof posZeile.kurs === "number" ? posZeile.kurs : null;
+    const kursWeitWeg = (kurs != null && ekZahl != null && ekZahl > 0 && kurs > 0)
+      && (ekZahl / kurs > 10 || kurs / ekZahl > 10);
+
+    const listeNeu = () => {
+      const bisher = alle
+        .filter((z) => z.ebene === "position" && z.baustein === baustein)
+        .map((z) => ({ isin: z.schluessel, einstand: typeof z.einstand === "number" ? z.einstand : null }));
+      const eigen = { isin: String(isin).trim().toUpperCase(), einstand: (ekZahl != null && ekZahl > 0) ? ekZahl : null };
+      if (neuAnlegen) return bisher.concat([eigen]);
+      return bisher.map((x) => (x.isin === isinAlt ? eigen : x));
+    };
+
+    const speichern = (liste, karteNachher) => {
       setBusy(true); setMeldung(null);
+      const ziel = ltZielKoerper(alle, depot, baustein, liste);
       fetch(API + "/api/mybook/sockel/ziel", {
         method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(ltZielKoerper(alle, depot, baustein, isin, ekZahl)),
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify(ziel),
       })
         .then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
         .then((res) => {
-          setBusy(false);
-          if (res.code === 200 && res.d && res.d.ok) {
-            // Die Summe liegt im Browser, nicht in der Antwort — sie wird
-            // deshalb hier geschrieben, nicht vom Server zurueckgelesen.
-            const karte = ltBetraegeLesen(depot);
-            const bZahl = ltZahl(betrag);
-            if (bZahl != null && bZahl > 0) karte[baustein] = bZahl; else delete karte[baustein];
-            ltBetraegeSchreiben(depot, karte);
-            if (typeof onGespeichert === "function") onGespeichert();
-            return;
+          if (!(res.code === 200 && res.d && res.d.ok)) {
+            setBusy(false);
+            const e = res.d && res.d.error;
+            setMeldung(T("Nicht gespeichert (" + (e || res.code) + "). Es wurde nichts ge\u00E4ndert.",
+                         "Not saved (" + (e || res.code) + "). Nothing was changed."));
+            return null;
           }
-          const e = res.d && res.d.error;
-          setMeldung(T("Nicht gespeichert (" + (e || res.code) + "). Es wurde nichts ge\u00E4ndert.",
-                       "Not saved (" + (e || res.code) + "). Nothing was changed."));
+          ltBetraegeSchreiben(depot, karteNachher);
+          // Der Stand folgt aus den Summen. Die Zeilen des Ziels sind gerade
+          // erst geschrieben worden, also bauen wir ihn aus dem, was jetzt
+          // gilt: die bisherigen Zeilen plus die neue Position.
+          const kunft = alle.filter((z) => z.ebene !== "position" || z.baustein !== baustein)
+            .concat(liste.map((x) => ({ ebene: "position", schluessel: x.isin, baustein: baustein,
+              name: x.isin === String(isin).trim().toUpperCase() ? (name || x.isin) : null })));
+          const mitNamen = kunft.map((z) => {
+            if (z.ebene !== "position" || z.name) return z;
+            const alt = alle.find((y) => y.ebene === "position" && y.schluessel === z.schluessel);
+            return Object.assign({}, z, { name: (alt && alt.name) || z.schluessel });
+          });
+          const heute = new Date().toISOString().slice(0, 10);
+          const stand = ltStandKoerper(mitNamen, depot, karteNachher, heute);
+          if (!stand) return { ok: true };
+          return fetch(API + "/api/mybook/sockel/snapshot", {
+            method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json" }, body: JSON.stringify(stand),
+          }).then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+            .then((r2) => {
+              if (r2.code === 200 && r2.d && r2.d.ok) return { ok: true };
+              // Das Ziel steht bereits. Das zu verschweigen waere die
+              // schlimmere Variante: der Nutzer saehe eine halbe Speicherung
+              // als ganze.
+              setMeldung(T("Die Zielstruktur ist gespeichert, der Stand nicht ("
+                + ((r2.d && r2.d.error) || r2.code) + "). Deine Anteile stehen deshalb noch auf dem alten Wert.",
+                "The target structure is saved, the reporting date is not ("
+                + ((r2.d && r2.d.error) || r2.code) + "). Your weights therefore still show the old value."));
+              return { ok: false };
+            });
+        })
+        .then((r) => {
+          setBusy(false);
+          if (r && r.ok && typeof onGespeichert === "function") onGespeichert();
         })
         .catch(() => { setBusy(false); setMeldung(T("Keine Verbindung. Es wurde nichts ge\u00E4ndert.", "No connection. Nothing was changed.")); });
     };
 
+    const senden = () => {
+      const karte = Object.assign({}, betraege);
+      const key = String(isin).trim().toUpperCase();
+      if (isinAlt && isinAlt !== key) delete karte[isinAlt];
+      if (bZahl != null && bZahl > 0) karte[key] = bZahl; else delete karte[key];
+      speichern(listeNeu(), karte);
+    };
+
+    const entfernen = () => {
+      const karte = Object.assign({}, betraege);
+      delete karte[isinAlt];
+      const liste = alle
+        .filter((z) => z.ebene === "position" && z.baustein === baustein && z.schluessel !== isinAlt)
+        .map((z) => ({ isin: z.schluessel, einstand: typeof z.einstand === "number" ? z.einstand : null }));
+      speichern(liste, karte);
+    };
+
+    // Wie viele Produkte im GANZEN Depot noch keine Summe haben — inklusive
+    // dem, das gerade bearbeitet wird.
+    const ohneSumme = (() => {
+      const key = String(isin).trim().toUpperCase();
+      const karte = Object.assign({}, betraege);
+      if (isinAlt && isinAlt !== key) delete karte[isinAlt];
+      if (bZahl != null && bZahl > 0) karte[key] = bZahl; else delete karte[key];
+      const alleIsin = alle.filter((z) => z.ebene === "position").map((z) => z.schluessel)
+        .filter((x) => x !== isinAlt);
+      if (ltIsinOk(isin)) alleIsin.push(key);
+      return alleIsin.filter((x) => !(typeof karte[x] === "number" && karte[x] > 0)).length;
+    })();
+
+    const anteil = (bsZeile && bsZeile.ziel_pct != null) ? bsZeile.ziel_pct : null;
+    const anzahl = alle.filter((z) => z.ebene === "position" && z.baustein === baustein).length + (neuAnlegen ? 1 : 0);
+
     return h("div", { className: "zed" },
       h("div", { className: "zed-kopf" },
-        h("h4", null, ltName({ ebene: "baustein", schluessel: baustein })),
+        h("h4", null, (neuAnlegen ? T("Produkt hinzufügen · ", "Add product · ") : "")
+          + ltName({ ebene: "baustein", schluessel: baustein })),
         h("button", { className: "zed-zu", onClick: onSchliessen }, T("Schlie\u00DFen", "Close"))),
 
-      bsZeile && bsZeile.ziel_pct != null
+      anteil != null
         ? h("p", { className: "zed-ziel" },
-            T("Zielanteil " + ltPct(bsZeile.ziel_pct) + " %", "Target share " + ltPct(bsZeile.ziel_pct) + " %"),
-            // Der Bezug, nach dem Daniel gefragt hat: was dieser Baustein vom
-            // GESAMTBUDGET bekommen soll, und was heute drinsteckt.
+            T("Zielanteil " + ltPct(anteil) + " %", "Target share " + ltPct(anteil) + " %"),
             (budget != null && budget > 0)
-              ? h("span", null, T("= " + ltEuro(Math.round(budget * bsZeile.ziel_pct / 100)) + " € von "
-                                  + ltEuro(budget) + " € Budget",
-                                  "= " + ltEuro(Math.round(budget * bsZeile.ziel_pct / 100)) + " € of "
-                                  + ltEuro(budget) + " € budget")) : null,
-            (ltZahl(betrag) != null && ltZahl(betrag) > 0 && budget != null && budget > 0)
-              ? h("span", { className: "zed-ist" },
-                  T("angelegt " + ltEuro(ltZahl(betrag)) + " € = "
-                    + ltPct(ltZahl(betrag) / budget * 100) + " % des Budgets",
-                    "invested " + ltEuro(ltZahl(betrag)) + " € = "
-                    + ltPct(ltZahl(betrag) / budget * 100) + " % of the budget")) : null,
-            h("button", { className: "zed-link", onClick: onZurStruktur },
-              T("Gewichte \u00E4ndern", "change weights")))
+              ? h("span", null, T("= " + ltEuro(Math.round(budget * anteil / 100)) + " € von " + ltEuro(budget) + " € Budget",
+                                  "= " + ltEuro(Math.round(budget * anteil / 100)) + " € of " + ltEuro(budget) + " € budget")) : null,
+            anzahl > 1 ? h("span", null,
+              T("· auf " + anzahl + " Produkte gleichmäßig verteilt", "· split evenly across " + anzahl + " products")) : null,
+            h("button", { className: "zed-link", onClick: onZurStruktur }, T("Gewichte \u00E4ndern", "change weights")))
         : null,
 
       h("div", { className: "zed-feld" },
@@ -2185,21 +2313,31 @@
           onChange: (e) => setIsin(e.target.value.toUpperCase()) })),
       h("div", { className: "zed-feld" },
         h("label", null, T("Einstandskurs", "Purchase price")),
-        // Das Waehrungszeichen steht VOR dem Feld. Hinter einem 600 Pixel
-        // breiten Eingabefeld sieht es niemand.
         h("i", null, "€"),
         h("input", { type: "text", inputMode: "decimal", className: "kurz" + (ekOk ? "" : " ungueltig"), value: einstand,
-          placeholder: T("z. B. 512,40", "e.g. 512.40"),
-          onChange: (e) => setEinstand(e.target.value) })),
+          placeholder: T("z. B. 512,40", "e.g. 512.40"), onChange: (e) => setEinstand(e.target.value) }),
+        h("em", null, kurs != null
+          ? T("aktueller Kurs " + ltPct(kurs) + " €", "current price " + ltPct(kurs) + " €")
+          : T("Kurs je Anteil", "price per share"))),
       h("div", { className: "zed-feld" },
         h("label", null, T("Angelegte Summe", "Amount invested")),
         h("i", null, "€"),
         h("input", { type: "text", inputMode: "decimal", className: "kurz", value: betrag,
-          placeholder: T("z. B. 4000", "e.g. 4000"),
-          onChange: (e) => setBetrag(e.target.value) })),
+          placeholder: T("z. B. 4000", "e.g. 4000"), onChange: (e) => setBetrag(e.target.value) }),
+        h("em", null, T("das Geld in dieser Zeile", "the money in this row"))),
+
+      kursWeitWeg ? h("p", { className: "zed-warn" },
+        T("Der Einstandskurs liegt weit vom aktuellen Kurs (" + ltPct(kurs) + " €). Trägst du dort vielleicht die angelegte Summe statt den Kurs je Anteil ein?",
+          "The purchase price is far from the current price (" + ltPct(kurs) + " €). Are you perhaps entering the amount invested instead of the price per share?")) : null,
+
+      ohneSumme > 0 ? h("p", { className: "zed-warn" },
+        T("Noch " + ohneSumme + (ohneSumme === 1 ? " Produkt ohne angelegte Summe" : " Produkte ohne angelegte Summe")
+          + ". Solange eine fehlt, bleiben deine Anteile auf dem alten Stand — sonst stünde ein Produkt bei 100 % und der Rest bei null.",
+          ohneSumme + (ohneSumme === 1 ? " product still has no amount" : " products still have no amount")
+          + ". While one is missing your weights stay as they are — otherwise one product would sit at 100 % and the rest at zero.")) : null,
       h("p", { className: "zed-hin" },
-        T("Der Einstandskurs ist der Kurs je Anteil, die angelegte Summe das Geld in dieser Zeile. Der Kurs geht zum Server, die Summe NICHT — sie bleibt in diesem Browser und ist auf einem anderen Gerät nicht da.",
-          "The purchase price is the price per share, the amount invested is the money in this row. The price goes to the server, the amount does NOT — it stays in this browser and is not there on another device.")),
+        T("Aus den Summen aller Produkte errechnet die Fläche deine Anteile und liefert sie als Stand ein. Gesendet werden ausschließlich Prozente — kein Betrag verlässt diesen Browser.",
+          "From the amounts of all products the surface computes your weights and submits them as a reporting date. Only percentages are sent — no amount leaves this browser.")),
 
       h("button", { className: "zed-liste", onClick: () => setListeAuf(!listeAuf) },
         listeAuf ? T("Beispiele schlie\u00DFen", "Close examples") : T("Beispiele ansehen", "View examples")),
@@ -2213,9 +2351,11 @@
 
       h("div", { className: "zed-fuss" },
         h(Button, { variant: "oracle", size: "sm", loading: busy,
-          disabled: busy || !isinOk || !ekOk || ekOhneIsin, onClick: senden },
+          disabled: busy || !ltIsinOk(isin) || !ekOk || ekOhneIsin, onClick: senden },
           T("Speichern", "Save")),
-        h("button", { className: "zed-zu", onClick: onSchliessen }, T("Abbrechen", "Cancel"))));
+        h("button", { className: "zed-zu", onClick: onSchliessen }, T("Abbrechen", "Cancel")),
+        (!neuAnlegen) ? h("button", { className: "zed-weg", disabled: busy, onClick: entfernen },
+          T("Produkt entfernen", "Remove product")) : null));
   }
 
   // --- Mechanik (AP6.9) ----------------------------------------------------
@@ -2518,8 +2658,17 @@
         const imAufbau = (z) => aufbau && (z.ist_pct || 0) > 0;
         // Die eingetragene Summe haengt am Baustein; die Positionszeile zeigt
         // sie nicht noch einmal, sonst stuende dieselbe Zahl doppelt.
-        const betragVon = (z) => (z.ebene === "baustein" && typeof betraege[z.schluessel] === "number")
-          ? betraege[z.schluessel] : null;
+        // Position: ihre eigene Summe. Baustein: die Summe seiner Produkte.
+        const betragVon = (z) => {
+          if (z.ebene === "position") {
+            const b = betraege[z.schluessel];
+            return typeof b === "number" ? b : null;
+          }
+          if (z.ebene !== "baustein") return null;
+          const su = zeilen.filter((y) => y.ebene === "position" && y.baustein === z.schluessel)
+            .reduce((a, y) => a + (typeof betraege[y.schluessel] === "number" ? betraege[y.schluessel] : 0), 0);
+          return su > 0 ? su : null;
+        };
 
         // Was bis zur SELBST gesetzten Zielstruktur fehlt. Reine Arithmetik auf
         // den Eingaben des Members: Ziel minus Ist. Kein Produkt, kein Zeitpunkt,
@@ -2587,7 +2736,9 @@
               key: "zed-" + z.schluessel,
               depot: zeilenEditor.depot,
               baustein: zeilenEditor.baustein,
+              isin: zeilenEditor.isin || null,
               zeilen: zeilen,
+              betraege: betraege,
               budget: (budgetZahl != null && budgetZahl > 0) ? budgetZahl : null,
               onGespeichert: () => { setZeilenEditor(null); setBetraege(ltBetraegeLesen(dep.depot)); setNachladen((n) => n + 1); },
               onSchliessen: () => setZeilenEditor(null),
@@ -2642,20 +2793,22 @@
                 : z.verdikt === "im_band" ? T("im Band", "in band")
                 : z.verdikt === "ohne_band" ? T("kein Band", "no band")
                 : T("kein Ziel", "no target")),
-            (z.ebene === "baustein" || z.ebene === "position")
+            z.ebene === "baustein"
               ? h("button", { className: "lt-kauf",
-                  title: T("Öffnet nur diese Zeile: Produkt, ISIN und Einstandskurs.",
-                           "Opens this row only: product, ISIN and purchase price."),
+                  title: T("Legt ein weiteres Produkt in diesem Baustein an. Ein Baustein darf mehrere tragen.",
+                           "Adds another product to this building block. A block may carry several."),
+                  onClick: () => setZeilenEditor({ depot: dep.depot, baustein: z.schluessel,
+                    isin: null, anker: z.ebene + ":" + z.schluessel }) },
+                  T("Hinzuf\u00FCgen", "Add"))
+              : null,
+            z.ebene === "position"
+              ? h("button", { className: "lt-kauf",
+                  title: T("Öffnet nur diese Zeile: Produkt, ISIN, Einstandskurs und angelegte Summe.",
+                           "Opens this row only: product, ISIN, purchase price and amount invested."),
                   onClick: () => setZeilenEditor({ depot: dep.depot,
-                    baustein: z.ebene === "position" ? (posBaustein(z) || z.baustein) : z.schluessel,
+                    baustein: posBaustein(z) || z.baustein, isin: z.schluessel,
                     anker: z.ebene + ":" + z.schluessel }) },
                   T("Bearbeiten", "Edit"))
-              : null,
-            geplant(z) && (z.ebene === "baustein" || z.ebene === "position")
-              ? h("button", { className: "lt-kauf",
-                  title: T("Öffnet den Stand-Editor mit deinem letzten Stand und dieser Zeile.",
-                           "Opens the reporting-date editor with your last reporting date and this row."),
-                  onClick: () => standFuer(z) }, T("gekauft — Stand einliefern", "bought — submit reporting date"))
               : null));
         return h("div", { key: dep.depot || di },
           h("div", { className: "lt-stand" },
@@ -2715,16 +2868,6 @@
       const hBs = hz.filter((z) => z.ebene === "baustein" && z.ziel_pct != null);
       const hBasis = ltBasis(hPos, hBs);
       const hGekauft = hBasis.filter((z) => (z.ist_pct || 0) > 0).length;
-      const hZiel = {};
-      hz.forEach((z) => { if (z.ebene === "baustein" && z.ziel_pct != null) hZiel[z.schluessel] = z.ziel_pct; });
-      const hGehalten = hz
-        .filter((z) => z.ebene === "position" && (z.ist_pct || 0) > 0)
-        .map((z) => {
-          const b = z.baustein || (isinNamen[z.schluessel] && isinNamen[z.schluessel].baustein) || null;
-          return { name: z.name || (isinNamen[z.schluessel] && isinNamen[z.schluessel].name) || z.schluessel,
-            isin: z.schluessel, klasse: (b && LT_ZU_KLASSE[b]) || "aktien", baustein: b || "welt",
-            gewicht_pct: String(z.ist_pct).replace(".", ","), betrag: "" };
-        });
       werkzeug = h("div", { className: "toolbar lt-werk" },
         h(PyEyebrow, null, hBasis.length
           ? T("\u00DCberblick · " + hGekauft + "/" + hBasis.length + " "
@@ -2746,14 +2889,11 @@
             onClick: () => setEditor({ depot: haupt.depot, start: hz.filter((z) => z.ziel_pct != null), ist: hz }) },
             haupt.ziel_gueltig_ab == null ? T("Zielstruktur festlegen", "Define target structure")
                                           : T("Zielstruktur \u00E4ndern", "Change target structure")),
-          h(Button, { variant: "oracle", size: "sm",
-            // Daniels Entscheid vom 13.08.: der Stand-Editor beginnt leer.
-            // Bestehende Zeilen aendert man unten am Baustein, nicht hier.
-            // hGehalten bleibt trotzdem berechnet — der Editor sagt damit,
-            // wie viele Positionen der letzte Stand hatte.
-            onClick: () => setPosEditor({ depot: haupt.depot, ziel: hZiel, start: null,
-              vorher: hGehalten.length, vorherDatum: haupt.stand || null }) },
-            T("Neuen Stand einliefern", "Submit new reporting date"))));
+          // "Neuen Stand einliefern" ist hier weg. Alles laeuft ueber die
+          // Bausteine unten: "Hinzufuegen" legt ein Produkt an, "Bearbeiten"
+          // aendert es, und der Stand errechnet sich aus den Summen. Zwei
+          // Wege zum selben Ziel waren genau die Verwirrung.
+          ));
     }
 
     return h("div", { className: "lt" }, kopf, erklaerung, werkzeug,
