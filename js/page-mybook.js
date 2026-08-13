@@ -2281,10 +2281,20 @@
           const heute = new Date().toISOString().slice(0, 10);
           const stand = ltStandKoerper(mitNamen, depot, karteNachher, heute);
           if (!stand) return { ok: true };
-          return fetch(API + "/api/mybook/sockel/snapshot", {
+          // Ein Stand je Stichtag. Wer heute zum zweiten Mal etwas aendert,
+          // will den heutigen Stand KORRIGIEREN, nicht einen zweiten anlegen —
+          // das Backend antwortet darauf mit stand_exists. Der zweite Versuch
+          // traegt deshalb ersetzen:true. Frueher gelieferte Stichtage bleiben
+          // als Verlauf unberuehrt; ersetzt wird nur der von heute.
+          const schicken = (koerper) => fetch(API + "/api/mybook/sockel/snapshot", {
             method: "POST", credentials: "include",
-            headers: { "Content-Type": "application/json" }, body: JSON.stringify(stand),
-          }).then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })))
+            headers: { "Content-Type": "application/json" }, body: JSON.stringify(koerper),
+          }).then((r) => r.json().then((d) => ({ code: r.status, d: d })).catch(() => ({ code: r.status, d: null })));
+
+          return schicken(stand)
+            .then((r1) => (r1.d && r1.d.error === "stand_exists")
+              ? schicken(Object.assign({}, stand, { ersetzen: true }))
+              : r1)
             .then((r2) => {
               if (r2.code === 200 && r2.d && r2.d.ok) return { ok: true };
               // Das Ziel steht bereits. Das zu verschweigen waere die
@@ -2729,14 +2739,20 @@
         // Die eingetragene Summe haengt am Baustein; die Positionszeile zeigt
         // sie nicht noch einmal, sonst stuende dieselbe Zahl doppelt.
         // Position: ihre eigene Summe. Baustein: die Summe seiner Produkte.
+        // Klasse: die Summe ihrer Bausteine — die fehlte, deshalb stand in der
+        // Klassenzeile ein Strich, obwohl darunter Betraege lagen.
+        const betragPos = (isin) => {
+          const b = betraege[isin];
+          return typeof b === "number" && b > 0 ? b : 0;
+        };
         const betragVon = (z) => {
-          if (z.ebene === "position") {
-            const b = betraege[z.schluessel];
-            return typeof b === "number" ? b : null;
-          }
-          if (z.ebene !== "baustein") return null;
-          const su = zeilen.filter((y) => y.ebene === "position" && y.baustein === z.schluessel)
-            .reduce((a, y) => a + (typeof betraege[y.schluessel] === "number" ? betraege[y.schluessel] : 0), 0);
+          if (z.ebene === "position") return betragPos(z.schluessel) || null;
+          const passt = z.ebene === "baustein"
+            ? (y) => y.baustein === z.schluessel
+            : (z.ebene === "klasse" ? (y) => LT_ZU_KLASSE[y.baustein] === z.schluessel : null);
+          if (!passt) return null;
+          const su = zeilen.filter((y) => y.ebene === "position" && y.baustein && passt(y))
+            .reduce((a, y) => a + betragPos(y.schluessel), 0);
           return su > 0 ? su : null;
         };
 
