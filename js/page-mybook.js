@@ -287,7 +287,7 @@
   #mb-root .lt-row .satz b{color:var(--parch);font-weight:600;}
   #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:auto;justify-content:flex-end;}
   #mb-root .lt-eur{font-family:var(--font-mono);font-size:12px;color:var(--oracle);white-space:nowrap;}
-  #mb-root .lt-verlauf{font-family:var(--font-mono);font-size:12px;white-space:nowrap;}
+  #mb-root .lt-verlauf{font-family:var(--font-mono);font-size:12px;white-space:nowrap;margin-left:9px;}
   #mb-root .lt-verlauf.auf{color:var(--bull,#6FCF9A);}
   #mb-root .lt-verlauf.ab{color:var(--ox-b,#E0726B);}
   #mb-root .ze-einstand{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:11px 0 0;padding-top:10px;border-top:1px solid var(--line);}
@@ -295,7 +295,7 @@
   #mb-root .ze-einstand input{background:var(--input,#0B0D11);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-mono);font-size:13px;padding:7px 10px;width:120px;text-align:right;}
   #mb-root .ze-einstand i{font-family:var(--font-mono);font-size:12px;font-style:normal;color:var(--ash);}
   #mb-root .ze-einstand em{flex:1 1 240px;min-width:0;font-family:var(--font-ui);font-style:normal;font-size:11.5px;line-height:1.5;color:var(--text-secondary,#9BA3B2);}
-  #mb-root .lt-fehlt{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary,#9BA3B2);white-space:nowrap;}
+  #mb-root .lt-fehlt{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary,#9BA3B2);white-space:nowrap;margin-left:9px;}
   #mb-root .lt-budget{margin:20px 0 0;padding:14px 16px;background:rgba(255,255,255,.015);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:0 8px 8px 0;}
   #mb-root .lt-budget label{display:inline-flex;align-items:center;gap:9px;}
   #mb-root .lt-budget label span{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
@@ -307,6 +307,8 @@
   #mb-root .lt-kauf:hover{border-color:var(--oracle);color:var(--oracle-b);}
   #mb-root .lt-row .marke{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;flex:0 0 auto;color:var(--ash);}
   #mb-root .lt-row .marke.aus{color:#E7A062;}
+  #mb-root .lt-row.unter{padding-left:16px;border-left:1px solid var(--line);margin-left:3px;}
+  #mb-root .lt-row.unter .satz b{font-weight:400;}
   #mb-root .lt-row.b-aus{background:rgba(207,122,78,.05);}
 
   #mb-root .lt-mehr{background:none;border:none;padding:9px 0 0;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;color:var(--oracle-b);}
@@ -2198,6 +2200,14 @@
         };
         const geplant = (z) => z.ziel_pct != null && !((z.ist_pct || 0) > 0);
 
+        // Waehrend des Aufbaus ist der Anteil einer gekauften Zeile ein
+        // Artefakt: wer erst einen von sechs Bausteinen besitzt, haelt darin
+        // zwangslaeufig 100 %. Das als "60 Punkte ueber Ziel, ausserhalb des
+        // Bandes" zu melden, ist rechnerisch richtig und trotzdem eine
+        // Falschaussage — die Kopfzeile sagt eine Zeile darueber das Gegenteil.
+        // Die Bandsprache beginnt erst, wenn der Aufbau steht.
+        const imAufbau = (z) => aufbau && (z.ist_pct || 0) > 0;
+
         // Was bis zur SELBST gesetzten Zielstruktur fehlt. Reine Arithmetik auf
         // den Eingaben des Members: Ziel minus Ist. Kein Produkt, kein Zeitpunkt,
         // keine Empfehlung — das ist die Grenze, und sie liegt genau hier.
@@ -2232,17 +2242,47 @@
           return t;
         };
 
-        const zeile = (z, i) => h("div", { key: i, className: "lt-row" + (z.verdikt === "band_verletzt" && !aufbau ? " b-aus" : "") },
+        // Seit B144 nennt jede Positions-Zeile ihren Baustein. Vorher hing sie
+        // hinten in der Liste und war visuell mit nichts verbunden — genau der
+        // Befund "ein ETF wird nicht dem Baustein zugeordnet". Jetzt steht sie
+        // eingerueckt unter dem Baustein, den sie fuellt.
+        const ordne = (liste) => {
+          const bs = liste.filter((z) => z.ebene === "baustein");
+          const ps = liste.filter((z) => z.ebene === "position");
+          const rest2 = liste.filter((z) => z.ebene !== "baustein" && z.ebene !== "position");
+          const out = [];
+          const vergeben = new Set();
+          bs.forEach((b) => {
+            out.push({ z: b, unter: false });
+            ps.forEach((p, i) => {
+              if (p.baustein === b.schluessel) { out.push({ z: p, unter: true }); vergeben.add(i); }
+            });
+          });
+          // Positionen ohne (bekannten) Baustein gehen nicht verloren — sie
+          // stehen hinten und sagen selbst, dass ihnen die Zuordnung fehlt.
+          ps.forEach((p, i) => { if (!vergeben.has(i)) out.push({ z: p, unter: false, heimatlos: true }); });
+          rest2.forEach((z) => out.push({ z: z, unter: false }));
+          return out;
+        };
+
+        const zeile = (z, i, opt) => h("div", { key: i, className: "lt-row"
+            + ((opt && opt.unter) ? " unter" : "")
+            + (z.verdikt === "band_verletzt" && !aufbau ? " b-aus" : "") },
           h("div", { className: "satz" },
             h("b", null, z.ebene === "position" ? posName(z) : ltName(z)),
+            (opt && opt.heimatlos) ? h("span", { className: "lt-fehlt" },
+              T(" · noch keinem Baustein zugeordnet", " · not yet assigned to a building block")) : null,
             " \u00B7 ",
             geplant(z)
               ? (ohneStand
                   ? T("Ziel " + ltPct(z.ziel_pct) + " %.", "target " + ltPct(z.ziel_pct) + " %.")
                   : T("Ziel " + ltPct(z.ziel_pct) + " % — noch nicht gekauft.", "target " + ltPct(z.ziel_pct) + " % — not bought yet."))
-              : ltAussage(z),
+              : imAufbau(z) && z.ziel_pct != null
+                ? T("gekauft · Ziel " + ltPct(z.ziel_pct) + " %", "bought · target " + ltPct(z.ziel_pct) + " %")
+                : ltAussage(z),
             inEuro(z.ziel_pct) != null
-              ? h("span", { className: "lt-eur" }, " = " + euroText(inEuro(z.ziel_pct)) + " €") : null,
+              ? h("span", { className: "lt-eur" },
+                  T(" · Ziel " + euroText(inEuro(z.ziel_pct)) + " €", " · target " + euroText(inEuro(z.ziel_pct)) + " €")) : null,
             fehltPp(z) != null
               ? h("span", { className: "lt-fehlt" },
                   T(" · bis zu deinem Ziel fehlen " + ltPct(fehltPp(z)) + " Punkte",
@@ -2257,10 +2297,18 @@
           h("div", { className: "lt-rechts" },
             h("div", { className: "marke" + (geplant(z) ? " plan" : (z.verdikt === "band_verletzt" && !aufbau ? " aus" : "")) },
               geplant(z) ? T("geplant", "planned")
+                : imAufbau(z) ? T("gekauft", "bought")
                 : z.verdikt === "band_verletzt" ? T("au\u00DFerhalb", "outside")
                 : z.verdikt === "im_band" ? T("im Band", "in band")
                 : z.verdikt === "ohne_band" ? T("kein Band", "no band")
                 : T("kein Ziel", "no target")),
+            z.ebene === "position" && !geplant(z)
+              ? h("button", { className: "lt-kauf",
+                  title: T("Öffnet die Zielstruktur, wo Produkt und Einstandskurs dieses Bausteins stehen.",
+                           "Opens the target structure, where this building block's product and purchase price live."),
+                  onClick: () => setEditor({ depot: dep.depot, start: zeilen.filter((y) => y.ziel_pct != null), ist: zeilen }) },
+                  T("Produkt ändern", "change product"))
+              : null,
             geplant(z) && (z.ebene === "baustein" || z.ebene === "position")
               ? h("button", { className: "lt-kauf",
                   title: T("Öffnet den Stand-Editor mit deinem letzten Stand und dieser Zeile.",
@@ -2297,7 +2345,8 @@
             h("button", { className: "lt-mehr", onClick: () => setOffen(Object.assign({}, offen, { [dep.depot]: !auf })) },
               auf ? T("Bausteine und Produkte schlie\u00DFen ▴", "Close building blocks and products ▴")
                   : T("Bausteine und Produkte ansehen ▾ (" + rest.length + ")", "View building blocks and products ▾ (" + rest.length + ")")),
-            auf ? h("div", { style: { marginTop: 8 } }, rest.map(zeile)) : null) : null,
+            auf ? h("div", { style: { marginTop: 8 } },
+              ordne(rest).map((e, i) => zeile(e.z, i, e))) : null) : null,
           h("div", { style: { marginTop: 18 } },
             h("button", { className: "lt-mehr", onClick: () => setEditor({ depot: dep.depot, start: zeilen.filter((z) => z.ziel_pct != null), ist: zeilen }) },
               dep.ziel_gueltig_ab == null ? T("Zielstruktur festlegen", "Define target structure")
