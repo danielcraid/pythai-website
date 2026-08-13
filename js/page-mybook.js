@@ -282,10 +282,15 @@
 
   #mb-root .lt-grp{margin:24px 0 0;}
   #mb-root .lt-grp-t{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ash);margin:0 0 8px;}
-  #mb-root .lt-row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid var(--line);}
+  /* align-items:baseline hat die rechte Gruppe nach unten gezogen: sie ist
+     selbst ein Flex-Container, ihre Grundlinie kommt aus ihrem ersten Kind,
+     und bei 10px Mono gegen 14px UI liegen die beiden Grundlinien 26px
+     auseinander. Ergebnis: Zeilenhoehe 60 statt 21. flex-start richtet
+     stattdessen beide Bloecke oben aus. */
+  #mb-root .lt-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid var(--line);}
   #mb-root .lt-row .satz{font-family:var(--font-ui);font-size:14px;line-height:1.5;color:var(--mist);min-width:0;}
   #mb-root .lt-row .satz b{color:var(--parch);font-weight:600;}
-  #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:auto;justify-content:flex-end;}
+  #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:auto;justify-content:flex-end;min-height:21px;}
   #mb-root .lt-eur{font-family:var(--font-mono);font-size:12px;color:var(--oracle);white-space:nowrap;}
   #mb-root .lt-verlauf{font-family:var(--font-mono);font-size:12px;white-space:nowrap;margin-left:9px;}
   #mb-root .lt-verlauf.auf{color:var(--bull,#6FCF9A);}
