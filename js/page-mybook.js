@@ -292,6 +292,8 @@
   #mb-root .lt-row .satz b{color:var(--parch);font-weight:600;}
   #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:auto;justify-content:flex-end;min-height:21px;}
   #mb-root .lt-eur{font-family:var(--font-mono);font-size:12px;color:var(--oracle);white-space:nowrap;}
+  #mb-root .lt-gesamt{font-family:var(--font-mono);font-size:12px;color:var(--parch);cursor:help;}
+  #mb-root .lt-ist-eur{font-family:var(--font-mono);font-size:12px;color:var(--parch);white-space:nowrap;margin-left:9px;}
   #mb-root .lt-verlauf{font-family:var(--font-mono);font-size:12px;white-space:nowrap;margin-left:9px;}
   #mb-root .lt-verlauf.auf{color:var(--bull,#6FCF9A);}
   #mb-root .lt-verlauf.ab{color:var(--ox-b,#E0726B);}
@@ -774,6 +776,21 @@
   };
   const ltSchreiben = (an) => { try { localStorage.setItem(LT_SCHALTER, an ? "1" : "0"); } catch (e) {} };
 
+  // Angelegte Summen je Baustein. Daniels Entscheid vom 13.08.: die Summe
+  // gehoert in die Zeile. Teil C verbietet, Betraege zu SENDEN und zu
+  // speichern — deshalb bleiben sie hier im Browser, so wie das Budget.
+  // Das ist ehrlich, solange es dransteht, und es ist kein Ersatz fuer die
+  // Backend-Entscheidung: sollen Betraege dauerhaft werden, aendert das
+  // Teil C und braucht eine Lieferung. Bis dahin: geraetegebunden.
+  const LT_BETRAG_KEY = (depot) => "py_lt_betrag_" + (depot || "struktur_1");
+  const ltBetraegeLesen = (depot) => {
+    try { const v = JSON.parse(localStorage.getItem(LT_BETRAG_KEY(depot)) || "{}"); return (v && typeof v === "object") ? v : {}; }
+    catch (e) { return {}; }
+  };
+  const ltBetraegeSchreiben = (depot, karte) => {
+    try { localStorage.setItem(LT_BETRAG_KEY(depot), JSON.stringify(karte || {})); } catch (e) {}
+  };
+
   /* ============================================================
      B1 · ZIELSTRUKTUR SETZEN (AP6.5) — Vertrag V2, Abschnitt B1
      POST /api/mybook/sockel/ziel
@@ -809,6 +826,9 @@
   // sie mindestens so vollstaendig ist wie die groebere — sonst meldet eine
   // einzige Zielposition "1 von 1 im Depot", waehrend fuenf Bausteine leer
   // sind. Steht hier oben, damit sie pruefbar ist statt nur behauptet.
+  const ltBetragSumme = (karte) => Object.keys(karte || {})
+    .reduce((a, k) => a + (typeof karte[k] === "number" ? karte[k] : 0), 0);
+
   const ltBasis = (zielPos, zielBs) =>
     (zielPos.length && zielPos.length >= zielBs.length) ? zielPos : zielBs;
 
@@ -2067,6 +2087,10 @@
     const [isin, setIsin] = useState(posZeile ? (posZeile.schluessel || "") : "");
     const [einstand, setEinstand] = useState(
       posZeile && typeof posZeile.einstand === "number" ? String(posZeile.einstand).replace(".", ",") : "");
+    const [betrag, setBetrag] = useState(() => {
+      const k = ltBetraegeLesen(depot);
+      return k[baustein] != null ? String(k[baustein]).replace(".", ",") : "";
+    });
     const [listeAuf, setListeAuf] = useState(!posZeile);
     const [busy, setBusy] = useState(false);
     const [meldung, setMeldung] = useState(null);
@@ -2087,6 +2111,12 @@
         .then((res) => {
           setBusy(false);
           if (res.code === 200 && res.d && res.d.ok) {
+            // Die Summe liegt im Browser, nicht in der Antwort — sie wird
+            // deshalb hier geschrieben, nicht vom Server zurueckgelesen.
+            const karte = ltBetraegeLesen(depot);
+            const bZahl = ltZahl(betrag);
+            if (bZahl != null && bZahl > 0) karte[baustein] = bZahl; else delete karte[baustein];
+            ltBetraegeSchreiben(depot, karte);
             if (typeof onGespeichert === "function") onGespeichert();
             return;
           }
@@ -2125,9 +2155,15 @@
         h("input", { type: "text", inputMode: "decimal", className: "kurz" + (ekOk ? "" : " ungueltig"), value: einstand,
           placeholder: T("z. B. 512,40", "e.g. 512.40"),
           onChange: (e) => setEinstand(e.target.value) })),
+      h("div", { className: "zed-feld" },
+        h("label", null, T("Angelegte Summe", "Amount invested")),
+        h("i", null, "€"),
+        h("input", { type: "text", inputMode: "decimal", className: "kurz", value: betrag,
+          placeholder: T("z. B. 4000", "e.g. 4000"),
+          onChange: (e) => setBetrag(e.target.value) })),
       h("p", { className: "zed-hin" },
-        T("Kurs je Anteil — nicht die angelegte Summe. Er dient nur dazu, sp\u00E4ter die Ver\u00E4nderung zu zeigen.",
-          "Price per share — not the amount invested. It only serves to show the change later.")),
+        T("Der Einstandskurs ist der Kurs je Anteil, die angelegte Summe das Geld in dieser Zeile. Der Kurs geht zum Server, die Summe NICHT — sie bleibt in diesem Browser und ist auf einem anderen Gerät nicht da.",
+          "The purchase price is the price per share, the amount invested is the money in this row. The price goes to the server, the amount does NOT — it stays in this browser and is not there on another device.")),
 
       h("button", { className: "zed-liste", onClick: () => setListeAuf(!listeAuf) },
         listeAuf ? T("Beispiele schlie\u00DFen", "Close examples") : T("Beispiele ansehen", "View examples")),
@@ -2153,7 +2189,10 @@
     const [offen, setOffen] = useState({});
     const [editor, setEditor] = useState(null); // null | { depot, start }
     const [posEditor, setPosEditor] = useState(null);
-    const [zeilenEditor, setZeilenEditor] = useState(null); // { depot, baustein } // null | { depot }
+    const [zeilenEditor, setZeilenEditor] = useState(null); // { depot, baustein, anker }
+    // Angelegte Summen je Baustein, aus dem Browser. nachladen zaehlt hoch,
+    // wenn gespeichert wurde — dann werden sie hier neu gelesen.
+    const [betraege, setBetraege] = useState({}); // null | { depot }
     const [nachladen, setNachladen] = useState(0);
     const [einrichtung, setEinrichtung] = useState(false);
     // Nachtrag V2: die DB kennt den Produktnamen erst nach dem ersten Stand.
@@ -2163,10 +2202,15 @@
     // nicht gespeichert und geht nie an den Server. Vertrag C.2 bleibt
     // unangetastet — ueber den Draht laufen weiterhin nur Prozente.
     const [budget, setBudget] = useState("");
+    // Sobald echte Summen eingetragen sind, rechnet die Flaeche mit ihnen und
+    // nicht mehr mit dem geschaetzten Budget. Eine eingetragene Summe ist eine
+    // Angabe, ein Budget eine Annahme — die Angabe gewinnt.
+    const betragSumme = ltBetragSumme(betraege);
     const budgetZahl = ltZahl(budget);
-    const inEuro = (pct) => (budgetZahl == null || budgetZahl <= 0 || pct == null)
+    const rechenBasis = betragSumme > 0 ? betragSumme : budgetZahl;
+    const inEuro = (pct) => (rechenBasis == null || rechenBasis <= 0 || pct == null)
       ? null
-      : Math.round((budgetZahl * pct) / 100);
+      : Math.round((rechenBasis * pct) / 100);
     // Ganze Euro. Nachkommastellen taeuschen hier eine Genauigkeit vor,
     // die eine Planungshilfe nicht hat.
     const euroText = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -2201,6 +2245,7 @@
           if (res.code !== 200 || !res.d || !res.d.ok) { setStand("fehler"); return; }
           const ds = Array.isArray(res.d.depots) ? res.d.depots : [];
           setDepots(ds);
+          if (ds.length) setBetraege(ltBetraegeLesen(ds[0].depot));
           setStand(res.d.vorhanden && ds.length ? "ok" : "leer");
         })
         .catch(() => { if (lebt) setStand("fehler"); });
@@ -2363,6 +2408,10 @@
         // Falschaussage — die Kopfzeile sagt eine Zeile darueber das Gegenteil.
         // Die Bandsprache beginnt erst, wenn der Aufbau steht.
         const imAufbau = (z) => aufbau && (z.ist_pct || 0) > 0;
+        // Die eingetragene Summe haengt am Baustein; die Positionszeile zeigt
+        // sie nicht noch einmal, sonst stuende dieselbe Zahl doppelt.
+        const betragVon = (z) => (z.ebene === "baustein" && typeof betraege[z.schluessel] === "number")
+          ? betraege[z.schluessel] : null;
 
         // Was bis zur SELBST gesetzten Zielstruktur fehlt. Reine Arithmetik auf
         // den Eingaben des Members: Ziel minus Ist. Kein Produkt, kein Zeitpunkt,
@@ -2431,7 +2480,7 @@
               depot: zeilenEditor.depot,
               baustein: zeilenEditor.baustein,
               zeilen: zeilen,
-              onGespeichert: () => { setZeilenEditor(null); setNachladen((n) => n + 1); },
+              onGespeichert: () => { setZeilenEditor(null); setBetraege(ltBetraegeLesen(dep.depot)); setNachladen((n) => n + 1); },
               onSchliessen: () => setZeilenEditor(null),
               onZurStruktur: () => { setZeilenEditor(null);
                 setEditor({ depot: dep.depot, start: zeilen.filter((y) => y.ziel_pct != null), ist: zeilen }); },
@@ -2456,6 +2505,9 @@
             inEuro(z.ziel_pct) != null
               ? h("span", { className: "lt-eur" },
                   T(" · Ziel " + euroText(inEuro(z.ziel_pct)) + " €", " · target " + euroText(inEuro(z.ziel_pct)) + " €")) : null,
+            betragVon(z) != null
+              ? h("span", { className: "lt-ist-eur" },
+                  T(" · " + euroText(betragVon(z)) + " € angelegt", " · " + euroText(betragVon(z)) + " € invested")) : null,
             fehltPp(z) != null
               ? h("span", { className: "lt-fehlt" },
                   T(" · bis zu deinem Ziel fehlen " + ltPct(fehltPp(z)) + " Punkte",
@@ -2564,7 +2616,12 @@
               + (hBasis === hPos ? "positions" : "building blocks") + " held")
           : T("\u00DCberblick", "Overview")),
         h("div", { className: "lt-werk-r" },
-          budgetFeld,
+          betragSumme > 0
+            ? h("span", { className: "lt-gesamt",
+                title: T("Summe der angelegten Betraege aus den Zeilen. Bleibt in diesem Browser.",
+                         "Sum of the amounts entered in the rows. Stays in this browser.") },
+                T("Gesamt " + euroText(betragSumme) + " €", "Total " + euroText(betragSumme) + " €"))
+            : budgetFeld,
           h(Button, { variant: "ghost", size: "sm",
             onClick: () => setEditor({ depot: haupt.depot, start: hz.filter((z) => z.ziel_pct != null), ist: hz }) },
             haupt.ziel_gueltig_ab == null ? T("Zielstruktur festlegen", "Define target structure")
