@@ -357,6 +357,11 @@
   #mb-root .zed-warn{font-family:var(--font-ui);font-size:13px;line-height:1.6;color:#E7A062;margin:12px 0 0;}
   #mb-root .zed-fuss{display:flex;align-items:center;gap:18px;margin:18px 0 0;}
   /* Mechanik (AP6.9) */
+  /* Mitteilung (AP6.10) — Information, kein Alarm */
+  #mb-root .mit{margin:16px 0 0;padding:13px 16px;background:rgba(255,255,255,.012);border:1px solid var(--line);border-radius:8px;}
+  #mb-root .mit-t{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ash);margin-bottom:5px;}
+  #mb-root .mit-x{font-family:var(--font-ui);font-size:13.5px;line-height:1.65;color:var(--text-secondary,#9BA3B2);margin:0;max-width:760px;}
+  #mb-root .mit-q{font-family:var(--font-mono);font-size:11px;color:var(--ash);margin-top:7px;}
   #mb-root .mek{margin:16px 0 18px;padding:14px 16px;background:rgba(255,255,255,.014);border:1px solid var(--line);border-left:3px solid var(--oracle);border-radius:0 8px 8px 0;}
   #mb-root .mek-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--oracle);line-height:1.6;margin-bottom:8px;}
   #mb-root .mek-fest{font-family:var(--font-ui);font-size:13.5px;line-height:1.65;color:var(--parch);margin:0 0 10px;max-width:760px;}
@@ -2367,6 +2372,23 @@
   //
   // Das label ist Pflicht-Anzeige an JEDER Mechanik-Darstellung (Backend,
   // 13.08.). Es steht deshalb ausserhalb des Aufklappens.
+  // --- Mitteilung (AP6.10) -------------------------------------------------
+  // Kuratierte Nachricht zum norwegischen Fonds, identisch fuer alle Member.
+  // Ruhige Informationszeile, kein Alarm: sie beschreibt eine Aenderung an
+  // einer oeffentlichen Quelle. Was der Member daraus macht, ist seine Sache —
+  // deshalb steht hier kein Knopf und kein Ausrufezeichen.
+  function Mitteilung({ m }) {
+    if (!m || !String(m.text || "").trim()) return null;
+    const teile = [];
+    if (m.stichtag_daten) teile.push(T("Datenstand " + ltDatum(m.stichtag_daten), "data as of " + ltDatum(m.stichtag_daten)));
+    if (m.stand) teile.push(T("Mitteilung vom " + ltDatum(m.stand), "notice of " + ltDatum(m.stand)));
+    if (m.quelle) teile.push(m.quelle);
+    return h("div", { className: "mit" },
+      h("div", { className: "mit-t" }, T("Zum norwegischen Fonds", "On the Norwegian fund")),
+      h("p", { className: "mit-x" }, m.text),
+      teile.length ? h("div", { className: "mit-q" }, teile.join(" · ")) : null);
+  }
+
   function Mechanik({ m, budget, aufbau, name }) {
     const [auf, setAuf] = useState(false);
     if (!m || !m.modus) return null;
@@ -2437,7 +2459,8 @@
     const [zeilenEditor, setZeilenEditor] = useState(null); // { depot, baustein, anker }
     // Angelegte Summen je Baustein, aus dem Browser. nachladen zaehlt hoch,
     // wenn gespeichert wurde — dann werden sie hier neu gelesen.
-    const [betraege, setBetraege] = useState({}); // null | { depot }
+    const [betraege, setBetraege] = useState({});
+    const [mitteilung, setMitteilung] = useState(null); // null | { depot }
     const [nachladen, setNachladen] = useState(0);
     const [einrichtung, setEinrichtung] = useState(false);
     // Nachtrag V2: die DB kennt den Produktnamen erst nach dem ersten Stand.
@@ -2493,6 +2516,7 @@
           if (res.code !== 200 || !res.d || !res.d.ok) { setStand("fehler"); return; }
           const ds = Array.isArray(res.d.depots) ? res.d.depots : [];
           setDepots(ds);
+          setMitteilung(res.d.mitteilung || null);
           if (ds.length) setBetraege(ltBetraegeLesen(ds[0].depot));
           setStand(res.d.vorhanden && ds.length ? "ok" : "leer");
         })
@@ -2896,7 +2920,9 @@
           ));
     }
 
-    return h("div", { className: "lt" }, kopf, erklaerung, werkzeug,
+    return h("div", { className: "lt" }, kopf, erklaerung,
+      mitteilung ? h(Mitteilung, { m: mitteilung }) : null,
+      werkzeug,
       (haupt || stand !== "ok") ? null : budgetFeld,
       editor ? h(ZielEditor, { depot: editor.depot, start: editor.start, ist: editor.ist || null, onSchliessen: () => setEditor(null) }) : null,
       posEditor ? h(PositionsEditor, { depot: posEditor.depot, start: posEditor.start || null,
