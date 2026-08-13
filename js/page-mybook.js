@@ -376,8 +376,11 @@
   #mb-root .ze-vor{margin:20px 0 0;padding:16px 18px;background:rgba(255,255,255,.017);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:0 8px 8px 0;}
   #mb-root .ze-vor-t{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ash);margin:0 0 4px;}
   #mb-root .ze-vor-pflicht{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:var(--mist);margin:0 0 13px;}
-  #mb-root .ze-vor-liste{display:flex;gap:10px;flex-wrap:wrap;}
-  #mb-root .ze-vor-k{flex:1 1 190px;text-align:left;background:none;border:1px solid var(--line);border-radius:8px;padding:11px 13px;cursor:pointer;}
+  #mb-root .ze-vor-liste{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;}
+  /* Ein <button> zentriert seinen Inhalt senkrecht — deshalb standen die
+     kurzen Karten mittig, waehrend die lange Norwegen-Karte oben begann.
+     Als Spalten-Flex faengt jede Karte oben an, egal wie viel drinsteht. */
+  #mb-root .ze-vor-k{flex:1 1 190px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;text-align:left;background:none;border:1px solid var(--line);border-radius:8px;padding:11px 13px;cursor:pointer;}
   #mb-root .ze-vor-k:hover{border-color:var(--oracle);}
   #mb-root .ze-vor-k.an{border-color:var(--oracle);background:rgba(212,169,78,.05);}
   #mb-root .ze-vor-k b{display:block;font-family:var(--font-ui);font-weight:600;font-size:13.5px;color:var(--parch);margin:0 0 4px;}
