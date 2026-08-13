@@ -2371,7 +2371,16 @@
       h("div", { className: "zed-feld" },
         h("label", null, "ISIN"),
         h("input", { type: "text", className: "mittel" + (isinOk ? "" : " ungueltig"), value: isin, placeholder: "IE00…",
-          onChange: (e) => setIsin(e.target.value.toUpperCase()) })),
+          onChange: (e) => {
+            const neuIsin = e.target.value.toUpperCase();
+            // Ein Einstandskurs gehoert zu EINEM Papier. Bleibt er beim
+            // Produktwechsel stehen, rechnet die Flaeche den Kurs des neuen
+            // gegen den Einstand des alten — daraus wurden +1812 %.
+            if (posZeile && typeof posZeile.einstand === "number"
+                && neuIsin !== String(posZeile.schluessel || "").toUpperCase()
+                && ltZahl(einstand) === posZeile.einstand) setEinstand("");
+            setIsin(neuIsin);
+          } })),
       h("div", { className: "zed-feld" },
         h("label", null, T("Einstandskurs", "Purchase price")),
         h("i", null, "€"),
@@ -2403,7 +2412,12 @@
       h("button", { className: "zed-liste", onClick: () => setListeAuf(!listeAuf) },
         listeAuf ? T("Beispiele schlie\u00DFen", "Close examples") : T("Beispiele ansehen", "View examples")),
       listeAuf ? h(Beispiele, { baustein: baustein, waehlbar: true, gewaehlt: ltIsinOk(isin) ? isin : null,
-        onWaehlen: (x) => { setName(x.name || ""); setIsin(x.isin || ""); setListeAuf(false); } }) : null,
+        onWaehlen: (x) => {
+          setName(x.name || "");
+          if (posZeile && x.isin !== posZeile.schluessel) setEinstand("");
+          setIsin(x.isin || "");
+          setListeAuf(false);
+        } }) : null,
 
       ekOhneIsin ? h("p", { className: "zed-warn" },
         T("Ein Einstandskurs braucht ein Papier. Trag eine g\u00FCltige ISIN ein oder lass das Kursfeld leer.",
