@@ -287,6 +287,14 @@
   #mb-root .lt-row .satz b{color:var(--parch);font-weight:600;}
   #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:auto;justify-content:flex-end;}
   #mb-root .lt-eur{font-family:var(--font-mono);font-size:12px;color:var(--oracle);white-space:nowrap;}
+  #mb-root .lt-verlauf{font-family:var(--font-mono);font-size:12px;white-space:nowrap;}
+  #mb-root .lt-verlauf.auf{color:var(--bull,#6FCF9A);}
+  #mb-root .lt-verlauf.ab{color:var(--ox-b,#E0726B);}
+  #mb-root .ze-einstand{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:11px 0 0;padding-top:10px;border-top:1px solid var(--line);}
+  #mb-root .ze-einstand span{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash);}
+  #mb-root .ze-einstand input{background:var(--input,#0B0D11);border:1px solid var(--line);border-radius:6px;color:var(--parch);font-family:var(--font-mono);font-size:13px;padding:7px 10px;width:120px;text-align:right;}
+  #mb-root .ze-einstand i{font-family:var(--font-mono);font-size:12px;font-style:normal;color:var(--ash);}
+  #mb-root .ze-einstand em{flex:1 1 240px;min-width:0;font-family:var(--font-ui);font-style:normal;font-size:11.5px;line-height:1.5;color:var(--text-secondary,#9BA3B2);}
   #mb-root .lt-fehlt{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary,#9BA3B2);white-space:nowrap;}
   #mb-root .lt-budget{margin:20px 0 0;padding:14px 16px;background:rgba(255,255,255,.015);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:0 8px 8px 0;}
   #mb-root .lt-budget label{display:inline-flex;align-items:center;gap:9px;}
@@ -822,6 +830,10 @@
     const [wahl, setWahl] = useState({});          // baustein -> ISIN
     const [eigen, setEigen] = useState({});        // baustein -> { name, isin }
     const [produktOffen, setProduktOffen] = useState(null); // baustein | null
+    // baustein -> Einstandskurs als Text. Ein KURS, kein Betrag: er sagt, was
+    // ein Anteil gekostet hat, nicht wie viele jemand haelt. Deshalb darf er
+    // gespeichert werden, ohne dass Teil C faellt (Positionierung, Abschnitt 2).
+    const [einstand, setEinstand] = useState({});
     const [bs, setBs] = useState(null);            // B7-Antwort, einmal geladen
 
     useEffect(() => {
@@ -1044,12 +1056,22 @@
           // und Band SEINES Bausteins — die Wahl verschiebt nichts.
           .concat(zeilen
             .filter((z) => z.ebene === "baustein" && ltZahl(z.ziel_pct) != null && produktVon(z.schluessel))
-            .map((z) => ({
-              ebene: "position",
-              schluessel: produktVon(z.schluessel).isin,
-              ziel_pct: ltZahl(z.ziel_pct),
-              band_rel_pct: ltZahl(z.band_rel_pct),
-            }))),
+            .map((z) => {
+              const eintrag = {
+                ebene: "position",
+                schluessel: produktVon(z.schluessel).isin,
+                // Pflicht seit B144: ohne baustein zerfaellt die Liste nach
+                // einem Neuladen in unsortierte ISIN (A11).
+                baustein: z.schluessel,
+                ziel_pct: ltZahl(z.ziel_pct),
+                band_rel_pct: ltZahl(z.band_rel_pct),
+              };
+              const ek = ltZahl(einstand[z.schluessel]);
+              // Nur mitschicken, wenn wirklich etwas dasteht. Eine 0 waere ein
+              // behaupteter Nullkurs, kein fehlender Wert.
+              if (ek != null && ek > 0) { eintrag.einstand = ek; eintrag.waehrung = "EUR"; }
+              return eintrag;
+            })),
       };
       fetch(API + "/api/mybook/sockel/ziel", {
         method: "POST", credentials: "include",
@@ -1072,6 +1094,18 @@
               setMeldung({ art: "fehler", text: T(
                 "Der Server hat die Summe zur\u00FCckgewiesen (" + (res.d.ebene || "") + ": " + ltPct(res.d.summe) + " %).",
                 "The server rejected the total (" + (res.d.ebene || "") + ": " + ltPct(res.d.summe) + " %).") });
+            } else if (e === "einstand_invalid" || e === "einstand_ohne_isin") {
+              setMeldung({ art: "fehler", text: T(
+                "Der Einstandskurs wurde zur\u00FCckgewiesen (" + e + "). Er geh\u00F6rt zu einem Papier mit g\u00FCltiger ISIN und muss eine Zahl gr\u00F6\u00DFer null sein. Es wurde nichts ge\u00E4ndert.",
+                "The purchase price was rejected (" + e + "). It belongs to a security with a valid ISIN and must be a number greater than zero. Nothing was changed.") });
+            } else if (e === "waehrung_invalid") {
+              setMeldung({ art: "fehler", text: T(
+                "Der Einstand wird zur Zeit nur in Euro gef\u00FChrt. Ein Kurs in Fremdw\u00E4hrung gegen einen Euro-Kurs gerechnet erg\u00E4be eine Bewegung, die es nie gab. Es wurde nichts ge\u00E4ndert.",
+                "Purchase prices are kept in euros only for now. A foreign-currency price measured against a euro quote would show a movement that never happened. Nothing was changed.") });
+            } else if (e === "baustein_invalid") {
+              setMeldung({ art: "fehler", text: T(
+                "Eine Position nennt keinen g\u00FCltigen Baustein (" + e + "). Das ist ein Fehler auf unserer Seite, nicht in deiner Eingabe. Es wurde nichts ge\u00E4ndert.",
+                "A position names no valid building block (" + e + "). That is a fault on our side, not in your input. Nothing was changed.") });
             } else {
               // Nachtrag 3, Punkt 2: die uebrigen 400er sind Eingabefehler.
               // Generisch, aber MIT dem Code daneben — eine Fehlermeldung ohne
@@ -1150,7 +1184,20 @@
               className: ltIsinOk((eigen[b] && eigen[b].isin) || "") ? "" : "ungueltig",
               value: (eigen[b] && eigen[b].isin) || "",
               onChange: (e) => { setWahl(Object.assign({}, wahl, { [b]: null }));
-                setEigen(Object.assign({}, eigen, { [b]: Object.assign({ name: "", isin: "" }, eigen[b], { isin: e.target.value.toUpperCase() }) })); } }))) : null);
+                setEigen(Object.assign({}, eigen, { [b]: Object.assign({ name: "", isin: "" }, eigen[b], { isin: e.target.value.toUpperCase() }) })); } })),
+          // Der Einstand haengt am Produkt, nicht am Baustein — ohne gewaehltes
+          // Papier gibt es nichts, wozu ein Kurs gehoeren koennte. Das Backend
+          // weist einen Einstand ohne ISIN mit einstand_ohne_isin zurueck; wir
+          // zeigen das Feld deshalb erst gar nicht an.
+          p ? h("div", { className: "ze-einstand" },
+                h("span", null, T("Einstandskurs, falls schon gekauft:", "Purchase price, if already bought:")),
+                h("input", { type: "text", inputMode: "decimal", placeholder: T("z. B. 512,40", "e.g. 512.40"),
+                  value: einstand[b] || "",
+                  onChange: (e) => setEinstand(Object.assign({}, einstand, { [b]: e.target.value })) }),
+                h("i", null, "€"),
+                h("em", null, T("Kurs je Anteil — nicht die angelegte Summe. Er dient nur dazu, spaeter die Veraenderung zu zeigen.",
+                                "Price per share — not the amount invested. It only serves to show the change later.")))
+            : null) : null);
     };
 
     // Das Band gehoert nicht in jede Zeile. Es steht in aller Regel auf
@@ -2132,6 +2179,29 @@
           return d > LT_TOLERANZ ? d : null;
         };
 
+        // Veraenderung seit dem Einstand. Zwei Kurse, eine Division — mehr ist
+        // es nicht, und mehr soll es nicht sein. Kein Betrag, keine Stueckzahl,
+        // keine Aussage darueber, was daraus folgt. Fehlt eine der beiden
+        // Zahlen, steht hier nichts: eine Veraenderung gegen einen unbekannten
+        // Einstand waere erfunden.
+        const seitEinstand = (z) => {
+          if (z.ebene !== "position") return null;
+          const ek = typeof z.einstand === "number" ? z.einstand : null;
+          const k = typeof z.kurs === "number" ? z.kurs : null;
+          if (ek == null || k == null || !(ek > 0)) return null;
+          return ((k - ek) / ek) * 100;
+        };
+        const kursTitel = (z) => {
+          if (typeof z.kurs !== "number") return undefined;
+          const w = z.waehrung || "EUR";
+          let t = T("Kurs " + ltPct(z.kurs) + " " + w, "Price " + ltPct(z.kurs) + " " + w);
+          if (typeof z.einstand === "number") t += T(" · Einstand " + ltPct(z.einstand) + " " + w,
+                                                    " · purchase price " + ltPct(z.einstand) + " " + w);
+          if (z.kurs_stand) { const d = new Date(z.kurs_stand);
+            if (!isNaN(d.getTime())) t += T(" · abgerufen " + d.toLocaleString("de-DE"), " · retrieved " + d.toLocaleString("en-GB")); }
+          return t;
+        };
+
         const zeile = (z, i) => h("div", { key: i, className: "lt-row" + (z.verdikt === "band_verletzt" && !aufbau ? " b-aus" : "") },
           h("div", { className: "satz" },
             h("b", null, z.ebene === "position" ? posName(z) : ltName(z)),
@@ -2148,6 +2218,11 @@
                   T(" · bis zu deinem Ziel fehlen " + ltPct(fehltPp(z)) + " Punkte",
                     " · " + ltPct(fehltPp(z)) + " points short of your target")
                   + (inEuro(fehltPp(z)) != null ? " (" + euroText(inEuro(fehltPp(z))) + " €)" : ""))
+              : null,
+            seitEinstand(z) != null
+              ? h("span", { className: "lt-verlauf" + (seitEinstand(z) >= 0 ? " auf" : " ab"), title: kursTitel(z) },
+                  (seitEinstand(z) >= 0 ? "+" : "\u2212") + ltPct(Math.abs(seitEinstand(z)))
+                  + T(" % seit Einstand", " % since purchase"))
               : null),
           h("div", { className: "lt-rechts" },
             h("div", { className: "marke" + (geplant(z) ? " plan" : (z.verdikt === "band_verletzt" && !aufbau ? " aus" : "")) },
