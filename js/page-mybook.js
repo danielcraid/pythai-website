@@ -3197,7 +3197,51 @@
     const api = (path, body, method) => fetch(API + path, { method: method || "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then((r) => { if (r && (r.status === 401 || r.status === 403) && window.PYsessionExpired) window.PYsessionExpired(); return r; }).catch(() => { });
     const patch = (id, body) => api("/api/mybook/" + id, body, "PATCH");
     const reload = () => fetch(API + "/api/mybook", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => { if (d && d.ok && Array.isArray(d.topics)) setRows(d.topics); }).catch(() => { });
-    const setMon = (id, on, channel) => { setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { monitored: on, channel: on ? (channel === "both" ? "SMS + Mail" : channel === "sms" ? "SMS" : "Mail") : null }) : r)); api("/api/mybook/" + id + "/monitor", { on: on, channel: channel || "mail" }); };
+    // Der Schalter war bisher blind: er hat lokal umgestellt, die Anfrage
+    // abgeschickt und die Antwort NIE angesehen. Schrieb der Server nicht,
+    // sah der Nutzer trotzdem "an" — bis der 90-Sekunden-Abgleich die Liste
+    // neu holte und der Schalter ohne Erklaerung zuruecksprang.
+    //
+    // Ab hier gilt: erst optimistisch anzeigen, dann pruefen, und bei
+    // Widerspruch sofort zuruecknehmen und es sagen. Geprueft wird zweimal —
+    // die Antwort auf das Schreiben UND der Datensatz danach. Ein Server, der
+    // ok sagt und nichts speichert, faellt sonst durch jedes Netz.
+    const setMon = (id, on, channel) => {
+      const zurueck = (grund) => {
+        setRows((rs) => rs.map((r) => r.id === id ? Object.assign({}, r, { monitored: !on, channel: null }) : r));
+        showFlash(on
+          ? T("Beobachten konnte nicht eingeschaltet werden (" + grund + ").", "Monitoring could not be switched on (" + grund + ").")
+          : T("Beobachten konnte nicht ausgeschaltet werden (" + grund + ").", "Monitoring could not be switched off (" + grund + ")."));
+      };
+      setRows((rs) => rs.map((r) => r.id === id
+        ? Object.assign({}, r, { monitored: on, channel: on ? (channel === "both" ? "SMS + Mail" : channel === "sms" ? "SMS" : "Mail") : null })
+        : r));
+      api("/api/mybook/" + id + "/monitor", { on: on, channel: channel || "mail" })
+        .then((r) => {
+          if (!r) { zurueck(T("keine Verbindung", "no connection")); return null; }
+          if (!r.ok) { zurueck(r.status); return null; }
+          return r.json().catch(() => ({ ok: true }));
+        })
+        .then((d) => {
+          if (d == null) return null;
+          if (d && d.ok === false) { zurueck((d.error || "abgelehnt")); return null; }
+          // Gegenprobe am Datensatz: hat der Server wirklich geschrieben?
+          return fetch(API + "/api/mybook", { credentials: "include" })
+            .then((r) => (r && r.ok ? r.json() : null))
+            .then((liste) => {
+              if (!liste || !Array.isArray(liste.topics)) return null;
+              const t = liste.topics.find((x) => x.id === id);
+              if (t && !!t.monitored !== !!on) {
+                zurueck(T("der Server hat den Schalter nicht \u00FCbernommen",
+                          "the server did not accept the switch"));
+                return null;
+              }
+              setRows(liste.topics);
+              return null;
+            });
+        })
+        .catch(() => zurueck(T("Netzwerkfehler", "network error")));
+    };
     const toggleMon = (p) => { sfx("button-004-toggle"); if (p.monitored) setMon(p.id, false); else { setMonCh("mail"); setMonModal(p.id); } };
     const confirmMon = () => { setMon(monModal, true, monCh); setMonModal(null); };
     const openEdit = (p) => { setEditingId(p.id); setTagInput(""); resetSuggest(); setAddF({ name: p.name || "", isin: p.isin || "", issuer: p.issuer || "", idx: p.idx || "", art: p.art || "Aktie · Long", venue: p.venue || "Tradegate", currency: p.currency || "EUR", entry: p.entry || "", stop: p.stop || "", skim: p.skim || "", target: p.target || "", these: p.these || "", anti_these: p.anti_these || "", kill_triggers: killTagsOf(p) }); };
