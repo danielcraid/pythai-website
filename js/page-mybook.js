@@ -168,6 +168,12 @@
   #mb-root .spct .miss{color:var(--steel);}
   #mb-root .spct .sep{color:var(--line);}
   #mb-root .spct .hist{color:var(--ash);}
+  /* Auge: still im Aus-Zustand, leuchtend im An-Zustand */
+  #mb-root .sauge{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;background:none;border:1px solid transparent;border-radius:999px;cursor:pointer;opacity:.75;transition:opacity .15s,border-color .15s,background .15s}
+  #mb-root .sauge:hover{opacity:1;border-color:var(--line);background:rgba(255,255,255,.03)}
+  #mb-root .sauge.an{opacity:1}
+  #mb-root .sauge.an:hover{border-color:rgba(212,169,78,.45)}
+  #mb-root .sauge:focus-visible{outline:2px solid var(--oracle);outline-offset:2px}
   #mb-root .sask{font-family:var(--font-ui);font-size:12px;font-weight:600;color:var(--oracle-b);background:rgba(212,169,78,.06);border:1px solid rgba(212,169,78,.5);border-radius:999px;padding:6px 13px;cursor:pointer;white-space:nowrap;}
   #mb-root .sask:hover{background:rgba(212,169,78,.14);}
   /* Drei Zeilen links, deshalb oben ausrichten statt mittig schwimmen lassen. */
@@ -3058,6 +3064,36 @@
           "A display of a self-defined structure as of the stated reporting date. Not investment advice, not a recommendation, not a prompt to any transaction. No amounts, no quantities — the structure matters, not the wealth.")));
   }
 
+  // --- Auge · beobachtet / beobachtet nicht --------------------------------
+  // Kein fremdes Icon-Set: das Zeichen ist der PYTHAI-Oculus, in ein Lid
+  // gesetzt. Aussenring, Goldring, heller Kern — dieselben drei Kreise wie im
+  // Logo. Im Aus-Zustand bleibt die Form, das Licht geht aus und ein Strich
+  // faehrt durch; der Strich traegt eine Kontur in Hintergrundfarbe, sonst
+  // verschmilzt er bei kleinen Groessen mit dem Lid.
+  function Auge({ an, groesse }) {
+    const s = groesse || 18;
+    const gold = "var(--oracle, #D4A94E)";
+    const hell = "var(--oracle-bright, #F2CE7A)";
+    const aus = "var(--text-muted, #5A616E)";
+    const farbe = an ? gold : aus;
+    return h("svg", { width: s, height: s, viewBox: "0 0 24 24", fill: "none",
+        "aria-hidden": "true", focusable: "false", style: { display: "block", flex: "0 0 auto" } },
+      // Lid
+      h("path", { d: "M1.8 12S5.5 5.4 12 5.4 22.2 12 22.2 12 18.5 18.6 12 18.6 1.8 12 1.8 12Z",
+        stroke: farbe, strokeWidth: 1.4, strokeLinejoin: "round",
+        opacity: an ? 1 : 0.75 }),
+      // Iris — der Goldring des Oculus
+      h("circle", { cx: 12, cy: 12, r: 4.1, stroke: an ? gold : aus, strokeWidth: an ? 1.6 : 1.2,
+        opacity: an ? 1 : 0.7 }),
+      // Kern: nur wenn beobachtet wird. Das ist der ganze Unterschied.
+      an ? h("circle", { cx: 12, cy: 12, r: 1.7, fill: hell }) : null,
+      // Strich mit Trennkontur
+      an ? null : h("line", { x1: 3.4, y1: 20.4, x2: 20.6, y2: 3.6,
+        stroke: "var(--bg-void, #08090C)", strokeWidth: 3.4, strokeLinecap: "round" }),
+      an ? null : h("line", { x1: 3.4, y1: 20.4, x2: 20.6, y2: 3.6,
+        stroke: aus, strokeWidth: 1.4, strokeLinecap: "round" }));
+  }
+
   function Mini({ p }) {
     const pct = (typeof p.waage_pct === "number") ? Math.max(3, Math.min(97, p.waage_pct)) : wpct(p.score);
     return h("div", { className: "mini" },
@@ -3515,6 +3551,14 @@
                   tage != null ? h("span", { className: "sep" }, "\u00B7") : null,
                   tage != null ? h("span", { className: "hist" }, tageSeitText(tage)) : null))),
             h("span", { className: "sright" },
+              h("button", { className: "sauge" + (p.monitored ? " an" : ""),
+                "aria-pressed": p.monitored ? "true" : "false",
+                "aria-label": p.monitored ? T("Beobachten aus", "Turn monitoring off") : T("Beobachten an", "Turn monitoring on"),
+                title: p.monitored
+                  ? T("Wird beobachtet — Warren meldet, wenn eine Marke fällt.", "Monitored — Warren reports when a level breaks.")
+                  : T("Wird nicht beobachtet.", "Not monitored."),
+                onClick: (e) => { e.stopPropagation(); toggleMon(p); } },
+                h(Auge, { an: !!p.monitored })),
               h("span", { className: "cpill " + cst.cls, title: cst.tip }, cst.label),
               h("button", { className: "sask", "data-sfx": "", onClick: (e) => { e.stopPropagation(); sfx("button-002-itemopen"); askWarrenTopic(p); } }, T("Warren fragen", "Ask Warren"))));
         })) : (function () {
