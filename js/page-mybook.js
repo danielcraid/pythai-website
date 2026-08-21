@@ -37,6 +37,18 @@
   }
   // Schluessel, der nie zwei Karten zusammenfallen laesst, auch wenn der
   // Datensatz keine oder doppelte Kennungen liefert.
+  // Der Umschlag darf keine Daten verschlucken.
+  //
+  // Bisher galt: nur wenn ok===true UND topics eine Liste ist, wird sie
+  // uebernommen. Der von VC gesicherte Antwort-Koerper (B222) traegt gar kein
+  // ok — mit der alten Regel haette die Seite VIER vorhandene Topics stumm
+  // verworfen und ein leeres Buch gezeigt. Das ist derselbe Fehler wie ein
+  // stiller Stale-Zustand, nur an anderer Stelle.
+  //
+  // Neue Regel: ein ausdrueckliches ok:false ist ein Fehler und wird nicht
+  // uebernommen. Fehlt ok, zaehlt die Liste. Vorhandene Daten wegzuwerfen,
+  // weil ein Feld fehlt, ist nie die vorsichtigere Wahl — nur die stillere.
+  const topicsAus = (d) => (d && d.ok !== false && Array.isArray(d.topics)) ? d.topics : null;
   const kartenSchluessel = (p, ix) => (p && p.id != null && p.id !== "") ? ("id:" + p.id + ":" + ix) : ("ix:" + ix);
   // Auto-Refresh nur während Börsenzeiten (Europe/Berlin), TZ-robust
   const inMarketHours = () => {
@@ -3206,7 +3218,7 @@
         if (r.status === 401 || r.status === 403) { if (window.PYsessionExpired) window.PYsessionExpired(); setLoaded(true); return null; }
         return r.ok ? r.json() : null;
       }).then((d) => {
-        if (d && d.ok && Array.isArray(d.topics)) {
+        if (topicsAus(d)) {
           setRows(d.topics);
           // Deep-Link aus der Shortlist: ?isin= (oder ?topic=) -> passendes Topic öffnen + scrollen.
           try {
@@ -3235,16 +3247,17 @@
     // waechst: 90 s, 180 s, 360 s, hoechstens 15 Minuten.
     useEffect(() => {
       if (gate !== "ok" || tot) return;
-      let lebt = true, hnd = null, fehler = 0;
+      let lebt = true, hnd = null, fehler = 0, letzterAbruf = 0, warWeg = false;
       const TAKT = 90000, MAX = 900000;
       const plane = () => {
         if (!lebt) return;
         const wartezeit = Math.min(MAX, TAKT * Math.pow(2, fehler));
         hnd = setTimeout(lauf, wartezeit);
       };
-      const lauf = () => {
+      const lauf = (erzwingen) => {
         if (!lebt) return;
-        if (document.hidden || !inMarketHours()) { plane(); return; }
+        if (!erzwingen && (document.hidden || !inMarketHours())) { plane(); return; }
+        letzterAbruf = Date.now();
         fetch(API + "/api/mybook", { credentials: "include" })
           .then((r) => {
             if (!r) throw new Error("keine Antwort");
@@ -3260,7 +3273,7 @@
           })
           .then((d) => {
             if (!lebt) return;
-            if (d && d.ok && Array.isArray(d.topics)) {
+            if (topicsAus(d)) {
               setRows(d.topics); setStandZeit(new Date()); setAbgleichFehler(null); fehler = 0;
             }
             plane();
@@ -3273,7 +3286,41 @@
           });
       };
       plane();
-      return () => { lebt = false; if (hnd) clearTimeout(hnd); };
+
+      // F3 (B222) · Ein Tab, der stundenlang im Hintergrund lag, zeigt beim
+      // Zurueckkommen den Stand von damals. Der Takt hilft da nicht: er
+      // ueberspringt versteckte Tabs und wartet danach erst seine — durch den
+      // Backoff womoeglich lange — Wartezeit ab. Genau so entsteht ein Buch,
+      // in dem zwei Topics fehlen, die man vormittags angelegt hat.
+      //
+      // Deshalb: Rueckkehr ist ein Ereignis, kein Zeitpunkt. Sichtbar werden,
+      // Fokus bekommen und der Zurueck-Knopf (pageshow, bfcache) holen sofort
+      // nach — hoechstens alle 30 Sekunden, und ohne Ruecksicht auf die
+      // Boersenzeit, denn es geht um die LISTE, nicht um den Kurs.
+      const weck = () => {
+        if (!lebt) return;
+        // Weggehen wird gemerkt, nicht beantwortet.
+        if (document.hidden) { warWeg = true; return; }
+        // Wer wirklich weg war, bekommt IMMER frische Zahlen. Ein blosser
+        // Fokuswechsel im selben sichtbaren Tab nur, wenn der letzte Abruf
+        // eine halbe Minute her ist — sonst wuerde Alt-Tab-Tippen fragen.
+        if (!warWeg && Date.now() - letzterAbruf < 30000) return;
+        warWeg = false;
+        fehler = 0;
+        if (hnd) { clearTimeout(hnd); hnd = null; }
+        lauf(true);
+      };
+      document.addEventListener("visibilitychange", weck);
+      window.addEventListener("focus", weck);
+      window.addEventListener("pageshow", weck);
+
+      return () => {
+        lebt = false;
+        if (hnd) clearTimeout(hnd);
+        document.removeEventListener("visibilitychange", weck);
+        window.removeEventListener("focus", weck);
+        window.removeEventListener("pageshow", weck);
+      };
     }, [gate, tot]);
 
     if (gate === "loading") return h("div", null, h(SiteNav, { active: "mybook.html" }), h("div", { style: { minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 22, color: "var(--text-oracle)" } }, T("Das Orakel prüft deinen Zugang…", "The oracle checks your access…")), h(SiteFooter, null));
@@ -3288,7 +3335,7 @@
         if (!r || !r.ok) { setAbgleichFehler(String(r ? r.status : "offline")); return null; }
         return r.json();
       })
-      .then((d) => { if (d && d.ok && Array.isArray(d.topics)) { setRows(d.topics); setStandZeit(new Date()); setAbgleichFehler(null); } })
+      .then((d) => { if (topicsAus(d)) { setRows(d.topics); setStandZeit(new Date()); setAbgleichFehler(null); } })
       .catch(() => setAbgleichFehler(T("keine Verbindung", "no connection")));
     // Der Schalter war bisher blind: er hat lokal umgestellt, die Anfrage
     // abgeschickt und die Antwort NIE angesehen. Schrieb der Server nicht,
