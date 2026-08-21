@@ -20,6 +20,7 @@
   // Thesen-Health-Farben · spiegelt config/thesis_label_enum.json (GEBROCHEN..STARK)
   const Z = ["#E0726B", "#CF7A4E", "#9BA3B2", "#6FCF9A", "#7DD49A"];
   const ZONE = ["GEBROCHEN", "WACKELT", "NEUTRAL", "INTAKT", "STARK"];
+  const uhrzeit = (d) => { try { return d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
   const wpct = (s) => Math.max(3, Math.min(97, Math.round((s + 1) / 2 * 100)));
   // deutsche Zahl-Strings ("1.218,80") → Number fürs Backend; leer → null
   const deNum = (s) => { if (s == null || String(s).trim() === "") return null; const n = parseFloat(String(s).replace(/\s/g, "").replace(/\./g, "").replace(",", ".")); return isNaN(n) ? null : n; };
@@ -142,6 +143,8 @@
   const CSS = `
   #mb-root{ --void:var(--bg-base); --raised:var(--bg-raised); --card:var(--bg-surface); --line:var(--border-subtle); --parch:var(--parchment); --mist:var(--text-secondary); --ash:var(--text-muted); --oracle-b:var(--oracle-bright); --ox-b:#E0726B; --bull:var(--bull-bright); --input:var(--bg-input);
     --z1:#C4524C; --z2:#CF7A4E; --z3:#C9A24E; --z4:#6FB07A; --z5:#6FCF9A; }
+  #mb-root .stale-note{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;color:var(--ash);margin-top:4px;}
+  #mb-root .stale-note.kalt{color:#E7A062;}
   #mb-root .toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;}
   #mb-root .rep{display:flex;align-items:center;gap:10px;font-family:var(--font-ui);font-size:14px;color:var(--mist);cursor:pointer;}
   #mb-root h2.mb{font-family:var(--font-oracle);font-weight:400;font-size:30px;margin:6px 0 18px;color:var(--parch);}
@@ -3114,6 +3117,12 @@
     const [gate, setGate] = useState("loading");
     const [rows, setRows] = useState([]);
     const [loaded, setLoaded] = useState(false);
+    // Wann kam zuletzt eine gueltige Liste, und ist der letzte Abgleich
+    // gescheitert? Ohne diese zwei Angaben zeigt die Seite alte Daten so
+    // selbstbewusst wie frische — genau der stille Stale-Zustand.
+    const [standZeit, setStandZeit] = useState(null);
+    const [abgleichFehler, setAbgleichFehler] = useState(null);
+    const [tot, setTot] = useState(false);   // Sitzung abgelaufen: nicht weiterfragen
     const [open, setOpen] = useState(null);
     const [monModal, setMonModal] = useState(null);
     const [monCh, setMonCh] = useState("mail");
@@ -3173,22 +3182,62 @@
             }
           } catch (e) { }
         }
+        if (d && d.ok) { setStandZeit(new Date()); setAbgleichFehler(null); }
         setLoaded(true);
-      }).catch(() => setLoaded(true));
+      }).catch(() => { setAbgleichFehler(T("keine Verbindung", "no connection")); setLoaded(true); });
     }, [gate]);
-    // Auto-Refresh: hält Live-Kurs + P&L frisch, ohne Reload (pausiert bei Hintergrund-Tab / außerhalb Börsenzeit)
+    // Auto-Refresh: haelt Live-Kurs + P&L frisch (pausiert bei Hintergrund-Tab
+    // und ausserhalb der Boersenzeit).
+    //
+    // Drei Dinge, die vorher fehlten und die zusammen den stillen Stale-Zustand
+    // ergaben: der Takt hat Fehler verschluckt, er lief bei toter Sitzung
+    // weiter, und er hatte keinen Backoff. Ein Tab mit abgelaufener Sitzung
+    // hat so bis zum Schliessen weitergefragt — mehrere Tabs entsprechend oft.
+    //
+    // setTimeout statt setInterval, weil der Abstand mit jedem Fehlschlag
+    // waechst: 90 s, 180 s, 360 s, hoechstens 15 Minuten.
     useEffect(() => {
-      if (gate !== "ok") return;
-      const tick = () => {
-        if (document.hidden || !inMarketHours()) return;
-        fetch(API + "/api/mybook", { credentials: "include" })
-          .then((r) => (r && r.ok ? r.json() : null))
-          .then((d) => { if (d && d.ok && Array.isArray(d.topics)) setRows(d.topics); })
-          .catch(() => { });
+      if (gate !== "ok" || tot) return;
+      let lebt = true, hnd = null, fehler = 0;
+      const TAKT = 90000, MAX = 900000;
+      const plane = () => {
+        if (!lebt) return;
+        const wartezeit = Math.min(MAX, TAKT * Math.pow(2, fehler));
+        hnd = setTimeout(lauf, wartezeit);
       };
-      const iv = setInterval(tick, 90000);
-      return () => clearInterval(iv);
-    }, [gate]);
+      const lauf = () => {
+        if (!lebt) return;
+        if (document.hidden || !inMarketHours()) { plane(); return; }
+        fetch(API + "/api/mybook", { credentials: "include" })
+          .then((r) => {
+            if (!r) throw new Error("keine Antwort");
+            if (r.status === 401 || r.status === 403) {
+              // Tote Sitzung: EINMAL melden, dann aufhoeren zu fragen.
+              lebt = false;
+              setTot(true);
+              if (window.PYsessionExpired) window.PYsessionExpired();
+              return null;
+            }
+            if (!r.ok) throw new Error(String(r.status));
+            return r.json();
+          })
+          .then((d) => {
+            if (!lebt) return;
+            if (d && d.ok && Array.isArray(d.topics)) {
+              setRows(d.topics); setStandZeit(new Date()); setAbgleichFehler(null); fehler = 0;
+            }
+            plane();
+          })
+          .catch((e) => {
+            if (!lebt) return;
+            fehler = Math.min(fehler + 1, 4);
+            setAbgleichFehler(String((e && e.message) || "Fehler"));
+            plane();
+          });
+      };
+      plane();
+      return () => { lebt = false; if (hnd) clearTimeout(hnd); };
+    }, [gate, tot]);
 
     if (gate === "loading") return h("div", null, h(SiteNav, { active: "mybook.html" }), h("div", { style: { minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-oracle)", fontStyle: "italic", fontSize: 22, color: "var(--text-oracle)" } }, T("Das Orakel prüft deinen Zugang…", "The oracle checks your access…")), h(SiteFooter, null));
     if (gate === "locked") return h("div", null, h(SiteNav, { active: "mybook.html" }), h("section", { style: { minHeight: "calc(100vh - var(--nav-h))", display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" } }, h("div", { style: { maxWidth: 480 } }, h(PyEyebrow, null, "Syndicate"), h("h1", { style: { fontFamily: "var(--font-oracle)", fontWeight: 400, fontSize: 44, margin: "8px 0 0", color: "var(--text-primary)" } }, T("My Book lebt im Syndicate.", "My Book lives in the Syndicate.")), h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", margin: "16px 0 28px" } }, T("Dein persönliches Thesen-Buch — Trades tracken, These beobachten, Alerts setzen — ist dem Syndicate vorbehalten.", "Your personal thesis book — track trades, watch the thesis, set alerts — is reserved for the Syndicate.")), h(Button, { variant: "oracle", onClick: () => { window.location.href = "account.html"; } }, T("Zum Account", "Go to account")))), h(SiteFooter, null));
@@ -3196,7 +3245,14 @@
     const sfx = (n) => { if (typeof window.PYsfx === "function") window.PYsfx(n); };
     const api = (path, body, method) => fetch(API + path, { method: method || "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then((r) => { if (r && (r.status === 401 || r.status === 403) && window.PYsessionExpired) window.PYsessionExpired(); return r; }).catch(() => { });
     const patch = (id, body) => api("/api/mybook/" + id, body, "PATCH");
-    const reload = () => fetch(API + "/api/mybook", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => { if (d && d.ok && Array.isArray(d.topics)) setRows(d.topics); }).catch(() => { });
+    const reload = () => fetch(API + "/api/mybook", { credentials: "include" })
+      .then((r) => {
+        if (r && (r.status === 401 || r.status === 403)) { setTot(true); if (window.PYsessionExpired) window.PYsessionExpired(); return null; }
+        if (!r || !r.ok) { setAbgleichFehler(String(r ? r.status : "offline")); return null; }
+        return r.json();
+      })
+      .then((d) => { if (d && d.ok && Array.isArray(d.topics)) { setRows(d.topics); setStandZeit(new Date()); setAbgleichFehler(null); } })
+      .catch(() => setAbgleichFehler(T("keine Verbindung", "no connection")));
     // Der Schalter war bisher blind: er hat lokal umgestellt, die Anfrage
     // abgeschickt und die Antwort NIE angesehen. Schrieb der Server nicht,
     // sah der Nutzer trotzdem "an" — bis der 90-Sekunden-Abgleich die Liste
@@ -3559,7 +3615,17 @@
           T("Einzelne Positionen mit deinen Marken, Kill-Triggern und der Verweildauer. Jede These hat ein Ende — hier siehst du, wie sie steht.",
             "Individual positions with your levels, kill-triggers and holding time. Every thesis has an end — here is how it stands.")),
         h("div", { className: "toolbar" },
-          h(PyEyebrow, null, T("Überblick · ", "Overview · ") + count + "/" + MAX + " Topics"),
+          h("div", null,
+            h(PyEyebrow, null, T("Überblick · ", "Overview · ") + count + "/" + MAX + " Topics"),
+            // Nie kommentarlos alte Daten als aktuell zeigen.
+            h("div", { className: "stale-note" + (abgleichFehler ? " kalt" : "") },
+              standZeit
+                ? T("Stand " + uhrzeit(standZeit), "as of " + uhrzeit(standZeit))
+                : T("noch nicht geladen", "not loaded yet"),
+              abgleichFehler
+                ? T(" — Aktualisierung fehlgeschlagen (" + abgleichFehler + ")",
+                    " — refresh failed (" + abgleichFehler + ")")
+                : null)),
           h("div", { style: { display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" } },
             h("div", { className: "vtog" },
               h("button", { className: simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(true); } }, T("Einfach", "Simple")),
