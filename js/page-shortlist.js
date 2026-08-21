@@ -17,6 +17,9 @@
   };
   const PRIV = ["syndicate", "admin"];                                  // darf "In My Book" klicken
   const VIEW = ["inner-circle", "circle-of-trust", "syndicate", "admin"]; // darf die Shortlist sehen
+  // Ein Schalter, zwei Backend-Slugs — identisch zur Rituals-Seite. Wer hier
+  // umlegt, legt dort um: beide lesen dieselben zwei Werte aus /api/me.
+  const SHORTLIST_SLUGS = ["trade-alerts", "live-updates"];
 
   // Thesen-Health-Farben · spiegelt config/thesis_label_enum.json (GEBROCHEN..STARK)
   const Z = ["#E0726B", "#CF7A4E", "#9BA3B2", "#6FCF9A", "#7DD49A"];
@@ -359,7 +362,16 @@
   #sl-root .disc{margin:40px 0 0;border:1px solid var(--line);border-left:3px solid #8A6526;border-radius:0 8px 8px 0;background:var(--card);padding:14px 18px;}
   #sl-root .disc p{font-family:var(--font-ui);font-size:12px;line-height:1.6;color:var(--mist);margin:0;}
   #sl-root .flash{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:300;max-width:90vw;background:var(--raised);border:1px solid var(--border-oracle);border-left:3px solid var(--oracle-b);border-radius:0 10px 10px 0;padding:13px 18px;font-family:var(--font-ui);font-size:13.5px;color:var(--parch);box-shadow:0 14px 40px rgba(0,0,0,.5);}
-  #sl-root .toolbar{display:flex;justify-content:flex-end;margin:4px 0 14px;}
+  #sl-root .toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:4px 0 14px;}
+  #sl-root .alertsw{display:flex;align-items:center;gap:10px;cursor:pointer;}
+  #sl-root .alertsw span{font-family:var(--font-ui);font-size:14px;color:var(--text-secondary);}
+  #sl-root .sw{width:46px;min-width:46px;height:26px;box-sizing:border-box;display:inline-block;border-radius:999px;position:relative;flex:0 0 auto;cursor:pointer;padding:0;box-shadow:inset 0 1px 2px rgba(0,0,0,.4);}
+  #sl-root .sw.on{background:rgba(212,169,78,.18);border:1px solid var(--border-oracle);box-shadow:0 0 14px -5px rgba(212,169,78,.7),inset 0 1px 2px rgba(0,0,0,.4);}
+  #sl-root .sw.off{background:var(--bg-input);border:1px solid var(--border-strong);}
+  #sl-root .knob{width:18px;height:18px;border-radius:50%;position:absolute;top:3px;}
+  #sl-root .sw.on .knob{left:25px;background:var(--text-oracle);}
+  #sl-root .sw.off .knob{left:3px;background:var(--text-muted);}
+  #sl-root .alerthint{font-family:var(--font-ui);font-size:13px;color:#E7A062;margin:0 0 12px;}
   #sl-root .vtog{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
   #sl-root .vtog button{background:none;border:none;padding:7px 13px;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);cursor:pointer;}
   #sl-root .vtog button.on{background:var(--oracle-b);color:#0B0D11;}
@@ -430,6 +442,8 @@
     const [denied, setDenied] = useState(false);
     const [trades, setTrades] = useState(null);
     const [meta, setMeta] = useState(null);
+    const [prefs, setPrefs] = useState({});
+    const [alertHinweis, setAlertHinweis] = useState("");
     const [open, setOpen] = useState(null);
     const [addingId, setAddingId] = useState(null);
     const [addedIds, setAddedIds] = useState([]);
@@ -449,6 +463,7 @@
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((r) => r.ok ? r.json() : null).then((d) => {
         setMe(d && d.ok ? d : null);
+        if (d && d.ok) setPrefs(d.mailReports || {});
         const ok = d && d.ok && VIEW.indexOf(d.tier) !== -1 && d.approval === "approved";
         setGate(ok ? "ok" : "locked");
       }).catch(() => setGate("locked"));
@@ -754,12 +769,54 @@
           h("span", { className: "cpill " + cst.cls, title: cst.tip }, cst.label),
           h("button", { className: "sask", "data-sfx": "", onClick: (e) => { e.stopPropagation(); sfx("button-002-itemopen"); askWarren(t); } }, T("Warren fragen", "Ask Warren"))));
     };
+    // Derselbe Vertrag wie auf der Rituals-Seite: AN nur wenn beide Slugs
+    // true sind, beim Umlegen beide schreiben, danach am Datensatz nachsehen.
+    const alertsAn = prefs["trade-alerts"] === true && prefs["live-updates"] === true;
+    const onAlerts = (v) => {
+      const vorher = { "trade-alerts": prefs["trade-alerts"], "live-updates": prefs["live-updates"] };
+      setAlertHinweis("");
+      setPrefs((p) => Object.assign({}, p, { "trade-alerts": v, "live-updates": v }));
+      const zurueck = (grund) => {
+        setPrefs((p) => Object.assign({}, p, vorher));
+        setAlertHinweis(T("Shortlist-Alerts konnten nicht " + (v ? "eingeschaltet" : "ausgeschaltet") + " werden (" + grund + "). Es wurde nichts ge\u00E4ndert.",
+                          "Shortlist alerts could not be switched " + (v ? "on" : "off") + " (" + grund + "). Nothing was changed."));
+      };
+      const schreib = (slug) => fetch(API + "/api/mail-prefs", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ report: slug, on: v }),
+      });
+      Promise.all([schreib(SHORTLIST_SLUGS[0]), schreib(SHORTLIST_SLUGS[1])])
+        .then((rs) => {
+          if (rs.some((r) => !r || !r.ok)) { zurueck(T("Server abgelehnt", "server refused")); return null; }
+          return fetch(API + "/api/me", { credentials: "include" }).then((r) => (r && r.ok ? r.json() : null));
+        })
+        .then((d) => {
+          if (d == null) return;
+          const mr = (d && d.mailReports) || {};
+          if (mr["trade-alerts"] !== v || mr["live-updates"] !== v) {
+            zurueck(T("der Server hat beide Schalter nicht \u00FCbernommen", "the server did not accept both switches"));
+            return;
+          }
+          setPrefs(mr);
+        })
+        .catch(() => zurueck(T("keine Verbindung", "no connection")));
+    };
     return page(h("div", null,
       Hero(h("div", { className: "hmeta" },
         h("span", { className: "pulse" }),
         h("span", null, h("span", { className: "cnt" }, visible.length), " ", T(visible.length === 1 ? "aktive Position" : "aktive Positionen", visible.length === 1 ? "active position" : "active positions")),
         lastChk ? h("span", { className: "chkmeta", title: cadText }, "· " + T("zuletzt geprüft ", "last checked ") + lastChk + (nextChk ? (T(" · nächste ", " · next ") + nextChk) : "")) : null)),
+      alertHinweis ? h("p", { className: "alerthint" }, alertHinweis) : null,
       h("div", { className: "toolbar" },
+        h("label", { className: "alertsw",
+          title: T("Sofort-Nachricht zu Setups der Shortlist: wenn ein Setup aktiv wird, eine Marke wie Stop oder Ziel erreicht oder ein Setup von der Liste genommen wird.",
+                   "Instant message on shortlist setups: when a setup goes active, a level such as stop or target is reached, or a setup is taken off the list.") },
+          h("button", { className: "sw " + (alertsAn ? "on" : "off"),
+            "aria-pressed": alertsAn ? "true" : "false",
+            "aria-label": T("Shortlist-Alerts", "Shortlist alerts"),
+            onClick: () => onAlerts(!alertsAn) }, h("span", { className: "knob" })),
+          h("span", null, T("Shortlist-Alerts", "Shortlist alerts"))),
         h("div", { className: "vtog" },
           h("button", { className: simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(true); } }, T("Einfach", "Simple")),
           h("button", { className: !simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(false); } }, T("Detail", "Detail")))),

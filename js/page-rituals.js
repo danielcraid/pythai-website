@@ -6,6 +6,10 @@
   const { useState, useEffect } = React;
   const h = React.createElement;
   const PRIV = ["inner-circle", "circle-of-trust", "syndicate", "admin"];
+  // Ein Schalter, zwei Backend-Slugs. Der Anzeige-Schluessel existiert im
+  // Backend nicht — er ist nur der Griff, an dem der Member zieht.
+  const SHORTLIST_KEY = "shortlist-alerts";
+  const SHORTLIST_SLUGS = ["trade-alerts", "live-updates"];
 
   const TIERMAP = {
     observer: { label: "Observer", c: "var(--text-secondary)", b: "var(--border-strong)", bg: "transparent" },
@@ -141,6 +145,10 @@
     const [smsConsent, setSmsConsent] = useState(false);
     const [smsPending, setSmsPending] = useState(null);
     const [simpleLang, setSimpleLang] = useState(false);
+    // Hooks gehoeren VOR die fruehen Returns. Stand er weiter unten, rief die
+    // Komponente im Gate-Zustand weniger Hooks auf als danach — React quittiert
+    // das mit Fehler #310 und rendert die Seite gar nicht.
+    const [alertHinweis, setAlertHinweis] = useState("");
     useEffect(() => {
       fetch(API + "/api/me", { credentials: "include" }).then((res) => res.ok ? res.json() : null).then((d) => {
         if (d && d.ok) { setMe(d); setPrefs(d.mailReports || {}); setSmsV(!!(d.smsVerified || d.sms_verified)); setSmsConsent(!!(d.smsConsent || d.sms_consent)); if (d.phone) setSmsPhone(d.phone); setSimpleLang(d.simpleLanguage === true); }
@@ -166,8 +174,17 @@
         { key: "markt-vibe", name: "Markt-Vibe der Woche", when: T("Wöchentlich", "Weekly"), tiers: ["observer", "inner", "syndicate"], was: T("Der Stimmungs-Puls: wo der Markt steht, welches Thema dominiert. Edukativ, kein Signal.", "The mood pulse: where the market stands, which theme dominates. Educational, not a signal."), wie: T("Leichte Lektüre zum Reinkommen — perfekt für Observer, die das Orakel kennenlernen.", "Light reading to ease in — perfect for Observers getting to know the oracle.") }
       ]],
       [T("In Echtzeit", "Real-time"), T("Nur wenn es zählt — Syndicate-Eingriffe, während ein Trade läuft.", "Only when it matters — Syndicate interventions while a trade runs."), [
-        { key: "live-updates", name: "Live-Updates", when: T("Intraday · bei Bedarf", "Intraday · as needed"), tiers: ["syndicate"], was: T("Echtzeit-Eingriffe während ein Trade läuft: Skim-Trigger, Stop-Verschiebung, Exit-Signal.", "Real-time interventions while a trade runs: skim triggers, stop moves, exit signals."), wie: T("Sie kommen nur, wenn es zählt. Wenn ein Live-Update reinkommt, ist Handeln gefragt.", "They only come when it matters. When a live update lands, it is time to act.") },
-        { key: "trade-alerts", name: "Thesen-Wächter (SMS)", when: T("Kritisch · Push", "Critical · push"), tiers: ["syndicate"], was: T("Push-Alert aufs Handy, wenn es bei einer These kritisch wird: Stop berührt, Drawdown, oder ein Kill-Trigger rückt in Reichweite.", "A push alert to your phone when a thesis turns critical: stop touched, drawdown, or a kill-trigger moving within reach."), wie: T("SMS, knapp und klar. Nur für das Allerwichtigste — kein Marketing, keine Konversation.", "SMS, short and clear. Only for the most critical — no marketing, no conversation.") }
+        // Ein Schalter, zwei Slugs. "live-updates" und "trade-alerts" hatten
+        // bisher je eine eigene Zeile — mit dem gemeinsamen Schalter waeren das
+        // drei Schalter ueber zwei Werte gewesen: schaltet der Member unten
+        // "Live-Updates" aus, stuende oben "Shortlist-Alerts" auf AUS, ohne
+        // dass er ihn angefasst haette. Deshalb gibt es hier nur noch einen.
+        { key: SHORTLIST_KEY, name: T("Shortlist-Alerts", "Shortlist alerts"),
+          when: T("Sofort · bei Ereignis", "Instant · on event"), tiers: ["inner", "syndicate"],
+          was: T("Sofort-Nachricht zu Setups der Shortlist: wenn ein Setup aktiv wird, eine Marke wie Stop oder Ziel erreicht oder ein Setup von der Liste genommen wird.",
+                 "Instant message on shortlist setups: when a setup goes active, a level such as stop or target is reached, or a setup is taken off the list."),
+          wie: T("Sie kommen als E-Mail — und zusätzlich als SMS, sobald deine Mobilnummer verifiziert ist. So sieht eine aus: „PYTHAI · Setup aktiv · BP · Einstiegs-Marke 6,28 erreicht“. Standardmäßig aus.",
+                 "They arrive by email — and additionally by SMS once your mobile number is verified. One looks like this: “PYTHAI · Setup active · BP · entry level 6.28 reached”. Off by default.") }
       ]],
       [T("Newsfeed", "Newsfeed"), T("Lage in Echtzeit und der Morgen-Cluster — für alle Stufen.", "The situation in real time and the morning cluster — for every tier."), [
         { key: "breaking-critical", name: "Breaking · Critical", when: T("Bei Bedarf · Push", "As needed · push"), tiers: ["observer", "inner", "syndicate"], was: T("Push-Mail bei CRITICAL-Events (Geopolitik, Macro, Notenbank-Schocks). Max 1/Situation/Tag, außer Eskalation. Jederzeit – auch nachts.", "Push email on CRITICAL events (geopolitics, macro, central-bank shocks). Max 1/situation/day, except escalation. Anytime — even at night."), wie: T("Kommt nur, wenn es wirklich zählt: eine Schlagzeile, der Kontext, was es für den Markt heißt.", "Only lands when it truly matters: one headline, the context, what it means for the market.") },
@@ -176,10 +193,52 @@
     ];
 
     const uk = me ? (me.tier === "syndicate" || me.tier === "admin" ? "syndicate" : (me.tier === "inner-circle" || me.tier === "circle-of-trust" ? "inner" : "observer")) : "inner";
-    const isEnabled = (key) => (key === "morning-compass" || key === "breaking-critical" || key === "morning-news-flash" || key === "daily-oracle" || key === "im-spiel") ? prefs[key] !== false : prefs[key] === true;
+    // Ein Anzeige-Schluessel, der im Backend NICHT existiert: er steht fuer
+    // zwei Slugs. AN heisst beide true; alles andere zeigt AUS, und ein Klick
+    // auf AN heilt gemischte Altzustaende.
+    const shortlistAn = () => prefs["trade-alerts"] === true && prefs["live-updates"] === true;
+
+    const onShortlist = (v) => {
+      const vorher = { "trade-alerts": prefs["trade-alerts"], "live-updates": prefs["live-updates"] };
+      setAlertHinweis("");
+      setPrefs((p) => Object.assign({}, p, { "trade-alerts": v, "live-updates": v }));
+      const schreib = (slug) => fetch(API + "/api/mail-prefs", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ report: slug, on: v }),
+      });
+      const zurueck = (grund) => {
+        setPrefs((p) => Object.assign({}, p, vorher));
+        setAlertHinweis(T("Shortlist-Alerts konnten nicht " + (v ? "eingeschaltet" : "ausgeschaltet") + " werden (" + grund + "). Es wurde nichts geändert.",
+                          "Shortlist alerts could not be switched " + (v ? "on" : "off") + " (" + grund + "). Nothing was changed."));
+      };
+      // Erst schreiben, dann NACHSEHEN. Die Lehre aus dem Beobachten-Schalter:
+      // eine Route, die 200 sagt und nichts speichert, faellt sonst durch.
+      Promise.all([schreib(SHORTLIST_SLUGS[0]), schreib(SHORTLIST_SLUGS[1])])
+        .then((rs) => {
+          if (rs.some((r) => !r || !r.ok)) { zurueck(T("Server abgelehnt", "server refused")); return null; }
+          return fetch(API + "/api/me", { credentials: "include" }).then((r) => (r && r.ok ? r.json() : null));
+        })
+        .then((d) => {
+          if (d == null) return;
+          const mr = (d && d.mailReports) || {};
+          if (mr["trade-alerts"] !== v || mr["live-updates"] !== v) {
+            zurueck(T("der Server hat beide Schalter nicht übernommen", "the server did not accept both switches"));
+            return;
+          }
+          setPrefs(mr);
+        })
+        .catch(() => zurueck(T("keine Verbindung", "no connection")));
+    };
+
+    const isEnabledRoh = (key) => (key === "morning-compass" || key === "breaking-critical" || key === "morning-news-flash" || key === "daily-oracle" || key === "im-spiel") ? prefs[key] !== false : prefs[key] === true;
+    const isEnabled = (key) => (key === SHORTLIST_KEY) ? shortlistAn() : isEnabledRoh(key);
     const onSimpleLang = (v) => { setSimpleLang(v); fetch(API + "/api/mail-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ simpleLanguage: v }) }).catch(() => { }); };
     const onToggleRaw = (key, v) => { setPrefs((p) => { const n = Object.assign({}, p); n[key] = v; return n; }); fetch(API + "/api/mail-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ report: key, on: v }) }).catch(() => { }); try { localStorage.setItem("py_setup_done", "1"); } catch (e) { } fetch(API + "/api/setup-complete", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setupComplete: true }) }).catch(() => { }); };
-    const onToggle = (key, v) => { if (key === "trade-alerts" && v && !smsV) { setSmsPending("trade-alerts"); setSmsErr(""); setSmsCode(""); setSmsSent(false); setSmsModal(true); return; } onToggleRaw(key, v); };
+    const onToggle = (key, v) => { if (key === SHORTLIST_KEY) { onShortlist(v); return; }
+      // Kein SMS-Tor mehr davor: Alerts kommen per Mail, und zusaetzlich per
+      // SMS, sobald die Nummer verifiziert ist (Daniel, 20.08.).
+      if (key === "trade-alerts" && v && !smsV) { setSmsPending("trade-alerts"); setSmsErr(""); setSmsCode(""); setSmsSent(false); setSmsModal(true); return; } onToggleRaw(key, v); };
     const openSmsVerify = () => { setSmsPending(null); setSmsErr(""); setSmsCode(""); setSmsSent(false); setSmsModal(true); };
     const setConsentOn = () => { setSmsConsent(true); fetch(API + "/api/mail-prefs", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ smsConsent: true }) }).catch(() => { }); };
     const smsStreamToggle = (key, v) => { onToggleRaw(key, v); };
@@ -200,6 +259,7 @@
             h("p", { style: { fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.55, color: "var(--text-secondary)", margin: 0, maxWidth: "58ch" } }, T("Warren vermeidet Fachbegriffe und erkl\xE4rt alles in klaren Worten — im Chat und sp\xE4ter auch in Mails.", "Warren avoids jargon and explains everything in plain words — in chat, and later in emails too."))),
           h(Switch, { checked: simpleLang, onChange: onSimpleLang })))),
       h(TierSummary, null),
+      alertHinweis ? h(PySection, null, h("div", { style: { border: "1px solid rgba(224,114,107,.35)", background: "rgba(224,114,107,.07)", borderRadius: 10, padding: "12px 16px", fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--text-primary)" } }, alertHinweis)) : null,
       h(Overview, { groups: GROUPS, uk: uk, isEnabled: isEnabled, onToggle: onToggle,
         smsBox: (uk === "syndicate" && smsV) ? h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", border: "1px solid var(--border-subtle)", borderRadius: 12, background: "var(--bg-surface)", padding: "16px 20px" } },
           h("div", null,
