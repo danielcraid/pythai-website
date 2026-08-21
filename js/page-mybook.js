@@ -5,6 +5,39 @@
   const API = "https://api.pythai.ch";
   const { useState, useEffect, useRef } = React;
   const h = React.createElement;
+
+  // R3 (B222) · Eine Karte, die beim Bau scheitert, darf nie stumm fehlen.
+  //
+  // Gemessen am Pruefstand (t_b222.mjs, Probe F): eine einzige Ausnahme beim
+  // Kartenbau reisst die GANZE Liste mit — Detail-Ansicht 0 von 4, nicht 3
+  // von 4. React kennt kein halbes Rendern. Ohne Grenze ist der Ausfall also
+  // total und trotzdem stumm: die Seite steht da, die Liste ist weg.
+  //
+  // MbBau baut, MbGrenze faengt. Getrennt sein muessen die beiden, weil eine
+  // Ausnahme immer von der naechsten Grenze DARUEBER gefangen wird, nie von
+  // der Stelle selbst. Und der Bau muss als Funktion hereingereicht werden —
+  // ein fertig gebautes Kind waere schon vor der Grenze explodiert.
+  const MbBau = (props) => props.bau();
+  class MbGrenze extends React.Component {
+    constructor(props) { super(props); this.state = { fehler: null }; }
+    static getDerivedStateFromError(e) { return { fehler: (e && e.message) || String(e) }; }
+    componentDidCatch(e) {
+      try { console.error("[mybook] Karte konnte nicht gebaut werden: "
+        + (this.props.name || this.props.isin || "?") + " — " + ((e && e.message) || e)); } catch (_) { }
+    }
+    render() {
+      if (this.state.fehler) return h("div", { className: "kartenluecke" },
+        h("div", { className: "kl-name" }, this.props.name || this.props.isin || T("Unbenanntes Topic", "Unnamed topic")),
+        h("div", { className: "kl-text" }, T("Diese Karte konnte nicht angezeigt werden. Der Eintrag ist da, die Darstellung nicht — bitte melden.",
+          "This card could not be displayed. The entry exists, the rendering does not — please report it.")),
+        this.props.isin ? h("div", { className: "kl-isin" }, this.props.isin) : null,
+        h("div", { className: "kl-grund" }, String(this.state.fehler).slice(0, 160)));
+      return h(MbBau, { bau: this.props.bau });
+    }
+  }
+  // Schluessel, der nie zwei Karten zusammenfallen laesst, auch wenn der
+  // Datensatz keine oder doppelte Kennungen liefert.
+  const kartenSchluessel = (p, ix) => (p && p.id != null && p.id !== "") ? ("id:" + p.id + ":" + ix) : ("ix:" + ix);
   // Auto-Refresh nur während Börsenzeiten (Europe/Berlin), TZ-robust
   const inMarketHours = () => {
     try {
@@ -145,6 +178,10 @@
     --z1:#C4524C; --z2:#CF7A4E; --z3:#C9A24E; --z4:#6FB07A; --z5:#6FCF9A; }
   #mb-root .stale-note{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;color:var(--ash);margin-top:4px;}
   #mb-root .stale-note.kalt{color:#E7A062;}
+  #mb-root .kartenluecke{border:1px solid #E7A062;border-radius:10px;padding:14px 16px;margin:10px 0;background:rgba(231,160,98,0.06);}
+  #mb-root .kartenluecke .kl-name{font-family:var(--font-ui);font-size:15px;color:var(--text-primary);margin-bottom:4px;}
+  #mb-root .kartenluecke .kl-text{font-family:var(--font-ui);font-size:13px;line-height:1.5;color:#E7A062;}
+  #mb-root .kartenluecke .kl-isin,#mb-root .kartenluecke .kl-grund{font-family:var(--font-mono);font-size:10.5px;color:var(--text-muted);margin-top:6px;word-break:break-all;}
   #mb-root .toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;}
   #mb-root .rep{display:flex;align-items:center;gap:10px;font-family:var(--font-ui);font-size:14px;color:var(--mist);cursor:pointer;}
   #mb-root h2.mb{font-family:var(--font-oracle);font-weight:400;font-size:30px;margin:6px 0 18px;color:var(--parch);}
@@ -3633,7 +3670,7 @@
             h("label", { className: "rep" }, h("button", { className: "sw " + (summary ? "on" : "off"), onClick: () => { sfx("button-004-toggle"); setSummary(!summary); } }, h("span", { className: "knob" })), T("Tägliche My-Book-Summary", "Daily My-Book summary")),
             h(Button, { variant: "oracle", size: "sm", disabled: count >= MAX, onClick: addTopic }, T("+ Topic hinzufügen", "+ Add topic")))),
 
-        rows.length ? (simple ? h("div", { className: "simplelist" }, rows.map((p) => {
+        rows.length ? (simple ? h("div", { className: "simplelist" }, rows.map((p, ix) => h(MbGrenze, { key: kartenSchluessel(p, ix), name: p.name, isin: p.isin, bau: () => {
           // 10.07.2026 (Daniel-Catch Prosus WACKELT/INTAKT): Einfach-Liste zeigt
           // jetzt dieselbe konsolidierte Status-Pill wie die Detail-Karte —
           // vorher rohes Thesen-Label hier vs. Decision-Tree-Pill dort =
@@ -3671,7 +3708,7 @@
                 h(Auge, { an: !!p.monitored })),
               h("span", { className: "cpill " + cst.cls, title: cst.tip }, cst.label),
               h("button", { className: "sask", "data-sfx": "", onClick: (e) => { e.stopPropagation(); sfx("button-002-itemopen"); askWarrenTopic(p); } }, T("Warren fragen", "Ask Warren"))));
-        })) : (function () {
+        } }))) : (function () {
           const mkHdr = () => h("div", { className: "hdr" },
             h("span", { className: "hc c-mon" }, T("Beobachten", "Monitor")),
             h("span", { className: "hc c-topic" }, "Topic"),
@@ -3685,7 +3722,8 @@
               h("span", { className: "grp-title" }, title),
               h("span", { className: "grp-sub" }, items.length + (items.length === 1 ? T(" Topic", " topic") : T(" Topics", " topics")))),
             h("div", { className: "grp-desc" }, desc),
-            h("div", { className: "list" }, mkHdr(), items.map(Topic))) : null;
+            h("div", { className: "list" }, mkHdr(),
+              items.map((p, ix) => h(MbGrenze, { key: kartenSchluessel(p, ix), name: p.name, isin: p.isin, bau: () => Topic(p) })))) : null;
           return h("div", null,
             group("oracle", T("Orakel-Shortlist", "Oracle shortlist"), T("Aus dem Orakel übernommen — der Score spiegelt den Hunter-Pool.", "Taken from the oracle — the score mirrors the hunter pool."), oracleRows),
             group("self", T("Meine Thesen", "My theses"), T("Du trackst selbst — bewertet gegen deine eigenen Marken.", "You track yourself — scored against your own levels."), selfRows));
