@@ -355,8 +355,20 @@
   #mb-root .lt-zahlen .z-ist{min-width:56px;color:var(--parch);}
   #mb-root .lt-zahlen .z-ist.z-null{color:var(--ash);}
   #mb-root .lt-zahlen .z-ziel{min-width:56px;color:var(--text-secondary,#9BA3B2);}
-  #mb-root .lt-zahlen .z-eur{min-width:74px;color:var(--parch);}
+  #mb-root .lt-zahlen .z-eur{min-width:176px;color:var(--parch);}
   #mb-root .lt-zahlen .z-eur .z-plan{color:var(--oracle);}
+  #mb-root .lt-zahlen .z-eur .z-eur-t{display:block;white-space:nowrap;}
+  #mb-root .lt-zahlen .z-eur .z-eur-t b{font-weight:500;}
+  /* Der Balken ist die Antwort auf "wie weit bin ich" — er steht direkt unter
+     den Zahlen, die er zusammenfasst, und traegt keine eigene Beschriftung. */
+  #mb-root .lt-fuell{display:block;position:relative;height:4px;margin-top:5px;border-radius:2px;
+    background:#15171D;overflow:hidden;width:100%;min-width:0;}
+  #mb-root .lt-fuell > i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;
+    background:linear-gradient(90deg,var(--oracle,#D4A94E),var(--oracle-b,#F2CE7A));}
+  #mb-root .lt-fuell.leer{background:#141720;}
+  #mb-root .lt-kopfzeile .z-eur{min-width:176px;}
+  #mb-root .lt-zahlen .z-offen{min-width:86px;color:var(--oracle);}
+  #mb-root .lt-zahlen .z-offen.ueber{color:var(--text-secondary,#9BA3B2);}
   #mb-root .lt-zahlen .z-delta{min-width:64px;color:var(--text-secondary,#9BA3B2);}
   #mb-root .lt-zahlen .z-delta.auf{color:var(--bull,#6FCF9A);}
   #mb-root .lt-zahlen .z-delta.ab{color:var(--ox-b,#E0726B);}
@@ -450,10 +462,36 @@
   #mb-root .mek-rund{flex:1 1 100%;font-family:var(--font-ui);font-size:11.5px;color:var(--ash);}
   #mb-root .lt-fuss{font-family:var(--font-ui);font-size:12px;line-height:1.7;color:var(--ash);margin:22px 0 0;max-width:640px;}
 
+  /* Zwischenbreite: die Zahlenspalten ruecken zusammen, bevor irgendetwas
+     umbricht. Lieber enger als abgeschnitten. */
+  @media(max-width:1080px){
+    #mb-root .lt-zahlen{gap:11px;font-size:11.5px;}
+    #mb-root .lt-zahlen .z-ist,#mb-root .lt-zahlen .z-ziel{min-width:48px;}
+    #mb-root .lt-zahlen .z-eur,#mb-root .lt-kopfzeile .z-eur{min-width:150px;}
+    #mb-root .lt-zahlen .z-offen{min-width:74px;}
+    #mb-root .lt-zahlen .z-delta{min-width:56px;}
+    #mb-root .lt-rechts{min-width:150px;margin-left:14px;}
+  }
+  /* Telefon: eine Tabelle ohne Kopfzeile ist keine Tabelle mehr. Statt die
+     Spalten zu quetschen, wird jede Zahl zu einem eigenen kleinen Feld mit
+     eigener Beschriftung — die Kopfzeile waende sonst so weit weg, dass
+     niemand mehr weiss, was er liest. Eintrag, Plan und Balken bleiben
+     zusammen und bekommen die volle Breite. */
   @media(max-width:560px){
     #mb-root .lt-row{flex-direction:column;gap:5px;}
     #mb-root .lt-row .marke{align-self:flex-start;}
     #mb-root .lt-head{flex-direction:column;}
+    #mb-root .lt-kopfzeile{display:none;}
+    #mb-root .lt-zahlen{display:grid;grid-template-columns:1fr 1fr;gap:11px 16px;
+      width:100%;margin-left:0;font-size:12.5px;align-items:start;}
+    #mb-root .lt-zahlen span{text-align:left;}
+    #mb-root .lt-zahlen > span{display:block;min-width:0;}
+    #mb-root .lt-zahlen > span::before{content:attr(data-lab);display:block;
+      font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);
+      margin-bottom:2px;font-weight:400;}
+    #mb-root .lt-zahlen .z-eur{grid-column:1 / -1;order:-1;}
+    #mb-root .lt-zahlen .z-eur .z-eur-t{white-space:normal;}
+    #mb-root .lt-rechts{min-width:0;margin-left:0;width:100%;justify-content:flex-start;gap:14px;margin-top:6px;}
   }
   /* --- B1 · Ziel-Editor (AP6.5) --- */
   #mb-root .ze{background:var(--card,#15181E);border:1px solid var(--line);border-left:3px solid var(--oracle);border-radius:0 10px 10px 0;padding:24px 26px;margin:20px 0 0;}
@@ -920,6 +958,19 @@
   // Schluessel ist ab jetzt die ISIN, nicht der Baustein: ein Baustein kann
   // mehrere Produkte tragen. Alte Eintraege (Baustein-Schluessel) werden beim
   // Lesen ignoriert — sie sind geraetegebunden und einen Tag alt.
+  // Das Budget war bisher fluechtig: einmal neu laden und die Zahl war weg.
+  // Damit war auch jede daraus gerechnete Groesse weg — Plan, Luecke,
+  // Aufbaustand. Eine Rechenhilfe, die man nach jedem Laden neu tippen muss,
+  // benutzt niemand. Also bleibt sie liegen, genau wie die Betraege: auf
+  // diesem Geraet, nie am Server.
+  const LT_BUDGET_KEY = (depot) => "py_lt_budget_" + (depot || "struktur_1");
+  const ltBudgetLesen = (depot) => {
+    try { return localStorage.getItem(LT_BUDGET_KEY(depot)) || ""; } catch (e) { return ""; }
+  };
+  const ltBudgetSchreiben = (depot, wert) => {
+    try { localStorage.setItem(LT_BUDGET_KEY(depot), wert == null ? "" : String(wert)); } catch (e) {}
+  };
+
   const LT_BETRAG_KEY = (depot) => "py_lt_betrag_" + (depot || "struktur_1");
   const ltBetraegeLesen = (depot) => {
     try { const v = JSON.parse(localStorage.getItem(LT_BETRAG_KEY(depot)) || "{}"); return (v && typeof v === "object") ? v : {}; }
@@ -2732,8 +2783,11 @@
           const ds = Array.isArray(res.d.depots) ? res.d.depots : [];
           setDepots(ds);
           setMitteilung(res.d.mitteilung || null);
-          if (ds.length) setBetraege(ltBetraegeAufraeumen(ds[0].depot,
-            ltBetraegeUmziehen(ds[0].depot, ltBetraegeLesen(ds[0].depot), ds[0].zeilen), ds[0].zeilen));
+          if (ds.length) {
+            setBetraege(ltBetraegeAufraeumen(ds[0].depot,
+              ltBetraegeUmziehen(ds[0].depot, ltBetraegeLesen(ds[0].depot), ds[0].zeilen), ds[0].zeilen));
+            setBudget(ltBudgetLesen(ds[0].depot));
+          }
           setStand(res.d.vorhanden && ds.length ? "ok" : "leer");
         })
         .catch(() => { if (lebt) setStand("fehler"); });
@@ -2756,13 +2810,14 @@
     // Das Budget ist eine Rechenhilfe, kein Datenfeld — es gehoert in die
     // Werkzeugleiste, nicht als Kasten ueber die ganze Flaeche. Die Erklaerung
     // steht am Feld, nicht als Absatz daneben.
+    const depotName = () => (depots[0] && depots[0].depot) || "struktur_1";
     const budgetFeld = h("label", { className: "lt-budget",
-      title: T("Nur zur Orientierung. Die Zahl bleibt in diesem Browser — sie wird nicht gespeichert und nicht gesendet.",
-               "For orientation only. The number stays in this browser — it is neither stored nor sent.") },
+      title: T("Nur zur Orientierung: daraus rechnet die Tabelle Plan und L\u00FCcke. Die Zahl bleibt auf diesem Ger\u00E4t und geht nie an den Server.",
+               "For orientation only: the table derives plan and gap from it. The number stays on this device and never goes to the server.") },
       h("span", null, T("Budget", "Budget")),
       h("input", { type: "text", inputMode: "decimal", value: budget, placeholder: "z. B. 10000",
-        onChange: (e) => setBudget(e.target.value) }),
-      h("i", null, "€"));
+        onChange: (e) => { setBudget(e.target.value); ltBudgetSchreiben(depotName(), e.target.value); } }),
+      h("i", null, "\u20AC"));
 
     const erklaerung = h("p", { className: "lt-lead" },
       T("Das norwegische Prinzip: eine breit gestreute Zielstruktur, feste Anteile, und keine Meinung zum n\u00E4chsten Quartal. Hier z\u00E4hlt nicht der Tag, sondern der Abstand zum Ziel.",
@@ -3002,22 +3057,57 @@
           ? h("span", { className: "z-leer" }, "—")
           : h("span", null, ltPct(x) + (einheit || ""));
 
+        // Die SUMME-Spalte trug zwei Bedeutungen: bei gekauften Zeilen den
+        // eigenen Eintrag, bei geplanten den Budget-Anteil. Zwei Wahrheiten in
+        // einer Spalte, und keine Ueberschrift sagte, welche gerade gilt —
+        // deshalb las sich "Anleihen 2.700 €" wie Geld, das es schon gibt.
+        //
+        // Jetzt steht in derselben Zelle beides nebeneinander: was DU
+        // eingetragen hast, und was der Plan waere (Zielanteil x Budget). Der
+        // Balken darunter zeigt den Abstand, bevor jemand die Zahlen liest,
+        // und daneben steht er als Zahl.
+        //
+        // Ohne Budget gibt es keinen Plan. Dann bleibt es bei der einen Zahl —
+        // wir erfinden keinen Massstab, nur weil eine Spalte sonst leer ist.
         const zahlen = (z) => {
           const ist = typeof z.ist_pct === "number" ? z.ist_pct : null;
           const ziel = typeof z.ziel_pct === "number" ? z.ziel_pct : null;
           const bet = betragVon(z);
+          const plan = inEuro(ziel);
           const v = seitEinstand(z);
+          const fuell = (plan != null && plan > 0)
+            ? Math.max(0, Math.min(100, (bet || 0) / plan * 100)) : null;
+          const offen = (plan != null) ? plan - (bet || 0) : null;
           return h("div", { className: "lt-zahlen" },
-            h("span", { className: "z-ist" + (ist ? "" : " z-null"), title: T("Anteil heute", "share today") }, zahl(ist, " %")),
-            h("span", { className: "z-ziel", title: T("Zielanteil", "target share") }, zahl(ziel, " %")),
-            h("span", { className: "z-eur", title: T("angelegte Summe", "amount invested") },
-              bet != null ? euroText(bet) + " €"
-                : (inEuro(ziel) != null ? h("span", { className: "z-plan" }, euroText(inEuro(ziel)) + " €")
-                                        : h("span", { className: "z-leer" }, "—"))),
+            h("span", { className: "z-ist" + (ist ? "" : " z-null"), "data-lab": T("Ist", "Actual"),
+              title: T("Anteil an dem, was heute im Depot liegt — nicht am Budget.",
+                       "Share of what is in the portfolio today — not of the budget.") }, zahl(ist, " %")),
+            h("span", { className: "z-ziel", "data-lab": T("Ziel", "Target"),
+              title: T("Dein Zielanteil.", "Your target share.") }, zahl(ziel, " %")),
+            h("span", { className: "z-eur", "data-lab": T("Eingetragen · Plan", "Entered · plan"),
+              title: plan != null
+                ? T("Was du eingetragen hast, gemessen am Plan (Zielanteil \u00D7 Budget). Beide Zahlen bleiben auf diesem Ger\u00E4t.",
+                    "What you entered, measured against the plan (target share \u00D7 budget). Both stay on this device.")
+                : T("Was du eingetragen hast. Bleibt auf diesem Ger\u00E4t.",
+                    "What you entered. Stays on this device.") },
+              h("span", { className: "z-eur-t" },
+                bet != null ? h("b", null, ltEuro(bet) + " \u20AC") : h("span", { className: "z-leer" }, "\u2014"),
+                plan != null ? h("span", { className: "z-plan" }, T("\u00A0von ", "\u00A0of ") + ltEuro(plan) + " \u20AC") : null),
+              fuell != null ? h("span", { className: "lt-fuell" + (fuell > 0 ? "" : " leer"),
+                  title: T(ltPct(fuell) + " % des Plans eingetragen", ltPct(fuell) + " % of the plan entered") },
+                h("i", { style: { width: (fuell > 0 ? Math.max(3, fuell) : 0).toFixed(1) + "%" } })) : null),
+            h("span", { className: "z-offen" + (offen != null && offen < -0.005 ? " ueber" : ""),
+              "data-lab": T("Offen", "Open"),
+              title: T("Plan minus Eintrag. Ein Abstand, keine Aufforderung.",
+                       "Plan minus entry. A distance, not a call to act.") },
+              offen == null ? h("span", { className: "z-leer" }, "\u2014")
+                : (Math.abs(offen) < 0.005 ? T("erreicht", "reached")
+                  : (offen > 0 ? ltEuro(offen) + " \u20AC" : "+" + ltEuro(-offen) + " \u20AC"))),
             h("span", { className: "z-delta" + (v == null ? "" : (Math.abs(v) < 0.05 ? "" : (v > 0 ? " auf" : " ab"))),
+              "data-lab": T("Einstand", "vs. buy"),
               title: kursTitel(z) },
-              v == null ? h("span", { className: "z-leer" }, "—")
-                : (Math.abs(v) < 0.05 ? "±0,0 %" : (v > 0 ? "+" : "\u2212") + ltPct(Math.abs(v)) + " %")));
+              v == null ? h("span", { className: "z-leer" }, "\u2014")
+                : (Math.abs(v) < 0.05 ? "\u00B10,0 %" : (v > 0 ? "+" : "\u2212") + ltPct(Math.abs(v)) + " %")));
         };
 
         const zeile = (z, i, opt) => h("div", { key: i, className: "lt-row"
@@ -3098,7 +3188,8 @@
               h("div", { className: "lt-zahlen" },
                 h("span", { className: "z-ist" }, T("ist", "actual")),
                 h("span", { className: "z-ziel" }, T("Ziel", "target")),
-                h("span", { className: "z-eur" }, T("Summe", "amount")),
+                h("span", { className: "z-eur" }, T("eingetragen · Plan", "entered · plan")),
+                h("span", { className: "z-offen" }, T("offen", "open")),
                 h("span", { className: "z-delta" }, T("Einstand", "vs. buy")))),
             klassen.map((z, i) => [zeile(z, i), editorHier(z)])) : null,
           rest.length ? h("div", { className: "lt-grp" },
