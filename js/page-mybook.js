@@ -352,10 +352,15 @@
      Kommas und die Tabelle liest sich nicht. */
   #mb-root .lt-zahlen{display:flex;align-items:baseline;gap:16px;flex:0 0 auto;margin-left:auto;font-family:var(--font-mono);font-size:12px;}
   #mb-root .lt-zahlen span{display:inline-block;text-align:right;white-space:nowrap;}
-  #mb-root .lt-zahlen .z-ist{min-width:56px;color:var(--parch);}
+  /* FESTE Breiten, keine Mindestbreiten. Mit min-width richtete sich jede
+     Spalte nach ihrem laengsten Inhalt — und weil die Ueberschrift "EINSTAND"
+     breiter ist als "+14,0 %", sass die Kopfzeile ein paar Pixel neben ihren
+     Zahlen. Eine Tabelle, deren Kopf woanders steht als die Spalte, ist keine
+     Tabelle. Breiten stehen deshalb hier und nicht im Inhalt. */
+  #mb-root .lt-zahlen .z-ist{flex:0 0 56px;width:56px;color:var(--parch);}
   #mb-root .lt-zahlen .z-ist.z-null{color:var(--ash);}
-  #mb-root .lt-zahlen .z-ziel{min-width:56px;color:var(--text-secondary,#9BA3B2);}
-  #mb-root .lt-zahlen .z-eur{min-width:176px;color:var(--parch);}
+  #mb-root .lt-zahlen .z-ziel{flex:0 0 56px;width:56px;color:var(--text-secondary,#9BA3B2);}
+  #mb-root .lt-zahlen .z-eur{flex:0 0 176px;width:176px;color:var(--parch);}
   #mb-root .lt-zahlen .z-eur .z-plan{color:var(--oracle);}
   #mb-root .lt-zahlen .z-eur .z-eur-t{display:block;white-space:nowrap;}
   #mb-root .lt-zahlen .z-eur .z-eur-t b{font-weight:500;}
@@ -366,19 +371,21 @@
   #mb-root .lt-fuell > i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;
     background:linear-gradient(90deg,var(--oracle,#D4A94E),var(--oracle-b,#F2CE7A));}
   #mb-root .lt-fuell.leer{background:#141720;}
-  #mb-root .lt-kopfzeile .z-eur{min-width:176px;}
+  #mb-root .lt-kopfzeile .lt-rechts{min-height:0;}
   #mb-root .lt-budgethinweis{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;
     color:var(--oracle-b,#F2CE7A);background:rgba(212,169,78,.05);border-left:2px solid var(--oracle,#D4A94E);
     border-radius:0 6px 6px 0;padding:8px 12px;margin:2px 0 10px;max-width:640px;}
-  #mb-root .lt-zahlen .z-offen{min-width:86px;color:var(--oracle);}
+  #mb-root .lt-zahlen .z-offen{flex:0 0 92px;width:92px;color:var(--oracle);}
   #mb-root .lt-zahlen .z-offen.ueber{color:var(--text-secondary,#9BA3B2);}
-  #mb-root .lt-zahlen .z-delta{min-width:64px;color:var(--text-secondary,#9BA3B2);}
+  #mb-root .lt-zahlen .z-delta{flex:0 0 74px;width:74px;color:var(--text-secondary,#9BA3B2);}
   #mb-root .lt-zahlen .z-delta.auf{color:var(--bull,#6FCF9A);}
   #mb-root .lt-zahlen .z-delta.ab{color:var(--ox-b,#E0726B);}
   #mb-root .lt-zahlen .z-leer{color:var(--ash);}
   #mb-root .lt-kopfzeile{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:0 2px 5px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
   #mb-root .lt-kopfzeile .lt-zahlen span{color:var(--ash);}
-  #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:22px;justify-content:flex-end;min-width:186px;min-height:21px;}
+  /* Auch die rechte Gruppe muss fest sein: solange sie mit ihrem Inhalt
+     wuchs, verschoben Zeilen MIT Knopf die Zahlen gegenueber Zeilen OHNE. */
+  #mb-root .lt-rechts{display:flex;align-items:center;gap:14px;flex:0 0 186px;width:186px;margin-left:22px;justify-content:flex-end;min-height:21px;}
   #mb-root .lt-eur{font-family:var(--font-mono);font-size:12px;color:var(--oracle);white-space:nowrap;}
   #mb-root .pe-vorher{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:#E7A062;margin:0 0 14px;padding:10px 14px;background:rgba(231,160,98,.06);border-left:3px solid #E7A062;border-radius:0 8px 8px 0;}
   #mb-root .lt-gesamt{font-family:var(--font-mono);font-size:12px;color:var(--parch);cursor:help;}
@@ -469,11 +476,11 @@
      umbricht. Lieber enger als abgeschnitten. */
   @media(max-width:1080px){
     #mb-root .lt-zahlen{gap:11px;font-size:11.5px;}
-    #mb-root .lt-zahlen .z-ist,#mb-root .lt-zahlen .z-ziel{min-width:48px;}
-    #mb-root .lt-zahlen .z-eur,#mb-root .lt-kopfzeile .z-eur{min-width:150px;}
-    #mb-root .lt-zahlen .z-offen{min-width:74px;}
-    #mb-root .lt-zahlen .z-delta{min-width:56px;}
-    #mb-root .lt-rechts{min-width:150px;margin-left:14px;}
+    #mb-root .lt-zahlen .z-ist,#mb-root .lt-zahlen .z-ziel{flex-basis:48px;width:48px;}
+    #mb-root .lt-zahlen .z-eur{flex-basis:152px;width:152px;}
+    #mb-root .lt-zahlen .z-offen{flex-basis:80px;width:80px;}
+    #mb-root .lt-zahlen .z-delta{flex-basis:70px;width:70px;}
+    #mb-root .lt-rechts{flex-basis:170px;width:170px;margin-left:14px;}
   }
   /* Telefon: eine Tabelle ohne Kopfzeile ist keine Tabelle mehr. Statt die
      Spalten zu quetschen, wird jede Zahl zu einem eigenen kleinen Feld mit
@@ -494,7 +501,9 @@
       margin-bottom:2px;font-weight:400;}
     #mb-root .lt-zahlen .z-eur{grid-column:1 / -1;order:-1;}
     #mb-root .lt-zahlen .z-eur .z-eur-t{white-space:normal;}
-    #mb-root .lt-rechts{min-width:0;margin-left:0;width:100%;justify-content:flex-start;gap:14px;margin-top:6px;}
+    #mb-root .lt-rechts{flex:1 1 auto;width:100%;margin-left:0;justify-content:flex-start;gap:14px;margin-top:6px;}
+    #mb-root .lt-zahlen .z-ist,#mb-root .lt-zahlen .z-ziel,#mb-root .lt-zahlen .z-eur,
+    #mb-root .lt-zahlen .z-offen,#mb-root .lt-zahlen .z-delta{flex:none;width:auto;}
   }
   /* --- B1 · Ziel-Editor (AP6.5) --- */
   #mb-root .ze{background:var(--card,#15181E);border:1px solid var(--line);border-left:3px solid var(--oracle);border-radius:0 10px 10px 0;padding:24px 26px;margin:20px 0 0;}
@@ -3193,7 +3202,10 @@
                            "The statement is on file, the target weights are not. Without a target there is no distance to measure — below is how it looks today."))) : null,
           klassen.length ? h("div", { className: "lt-grp" },
             h("div", { className: "lt-grp-t" }, T("Klassen", "Classes")),
-            h("div", { className: "lt-kopfzeile" }, h("span", null, ""),
+            // Der Kopf muss denselben Bauplan haben wie eine Zeile — Text
+            // links, Zahlen, rechte Gruppe. Fehlte der Platzhalter rechts,
+            // rutschte die ganze Kopfzeile um dessen Breite nach rechts.
+            h("div", { className: "lt-kopfzeile" }, h("div", { className: "satz" }),
               h("div", { className: "lt-zahlen" },
                 h("span", { className: "z-ist" }, T("ist", "actual")),
                 h("span", { className: "z-ziel" }, T("Ziel", "target")),
@@ -3201,7 +3213,8 @@
                   ? T("eingetragen · Plan", "entered · plan")
                   : T("eingetragen", "entered")),
                 hatBudget ? h("span", { className: "z-offen" }, T("offen", "open")) : null,
-                h("span", { className: "z-delta" }, T("Einstand", "vs. buy")))),
+                h("span", { className: "z-delta" }, T("Einstand", "vs. buy"))),
+              h("div", { className: "lt-rechts" })),
             hatBudget ? null : h("div", { className: "lt-budgethinweis" },
               T("Trag oben ein Budget ein — dann rechnet die Tabelle je Zeile den Plan, die Lücke und den Aufbaustand. Die Zahl bleibt auf diesem Gerät.",
                 "Enter a budget above — the table then computes plan, gap and progress per row. The number stays on this device.")),
