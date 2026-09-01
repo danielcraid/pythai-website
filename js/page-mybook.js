@@ -946,6 +946,25 @@
     try { localStorage.setItem(LT_BETRAG_KEY(depot), JSON.stringify(karte || {})); } catch (e) {}
   };
 
+  // Waisen einmal beim Laden wegraeumen, damit die Anzeige ohne Hand-Eingriff
+  // heilt. Das Filtern in ltBetragSumme allein wuerde die Zahl richtig machen
+  // und den Muell liegen lassen — bis er beim naechsten Umbau der Struktur
+  // zufaellig wieder auf einen lebenden Schluessel trifft.
+  //
+  // Die Sperre ist wichtiger als die Bereinigung: liegt KEINE Positionszeile
+  // vor, wird nichts geloescht. Sonst wischt ein Ladefehler oder eine noch
+  // leere Struktur dem Nutzer alle Eingaben weg — und die stehen nur hier,
+  // sie kommen von keinem Server zurueck.
+  const ltBetraegeAufraeumen = (depot, karte, zeilen) => {
+    const lebend = ltLebendeSchluessel(zeilen);
+    if (!lebend.length) return karte || {};
+    const nur = new Set(lebend);
+    const neu = {}; let weg = 0;
+    Object.keys(karte || {}).forEach((k) => { if (nur.has(k)) neu[k] = karte[k]; else weg++; });
+    if (weg) ltBetraegeSchreiben(depot, neu);
+    return weg ? neu : (karte || {});
+  };
+
   /* ============================================================
      B1 · ZIELSTRUKTUR SETZEN (AP6.5) — Vertrag V2, Abschnitt B1
      POST /api/mybook/sockel/ziel
@@ -981,9 +1000,49 @@
   // sie mindestens so vollstaendig ist wie die groebere — sonst meldet eine
   // einzige Zielposition "1 von 1 im Depot", waehrend fuenf Bausteine leer
   // sind. Steht hier oben, damit sie pruefbar ist statt nur behauptet.
-  const ltEuro = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  const ltBetragSumme = (karte) => Object.keys(karte || {})
-    .reduce((a, k) => a + (typeof karte[k] === "number" ? karte[k] : 0), 0);
+  // Ein Euro-Format fuer die ganze Flaeche.
+  //
+  // Die alte Fassung setzte Tausenderpunkte in den ROHEN String. Bei ganzen
+  // Zahlen ging das gut, bei Cents nicht: aus 6955.77 wurde "6.955.77" —
+  // zwei Punkte, und der Leser sieht eine Zahl, die es nicht gibt. Genau so
+  // stand es am 01.09. in Daniels Kopfzeile.
+  //
+  // Jetzt rechnet der Browser das Format, nicht ein Suchen-und-Ersetzen:
+  // Komma vor den Cents, Punkt als Tausendertrenner, und Cents nur dann,
+  // wenn es welche gibt. Vorher auf zwei Stellen gerundet, damit ein
+  // Fliesskomma-Rest (1000 + 955.77) nicht als "5.000,00" durchschlaegt.
+  const ltEuro = (x) => {
+    const n = Math.round(Number(x) * 100) / 100;
+    if (!isFinite(n)) return "\u2014";
+    return n.toLocaleString("de-DE", {
+      minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  // Welche Schluessel gehoeren zur AKTUELLEN Zielstruktur? Nur Positionen
+  // tragen Betraege; Bausteine und Klassen sind Zwischenebenen.
+  const ltLebendeSchluessel = (zeilen) => (Array.isArray(zeilen) ? zeilen : [])
+    .filter((z) => z && z.ebene === "position" && z.schluessel)
+    .map((z) => z.schluessel);
+
+  // Die angelegte Summe zaehlt nur, was es noch gibt.
+  //
+  // Die Karte im Browser ueberlebt jede Aenderung der Zielstruktur. Wird eine
+  // Position entfernt, bleibt ihr Betrag als Waise liegen und wurde bisher
+  // munter weiter mitsummiert — bei Daniel ein 5.000er aus einer frueheren
+  // Fassung, der die Kopfzeile um genau diesen Betrag zu hoch machte.
+  //
+  // Ohne Liste wird weiterhin alles summiert. Das ist Absicht: solange die
+  // Struktur nicht geladen ist, ist "ich weiss nicht, was lebt" kein Grund,
+  // Zahlen verschwinden zu lassen.
+  const ltBetragSumme = (karte, lebendig) => {
+    const nur = (lebendig instanceof Set) ? lebendig
+      : (Array.isArray(lebendig) ? new Set(lebendig) : null);
+    return Object.keys(karte || {})
+      .filter((k) => nur === null || nur.has(k))
+      .reduce((a, k) => a + (typeof karte[k] === "number" ? karte[k] : 0), 0);
+  };
 
   const ltBasis = (zielPos, zielBs) =>
     (zielPos.length && zielPos.length >= zielBs.length) ? zielPos : zielBs;
@@ -1728,7 +1787,7 @@
     // Was soll diese Zeile laut Ziel sein? Steht direkt neben dem Feld, in dem
     // der Betrag eingetragen wird — sonst muesste man es sich merken.
     const zielVon = (z) => (zielGewichte && z && zielGewichte[z.baustein] != null) ? zielGewichte[z.baustein] : null;
-    const euroText = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    const euroText = ltEuro;
     const zielText = (z) => {
       const p = zielVon(z);
       if (p == null) return null;
@@ -2632,14 +2691,15 @@
     // angelegte Summe gerechnet, schrumpft das Ziel mit jedem noch nicht
     // gekauften Baustein — bei 4.000 von 10.000 stand "Ziel 1.600 €" da,
     // obwohl das Ziel 4.000 ist. Das war der Logikfehler.
-    const betragSumme = ltBetragSumme(betraege);
+    const lebendeSchluessel = ltLebendeSchluessel(depots[0] && depots[0].zeilen);
+    const betragSumme = ltBetragSumme(betraege, lebendeSchluessel.length ? lebendeSchluessel : null);
     const budgetZahl = ltZahl(budget);
     const inEuro = (pct) => (budgetZahl == null || budgetZahl <= 0 || pct == null)
       ? null
       : Math.round((budgetZahl * pct) / 100);
-    // Ganze Euro. Nachkommastellen taeuschen hier eine Genauigkeit vor,
-    // die eine Planungshilfe nicht hat.
-    const euroText = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    // EINE Wahrheit fuers Euro-Format. Die eigene Kopie hier war der zweite
+    // Ort, an dem "6.955.77" entstehen konnte.
+    const euroText = ltEuro;
 
     useEffect(() => {
       if (!an) return;
@@ -2672,7 +2732,8 @@
           const ds = Array.isArray(res.d.depots) ? res.d.depots : [];
           setDepots(ds);
           setMitteilung(res.d.mitteilung || null);
-          if (ds.length) setBetraege(ltBetraegeUmziehen(ds[0].depot, ltBetraegeLesen(ds[0].depot), ds[0].zeilen));
+          if (ds.length) setBetraege(ltBetraegeAufraeumen(ds[0].depot,
+            ltBetraegeUmziehen(ds[0].depot, ltBetraegeLesen(ds[0].depot), ds[0].zeilen), ds[0].zeilen));
           setStand(res.d.vorhanden && ds.length ? "ok" : "leer");
         })
         .catch(() => { if (lebt) setStand("fehler"); });
@@ -3081,9 +3142,12 @@
           budgetFeld,
           betragSumme > 0
             ? h("span", { className: "lt-gesamt",
-                title: T("Summe der angelegten Betraege aus den Zeilen. Bleibt in diesem Browser.",
-                         "Sum of the amounts entered in the rows. Stays in this browser.") },
-                T("angelegt " + euroText(betragSumme) + " €", "invested " + euroText(betragSumme) + " €")
+                title: T("Summe der Betr\u00E4ge, die du in den Zeilen eingetragen hast. Bleibt in diesem Browser und geht nie an den Server.",
+                         "Sum of the amounts you entered in the rows. Stays in this browser and never goes to the server.") },
+                // "angelegt" las sich wie ein Konto-Saldo. Die Zahl ist eine
+                // Eingabe des Nutzers, keine Messung — der Wortlaut sagt das
+                // jetzt auch, nicht nur der Tooltip.
+                T("deine Eintr\u00E4ge " + euroText(betragSumme) + " €", "your entries " + euroText(betragSumme) + " €")
                 + (budgetZahl != null && budgetZahl > 0
                     ? T(" von " + euroText(budgetZahl) + " €", " of " + euroText(budgetZahl) + " €") : ""))
             : null,
