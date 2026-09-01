@@ -367,6 +367,9 @@
     background:linear-gradient(90deg,var(--oracle,#D4A94E),var(--oracle-b,#F2CE7A));}
   #mb-root .lt-fuell.leer{background:#141720;}
   #mb-root .lt-kopfzeile .z-eur{min-width:176px;}
+  #mb-root .lt-budgethinweis{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;
+    color:var(--oracle-b,#F2CE7A);background:rgba(212,169,78,.05);border-left:2px solid var(--oracle,#D4A94E);
+    border-radius:0 6px 6px 0;padding:8px 12px;margin:2px 0 10px;max-width:640px;}
   #mb-root .lt-zahlen .z-offen{min-width:86px;color:var(--oracle);}
   #mb-root .lt-zahlen .z-offen.ueber{color:var(--text-secondary,#9BA3B2);}
   #mb-root .lt-zahlen .z-delta{min-width:64px;color:var(--text-secondary,#9BA3B2);}
@@ -2748,6 +2751,12 @@
     const inEuro = (pct) => (budgetZahl == null || budgetZahl <= 0 || pct == null)
       ? null
       : Math.round((budgetZahl * pct) / 100);
+    // Ohne Budget gibt es keinen Plan — und dann duerfen die beiden Spalten,
+    // die vom Plan leben, auch nicht dastehen. Eine Ueberschrift ueber lauter
+    // Strichen ist keine Information, sondern eine Behauptung, die die Tabelle
+    // nicht einloesen kann. An ihrer Stelle steht dann eine Zeile, die sagt,
+    // was zu tun ist.
+    const hatBudget = budgetZahl != null && budgetZahl > 0;
     // EINE Wahrheit fuers Euro-Format. Die eigene Kopie hier war der zweite
     // Ort, an dem "6.955.77" entstehen konnte.
     const euroText = ltEuro;
@@ -3096,7 +3105,7 @@
               fuell != null ? h("span", { className: "lt-fuell" + (fuell > 0 ? "" : " leer"),
                   title: T(ltPct(fuell) + " % des Plans eingetragen", ltPct(fuell) + " % of the plan entered") },
                 h("i", { style: { width: (fuell > 0 ? Math.max(3, fuell) : 0).toFixed(1) + "%" } })) : null),
-            h("span", { className: "z-offen" + (offen != null && offen < -0.005 ? " ueber" : ""),
+            !hatBudget ? null : h("span", { className: "z-offen" + (offen != null && offen < -0.005 ? " ueber" : ""),
               "data-lab": T("Offen", "Open"),
               title: T("Plan minus Eintrag. Ein Abstand, keine Aufforderung.",
                        "Plan minus entry. A distance, not a call to act.") },
@@ -3188,9 +3197,14 @@
               h("div", { className: "lt-zahlen" },
                 h("span", { className: "z-ist" }, T("ist", "actual")),
                 h("span", { className: "z-ziel" }, T("Ziel", "target")),
-                h("span", { className: "z-eur" }, T("eingetragen · Plan", "entered · plan")),
-                h("span", { className: "z-offen" }, T("offen", "open")),
+                h("span", { className: "z-eur" }, hatBudget
+                  ? T("eingetragen · Plan", "entered · plan")
+                  : T("eingetragen", "entered")),
+                hatBudget ? h("span", { className: "z-offen" }, T("offen", "open")) : null,
                 h("span", { className: "z-delta" }, T("Einstand", "vs. buy")))),
+            hatBudget ? null : h("div", { className: "lt-budgethinweis" },
+              T("Trag oben ein Budget ein — dann rechnet die Tabelle je Zeile den Plan, die Lücke und den Aufbaustand. Die Zahl bleibt auf diesem Gerät.",
+                "Enter a budget above — the table then computes plan, gap and progress per row. The number stays on this device.")),
             klassen.map((z, i) => [zeile(z, i), editorHier(z)])) : null,
           rest.length ? h("div", { className: "lt-grp" },
             h("button", { className: "lt-mehr", onClick: () => setOffen(Object.assign({}, offen, { [dep.depot]: !auf })) },
