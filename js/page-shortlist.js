@@ -53,6 +53,19 @@
   // sie alle angefasst.
   //
   // Es heisst darum "Stand" — das ist genau so viel, wie das Feld weiss.
+  // Der Chip las state === "pending". Der echte Zustand heisst aber
+  // "watchlist" — deshalb trugen am 09.09. beide Eintraege im Abschnitt
+  // BEOBACHTUNG den Chip "Aktiv". Eine Karte, die im Watchlist-Kasten steht
+  // und "Aktiv" sagt, behauptet, eine Position sei im Spiel, die es nicht
+  // ist. Das ist keine Kosmetik.
+  //
+  // Ab hier entscheidet EINE Pruefung ueber Korb UND Chip. Zwei Stellen, die
+  // dasselbe getrennt entscheiden, laufen frueher oder spaeter auseinander —
+  // hier haben sie es getan.
+  const aufWatchlist = (t) => {
+    const s = String((t && t.state) || "").toLowerCase();
+    return s === "watchlist" || s === "pending";
+  };
   const standVon = (t) => uhrzeitVon(
     t.last_checked_at_de != null ? t.last_checked_at_de : t.last_checked_at);
   const { useState, useEffect } = React;
@@ -638,7 +651,7 @@
       const isOpen = open === t.id;
       const isShort = /short/i.test(t.art || "");
       const entry = num(t.entry), live = liveNum(t);
-      const isPending = t.state === "pending"; // Badge NUR aus state
+      const isPending = aufWatchlist(t); // Chip und Korb aus derselben Pruefung
       const hasSetup = entry != null;           // Add nur mit Setup-Niveau möglich (kein p&l!)
       // Tages-Trend (NICHT p&l vs Entry) — geteilte Wahrheit mit der Einfach-Ansicht
       const td_ = dayTrend(t);
@@ -796,7 +809,7 @@
 
     // Aktive Shortlist: alles außer watchlist/pending(legacy)/closed/broken/archived/deleted
     const visible = trades.filter((t) => { const s = String(t.state || "").toLowerCase(); return s !== "watchlist" && s !== "pending" && s.indexOf("closed") === -1 && s !== "broken" && s !== "archived" && s !== "deleted"; });
-    const watch = trades.filter((t) => { const s = String(t.state || "").toLowerCase(); return s === "watchlist" || s === "pending"; });
+    const watch = trades.filter(aufWatchlist);
     const archived = trades.filter((t) => String(t.state || "").toLowerCase() === "archived");
     // Vorfall 07.09.: fuenf Positionen wanderten auf die Watchlist, die
     // Hauptliste schrumpfte von 8 auf 3 — und nichts auf der Seite sagte,
