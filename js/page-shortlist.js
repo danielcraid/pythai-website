@@ -3,6 +3,52 @@
   const { SiteNav, SiteFooter, PyEyebrow } = window;
   const T = (de, en) => window.PYi18n.t(de, en);
   const API = "https://api.pythai.ch";
+
+  // Zwei Zeitpunkte, die niemand verwechseln darf:
+  //
+  //   geprueft  — wann zuletzt HINGESCHAUT wurde
+  //   geaendert — wann sich zuletzt WAS geaendert hat
+  //
+  // Die Karte trug beides unter einem Wort ("zuletzt gepflegt") und zeigte
+  // dabei den Pruef-Zeitpunkt. Am 03.09. stand deshalb 16:15 auf der Seite,
+  // waehrend die Datenbank 05:50 und 16:00:08 kannte — eine Forensik lief
+  // einen halben Tag in die falsche Richtung. Ein Wort, das mehr behauptet
+  // als es weiss, ist teurer als gar keins.
+  const uhrBerlin = (d) => {
+    try {
+      return new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin",
+        hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
+    } catch (e) { return ""; }
+  };
+  // Nimmt, was das Backend liefert — ISO-Text, Sekunden, Millisekunden oder
+  // eine schon fertige Zeichenkette — und gibt eine Uhrzeit oder null. Was
+  // sich nicht als Zeitpunkt lesen laesst, wird unveraendert durchgereicht
+  // statt in ein "Invalid Date" verwandelt.
+  const uhrzeitVon = (x) => {
+    if (x == null || x === "") return null;
+    if (typeof x === "number") {
+      const d = new Date(x < 1e12 ? x * 1000 : x);
+      return isNaN(d.getTime()) ? null : uhrBerlin(d);
+    }
+    const s = String(x).trim();
+    if (!s) return null;
+    if (/^\d+$/.test(s)) {
+      const n = Number(s);
+      const d = new Date(n < 1e12 ? n * 1000 : n);
+      return isNaN(d.getTime()) ? s : uhrBerlin(d);
+    }
+    if (/^\d{1,2}[:.]\d{2}/.test(s)) return s;   // bereits fertig formatiert
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? s : uhrBerlin(d);
+  };
+  // Die Reihenfolge ist die Aussage: erst der echte Aenderungs-Zeitpunkt,
+  // dann nichts. Der Pruef-Zeitpunkt taucht getrennt und anders benannt auf.
+  const geaendertAm = (t) => uhrzeitVon(
+    t.last_update_de != null ? t.last_update_de
+      : (t.last_update != null ? t.last_update
+        : (t.updated_at_de != null ? t.updated_at_de : t.updated_at)));
+  const geprueftAm = (t) => uhrzeitVon(
+    t.last_checked_at_de != null ? t.last_checked_at_de : t.last_checked_at);
   const { useState, useEffect } = React;
   const h = React.createElement;
   // Auto-Refresh nur während Börsenzeiten (Europe/Berlin), TZ-robust
@@ -275,6 +321,18 @@
   #sl-root .newshit.broken .nh-dot{background:#E0726B;}
   #sl-root .bestand{display:inline-flex;align-items:center;font-family:var(--font-mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--text-oracle);border:1px solid rgba(212,169,78,.5);background:rgba(212,169,78,.12);border-radius:4px;padding:3px 8px;cursor:help;}
   #sl-root .ltm{display:inline-flex;align-items:center;font-family:var(--font-mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--steel);border:1px solid var(--line);border-radius:4px;padding:3px 7px;cursor:help;}
+  /* Die Zeile, die verhindert, dass ein Umzug wie ein Verlust aussieht. */
+  #sl-root .watchhint{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;
+    margin-top:18px;padding:12px 16px;border:1px solid var(--line);border-left:2px solid var(--oracle,#D4A94E);
+    border-radius:0 8px 8px 0;background:rgba(212,169,78,.04);text-align:left;
+    font-family:var(--font-ui);font-size:13.5px;line-height:1.5;color:var(--mist);cursor:pointer;}
+  #sl-root button.watchhint{-webkit-appearance:none;appearance:none;}
+  #sl-root .watchhint:hover{background:rgba(212,169,78,.08);}
+  #sl-root .watchhint.starr{cursor:default;}
+  #sl-root .watchhint .wz{font-family:var(--font-mono);font-size:12.5px;color:var(--oracle-b,#F2CE7A);}
+  #sl-root .watchhint .wm{color:var(--steel);}
+  #sl-root .watchhint .wgo{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--oracle,#D4A94E);white-space:nowrap;}
   #sl-root .archsec{margin-top:36px;border-top:1px solid var(--line);padding-top:20px;}
   #sl-root .archhead{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--steel);user-select:none;}
   #sl-root .archhead:hover{color:var(--parch);}
@@ -442,6 +500,10 @@
     const [denied, setDenied] = useState(false);
     const [trades, setTrades] = useState(null);
     const [meta, setMeta] = useState(null);
+    // Wann diese Seite ihre Zahlen geholt hat. Getrennt benannt und getrennt
+    // gezeigt — es ist ausdruecklich NICHT der Zeitpunkt, an dem sich etwas
+    // geaendert hat. Genau diese Vermischung hat die Forensik gekostet.
+    const [standZeit, setStandZeit] = useState(null);
     const [prefs, setPrefs] = useState({});
     const [alertHinweis, setAlertHinweis] = useState("");
     const [open, setOpen] = useState(null);
@@ -477,6 +539,7 @@
       }).then((d) => {
         setTrades(d && d.ok && Array.isArray(d.trades) ? d.trades : []);
         if (d && d.meta) setMeta(d.meta);
+        if (d) setStandZeit(new Date());
       }).catch(() => setTrades([]));
     }, [gate]);
     // Auto-Refresh: hält Live-Kurs + P&L frisch, ohne Reload (pausiert bei Hintergrund-Tab / außerhalb Börsenzeit)
@@ -486,7 +549,7 @@
         if (document.hidden || !inMarketHours()) return;
         fetch(API + "/api/mybook/hunter-shortlist?include_archived=1", { credentials: "include" })
           .then((r) => (r && r.ok ? r.json() : null))
-          .then((d) => { if (d && d.ok && Array.isArray(d.trades)) { setTrades(d.trades); if (d.meta) setMeta(d.meta); } })
+          .then((d) => { if (d && d.ok && Array.isArray(d.trades)) { setTrades(d.trades); if (d.meta) setMeta(d.meta); setStandZeit(new Date()); } })
           .catch(() => { });
       };
       const iv = setInterval(tick, 90000);
@@ -598,9 +661,15 @@
               t.held_by_me ? h("span", { className: "bestand", title: T("Du hältst diese Position in deinem My Book.", "You hold this position in your My Book.") }, T("Bestand", "Held")) : null,
               t.horizon ? horizonBadge(t) : (t.lifetime_class ? h("span", { className: "ltm", title: ltMeta(t.lifetime_class).t }, ltMeta(t.lifetime_class).l) : null),
               newsHit ? h("span", { className: "newshit", title: T("Validierter Tag-Match auf einer aktuellen News. Schau hin — Einschätzung lesen.", "Validated tag match on a recent news item. Look — read the assessment.") }, h("span", { className: "nh-dot" }), T("News-Alert", "News alert") + (newsHitAt ? " " + newsHitAt : "")) : null),
-            (dol != null || t.last_checked_at_de) ? h("div", { className: "listmeta" + (overdue ? " over" : "") },
+            (dol != null || geaendertAm(t) || geprueftAm(t)) ? h("div", { className: "listmeta" + (overdue ? " over" : "") },
               (dol != null ? (T("Auf der Liste seit ", "On the list for ") + dol + (dol === 1 ? T(" Tag", "d") : T(" Tagen", "d"))) : "") +
-              (t.last_checked_at_de ? (" · " + T("zuletzt gepflegt ", "last updated ") + t.last_checked_at_de) : "") +
+              // Steht ein echter Aenderungs-Zeitpunkt zur Verfuegung, gilt der.
+              // Sonst wird der Pruef-Zeitpunkt gezeigt — aber als das, was er
+              // ist. "Gepflegt" faellt ersatzlos weg: das Wort hat behauptet,
+              // jemand haette etwas getan, wo nur jemand hingesehen hat.
+              (geaendertAm(t)
+                ? (" · " + T("zuletzt geändert ", "last changed ") + geaendertAm(t))
+                : (geprueftAm(t) ? (" · " + T("zuletzt geprüft ", "last checked ") + geprueftAm(t)) : "")) +
               (overdue ? T(" · Horizont überschritten", " · past horizon") : "")) : null),
           h("div", { className: "cstat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label), cardTag(t), velocityTag(t)),
           h("div", { className: "live" },
@@ -716,6 +785,45 @@
     const visible = trades.filter((t) => { const s = String(t.state || "").toLowerCase(); return s !== "watchlist" && s !== "pending" && s.indexOf("closed") === -1 && s !== "broken" && s !== "archived" && s !== "deleted"; });
     const watch = trades.filter((t) => { const s = String(t.state || "").toLowerCase(); return s === "watchlist" || s === "pending"; });
     const archived = trades.filter((t) => String(t.state || "").toLowerCase() === "archived");
+    // Vorfall 07.09.: fuenf Positionen wanderten auf die Watchlist, die
+    // Hauptliste schrumpfte von 8 auf 3 — und nichts auf der Seite sagte,
+    // wohin die fuenf gegangen waren. Ein Umzug darf nie wie ein Verlust
+    // aussehen.
+    //
+    // Deshalb wird hier abgerechnet statt nur gefiltert: was in keinem der
+    // drei Koerbe landet, faellt sonst lautlos aus der Anzeige. Genau das ist
+    // die Klasse von Fehler, die man erst bemerkt, wenn jemand zaehlt.
+    const wegAnzahl = Math.max(0, trades.length - visible.length - watch.length - archived.length);
+    const zumWatch = () => {
+      setShowWatch(true);
+      setTimeout(() => {
+        const el = document.querySelector("#sl-root .archsec");
+        if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+    };
+    const aufstellung = T(
+      "Insgesamt " + trades.length + " Einträge: " + visible.length + " aktiv, "
+        + watch.length + " auf der Watchlist, " + wegAnzahl + " vom Zettel genommen, "
+        + archived.length + " im Archiv. Es fehlt nichts.",
+      "Total " + trades.length + " items: " + visible.length + " active, "
+        + watch.length + " on the watchlist, " + wegAnzahl + " taken off the list, "
+        + archived.length + " archived. Nothing is missing.");
+    const watchHint = (watch.length || wegAnzahl) ? h("button", {
+        className: "watchhint" + (watch.length ? "" : " starr"),
+        title: aufstellung,
+        onClick: watch.length ? zumWatch : undefined },
+      watch.length
+        ? h("span", { className: "wz" }, watch.length + " " + T(watch.length === 1 ? "weiterer Eintrag" : "weitere Einträge", watch.length === 1 ? "more item" : "more items")
+            + T(" auf der Watchlist", " on the watchlist"))
+        : null,
+      (watch.length && wegAnzahl) ? h("span", { className: "wm" }, "\u00B7") : null,
+      wegAnzahl ? h("span", { className: "wm" },
+        wegAnzahl + " "
+        + T(wegAnzahl === 1 ? "Eintrag vom Zettel genommen" : "Einträge vom Zettel genommen",
+            wegAnzahl === 1 ? "item taken off the list" : "items taken off the list")) : null,
+      h("span", { className: "wm" }, T("— nichts ist verloren gegangen.", "— nothing was lost.")),
+      watch.length ? h("span", { className: "wgo" }, T("ansehen ▾", "view ▾")) : null) : null;
+
     const watchEl = watch.length ? h("div", { className: "archsec" },
       h("div", { className: "archhead", onClick: () => setShowWatch(!showWatch) },
         h("span", null, (showWatch ? "▾ " : "▸ ") + T("Beobachtung", "Watchlist") + " (" + watch.length + " " + T(watch.length === 1 ? "Eintrag" : "Einträge", watch.length === 1 ? "item" : "items") + ")"),
@@ -734,6 +842,7 @@
       h("div", { className: "empty" },
         h("div", { className: "empty-t" }, T("Gerade ist es still.", "All quiet right now.")),
         h("div", { className: "empty-s" }, T("Aktuell steht keine Idee auf der Shortlist. Das Orakel meldet sich, sobald sich eine qualifiziert.", "No idea is on the shortlist right now. The oracle will surface one as soon as it qualifies."))),
+      watchHint,
       watchEl,
       archiveEl));
 
@@ -806,7 +915,11 @@
       Hero(h("div", { className: "hmeta" },
         h("span", { className: "pulse" }),
         h("span", null, h("span", { className: "cnt" }, visible.length), " ", T(visible.length === 1 ? "aktive Position" : "aktive Positionen", visible.length === 1 ? "active position" : "active positions")),
-        lastChk ? h("span", { className: "chkmeta", title: cadText }, "· " + T("zuletzt geprüft ", "last checked ") + lastChk + (nextChk ? (T(" · nächste ", " · next ") + nextChk) : "")) : null)),
+        lastChk ? h("span", { className: "chkmeta", title: cadText }, "· " + T("zuletzt geprüft ", "last checked ") + lastChk + (nextChk ? (T(" · nächste ", " · next ") + nextChk) : "")) : null,
+        standZeit ? h("span", { className: "chkmeta",
+          title: T("Wann diese Seite ihre Zahlen zuletzt geholt hat. Nicht zu verwechseln mit dem Zeitpunkt, an dem sich etwas geändert hat.",
+                   "When this page last fetched its numbers. Not to be confused with when something last changed.") },
+          "· " + T("Stand geladen ", "loaded ") + uhrBerlin(standZeit)) : null)),
       alertHinweis ? h("p", { className: "alerthint" }, alertHinweis) : null,
       h("div", { className: "toolbar" },
         h("label", { className: "alertsw",
@@ -821,6 +934,7 @@
           h("button", { className: simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(true); } }, T("Einfach", "Simple")),
           h("button", { className: !simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(false); } }, T("Detail", "Detail")))),
       simple ? h("div", { className: "simplelist" }, visible.map(SimpleRow)) : h("div", { className: "list" }, visible.map(Card)),
+      watchHint,
       watchEl,
       archiveEl));
   }
