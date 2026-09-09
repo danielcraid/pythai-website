@@ -41,13 +41,19 @@
     const d = new Date(s);
     return isNaN(d.getTime()) ? s : uhrBerlin(d);
   };
-  // Die Reihenfolge ist die Aussage: erst der echte Aenderungs-Zeitpunkt,
-  // dann nichts. Der Pruef-Zeitpunkt taucht getrennt und anders benannt auf.
-  const geaendertAm = (t) => uhrzeitVon(
-    t.last_update_de != null ? t.last_update_de
-      : (t.last_update != null ? t.last_update
-        : (t.updated_at_de != null ? t.updated_at_de : t.updated_at)));
-  const geprueftAm = (t) => uhrzeitVon(
+  // Backend-Antwort vom 09.09.: das Feld heisst last_checked_at (ISO) bzw.
+  // last_checked_at_de (fertig formatiert), gespeist aus der DB-Spalte
+  // last_update. Vier geratene Schreibweisen sind damit erledigt und raus.
+  //
+  // Und ein zweites Mal beim Wort genommen: last_update ist die letzte
+  // SCHREIB-Aenderung der Zeile — auch ein Kurs-Abgleich, ein Waage-Score,
+  // ein Monitor-Lauf. Nicht "zuletzt inhaltlich gepflegt", und auch keine
+  // Pruefung. In der Roh-Antwort vom 09.09. tragen deshalb alle zehn
+  // Eintraege denselben Zeitstempel auf die Minute: ein Sammelschreiben hat
+  // sie alle angefasst.
+  //
+  // Es heisst darum "Stand" — das ist genau so viel, wie das Feld weiss.
+  const standVon = (t) => uhrzeitVon(
     t.last_checked_at_de != null ? t.last_checked_at_de : t.last_checked_at);
   const { useState, useEffect } = React;
   const h = React.createElement;
@@ -331,6 +337,7 @@
   #sl-root .watchhint.starr{cursor:default;}
   #sl-root .watchhint .wz{font-family:var(--font-mono);font-size:12.5px;color:var(--oracle-b,#F2CE7A);}
   #sl-root .watchhint .wm{color:var(--steel);}
+  #sl-root .watchhint .wfehlt{color:#E7A062;}
   #sl-root .watchhint .wgo{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;
     letter-spacing:.1em;text-transform:uppercase;color:var(--oracle,#D4A94E);white-space:nowrap;}
   #sl-root .archsec{margin-top:36px;border-top:1px solid var(--line);padding-top:20px;}
@@ -504,6 +511,12 @@
     // gezeigt — es ist ausdruecklich NICHT der Zeitpunkt, an dem sich etwas
     // geaendert hat. Genau diese Vermischung hat die Forensik gekostet.
     const [standZeit, setStandZeit] = useState(null);
+    // Der Server schickt seine eigene Abrechnung mit (counts.total). Sie ist
+    // die einzige Zahl, die wir NICHT selbst gerechnet haben — und damit die
+    // einzige, die auffliegen laesst, wenn die Liste unterwegs kuerzer wird.
+    // Ohne sie wuerde die Hinweiszeile "nichts ist verloren gegangen" sagen
+    // und dabei genau das verschweigen.
+    const [counts, setCounts] = useState(null);
     const [prefs, setPrefs] = useState({});
     const [alertHinweis, setAlertHinweis] = useState("");
     const [open, setOpen] = useState(null);
@@ -539,6 +552,7 @@
       }).then((d) => {
         setTrades(d && d.ok && Array.isArray(d.trades) ? d.trades : []);
         if (d && d.meta) setMeta(d.meta);
+        if (d && d.counts) setCounts(d.counts);
         if (d) setStandZeit(new Date());
       }).catch(() => setTrades([]));
     }, [gate]);
@@ -549,7 +563,7 @@
         if (document.hidden || !inMarketHours()) return;
         fetch(API + "/api/mybook/hunter-shortlist?include_archived=1", { credentials: "include" })
           .then((r) => (r && r.ok ? r.json() : null))
-          .then((d) => { if (d && d.ok && Array.isArray(d.trades)) { setTrades(d.trades); if (d.meta) setMeta(d.meta); setStandZeit(new Date()); } })
+          .then((d) => { if (d && d.ok && Array.isArray(d.trades)) { setTrades(d.trades); if (d.meta) setMeta(d.meta); if (d.counts) setCounts(d.counts); setStandZeit(new Date()); } })
           .catch(() => { });
       };
       const iv = setInterval(tick, 90000);
@@ -661,15 +675,14 @@
               t.held_by_me ? h("span", { className: "bestand", title: T("Du hältst diese Position in deinem My Book.", "You hold this position in your My Book.") }, T("Bestand", "Held")) : null,
               t.horizon ? horizonBadge(t) : (t.lifetime_class ? h("span", { className: "ltm", title: ltMeta(t.lifetime_class).t }, ltMeta(t.lifetime_class).l) : null),
               newsHit ? h("span", { className: "newshit", title: T("Validierter Tag-Match auf einer aktuellen News. Schau hin — Einschätzung lesen.", "Validated tag match on a recent news item. Look — read the assessment.") }, h("span", { className: "nh-dot" }), T("News-Alert", "News alert") + (newsHitAt ? " " + newsHitAt : "")) : null),
-            (dol != null || geaendertAm(t) || geprueftAm(t)) ? h("div", { className: "listmeta" + (overdue ? " over" : "") },
+            (dol != null || standVon(t)) ? h("div", { className: "listmeta" + (overdue ? " over" : ""),
+              title: standVon(t) ? T("Letzte Änderung an diesem Datensatz — auch ein Kurs-Abgleich oder ein Score-Lauf zählt dazu. Es ist kein Nachweis, dass jemand die These angesehen hat.",
+                                     "Last change to this record — a price sync or score run counts too. It is not proof that anyone reviewed the thesis.") : undefined },
               (dol != null ? (T("Auf der Liste seit ", "On the list for ") + dol + (dol === 1 ? T(" Tag", "d") : T(" Tagen", "d"))) : "") +
-              // Steht ein echter Aenderungs-Zeitpunkt zur Verfuegung, gilt der.
-              // Sonst wird der Pruef-Zeitpunkt gezeigt — aber als das, was er
-              // ist. "Gepflegt" faellt ersatzlos weg: das Wort hat behauptet,
-              // jemand haette etwas getan, wo nur jemand hingesehen hat.
-              (geaendertAm(t)
-                ? (" · " + T("zuletzt geändert ", "last changed ") + geaendertAm(t))
-                : (geprueftAm(t) ? (" · " + T("zuletzt geprüft ", "last checked ") + geprueftAm(t)) : "")) +
+              // Weder "gepflegt" noch "geprüft" noch "geändert": das Feld
+              // traegt die letzte Schreib-Beruehrung, mehr nicht. "Stand"
+              // behauptet genau so viel — und keinen Deut mehr.
+              (standVon(t) ? (" · " + T("Stand ", "as of ") + standVon(t)) : "") +
               (overdue ? T(" · Horizont überschritten", " · past horizon") : "")) : null),
           h("div", { className: "cstat" }, h("span", { className: "cpill " + cs.cls, title: cs.tip }, cs.label), cardTag(t), velocityTag(t)),
           h("div", { className: "live" },
@@ -801,14 +814,19 @@
         if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 60);
     };
+    // Gegenprobe an einer Zahl, die nicht von uns stammt.
+    const gemeldet = (counts && typeof counts.total === "number") ? counts.total : null;
+    const fehlend = (gemeldet != null) ? Math.max(0, gemeldet - trades.length) : 0;
     const aufstellung = T(
       "Insgesamt " + trades.length + " Einträge: " + visible.length + " aktiv, "
         + watch.length + " auf der Watchlist, " + wegAnzahl + " vom Zettel genommen, "
-        + archived.length + " im Archiv. Es fehlt nichts.",
+        + archived.length + " im Archiv."
+        + (fehlend ? " Der Server meldet " + gemeldet + " — " + fehlend + " sind nicht angekommen." : " Es fehlt nichts."),
       "Total " + trades.length + " items: " + visible.length + " active, "
         + watch.length + " on the watchlist, " + wegAnzahl + " taken off the list, "
-        + archived.length + " archived. Nothing is missing.");
-    const watchHint = (watch.length || wegAnzahl) ? h("button", {
+        + archived.length + " archived."
+        + (fehlend ? " The server reports " + gemeldet + " — " + fehlend + " did not arrive." : " Nothing is missing."));
+    const watchHint = (watch.length || wegAnzahl || fehlend) ? h("button", {
         className: "watchhint" + (watch.length ? "" : " starr"),
         title: aufstellung,
         onClick: watch.length ? zumWatch : undefined },
@@ -821,7 +839,11 @@
         wegAnzahl + " "
         + T(wegAnzahl === 1 ? "Eintrag vom Zettel genommen" : "Einträge vom Zettel genommen",
             wegAnzahl === 1 ? "item taken off the list" : "items taken off the list")) : null,
-      h("span", { className: "wm" }, T("— nichts ist verloren gegangen.", "— nothing was lost.")),
+      fehlend
+        ? h("span", { className: "wfehlt" },
+            T("— der Server meldet " + gemeldet + " Einträge, angekommen sind " + trades.length + ".",
+              "— the server reports " + gemeldet + " items, " + trades.length + " arrived."))
+        : h("span", { className: "wm" }, T("— nichts ist verloren gegangen.", "— nothing was lost.")),
       watch.length ? h("span", { className: "wgo" }, T("ansehen ▾", "view ▾")) : null) : null;
 
     const watchEl = watch.length ? h("div", { className: "archsec" },
