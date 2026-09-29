@@ -274,6 +274,85 @@
     event_driven: { l: T("Event", "Event"), t: T("Event-gebunden — 2 Tage nach dem Event-Datum archiviert.", "Event-driven — archived 2 days after the event date.") }
   }[String(c || "").toLowerCase()] || { l: T("Mittelfrist", "Mid-term"), t: T("Mittelfrist — Standard-Lebensdauer.", "Mid-term — default lifetime.") });
 
+  /* ============================================================
+     ABGANG · Closed-List (FE-ANFORDERUNG-CLOSED-UND-DEL-LIST-2026-09-29)
+
+     DIE EINE KONSTANTE. Hier und nirgends sonst steht, welcher Zustand
+     und welcher Abgangs-Grund zu welcher Filter-Klasse gehoert.
+
+     Sie ist LEER, und das ist kein Versehen. LC liefert die kanonische
+     Tabelle erst, wenn VC-B503-M die Verteilung der Gruende gemessen hat
+     (Vorbedingung 1 der Anforderung). Bis dahin filtert diese Flaeche
+     NICHT nach Namensmustern.
+
+     Warum so streng: in P32 ist ein einziger Zustandsname in 24
+     handkopierten Listen gelandet, in P38 die Trade-Art in 25 — beide
+     Male, weil niemand die kanonische Menge hingeschrieben hat. Ein
+     indexOf("closed") im Frontend erzeugt dieselbe Krankheit, nur an
+     einer Stelle, an der sie niemand sucht.
+
+     WARNUNG fuer den naechsten Leser: archReason() weiter oben (Z269) IST
+     bereits eine solche Musterpruefung — indexOf("stop"), indexOf("kill"),
+     indexOf("idle"). Sie bleibt stehen, weil die Archiv-Sektion sie nutzt
+     und nichts stillschweigend geloescht wird. Aber die Closed-List
+     benutzt sie NICHT. Wer sie hier einbaut, weil es schnell geht,
+     baut den Fehler ein, gegen den diese Liste geschrieben wurde.
+
+     Form, sobald LC liefert:
+       { id: "ziel", label: { de: "Ziel erreicht", en: "Target hit" },
+         zustaende: ["closed_target_hit"], gruende: ["target_hit"] }
+     ============================================================ */
+  const ABGANG_KLASSEN = [];
+
+  const zustandVon = (t) => String((t && t.state) || "").toLowerCase();
+
+  // Der Grund des Abgangs, wie er ueber den Draht kommt.
+  //
+  // GEMESSEN an der Roh-Antwort vom 09.09.2026 (/api/mybook/hunter-shortlist
+  // ?include_archived=1): archive_reason kommt auf JEDER Zeile mit.
+  // close_reason kam in dieser Antwort NICHT vor — in der Stichprobe war
+  // allerdings auch keine geschlossene Zeile enthalten (counts.archived=0).
+  // Beide werden deshalb gelesen, archive_reason zuerst, und keiner der
+  // beiden Namen ist geraten: beide stehen so in den Messberichten.
+  const abgangsGrundVon = (t) => {
+    if (!t) return null;
+    const g = t.archive_reason != null ? t.archive_reason : t.close_reason;
+    const s = String(g == null ? "" : g).trim();
+    return s ? s : null;
+  };
+
+  // Das Abschluss-Datum. NUR Felder, die als Abschluss-Zeitpunkt gemessen
+  // sind — last_checked_at gehoert ausdruecklich NICHT dazu: das ist die
+  // letzte SCHREIB-Beruehrung der Zeile (auch ein Kurs-Abgleich), am
+  // 09.09.2026 daran belegt, dass alle zehn Zeilen denselben Zeitstempel
+  // auf die Minute trugen.
+  const alsZeit = (x) => {
+    if (x == null || x === "") return null;
+    if (typeof x === "number") { const d = new Date(x < 1e12 ? x * 1000 : x); return isNaN(d.getTime()) ? null : d.getTime(); }
+    const d = new Date(String(x));
+    return isNaN(d.getTime()) ? null : d.getTime();
+  };
+  const abschlussZeitVon = (t) => {
+    if (!t) return null;
+    const a = alsZeit(t.archived_at);
+    if (a != null) return a;
+    return alsZeit(t.closed_at);
+  };
+
+  // Welche Filter-Klasse? Geprueft wird auf GLEICHHEIT gegen eine
+  // ausgeschriebene Menge, nie auf ein Teilwort. Passt nichts, ist die
+  // Antwort null — und null wird angezeigt, nicht verschwiegen.
+  const klasseVon = (t) => {
+    const z = zustandVon(t);
+    const g = String(abgangsGrundVon(t) || "").toLowerCase();
+    for (let i = 0; i < ABGANG_KLASSEN.length; i++) {
+      const k = ABGANG_KLASSEN[i];
+      if ((k.zustaende || []).some((x) => String(x).toLowerCase() === z)) return k;
+      if (g && (k.gruende || []).some((x) => String(x).toLowerCase() === g)) return k;
+    }
+    return null;
+  };
+
   const CSS = `
   #sl-root{ --void:var(--bg-base); --raised:var(--bg-raised); --card:var(--bg-surface); --line:var(--border-subtle); --parch:var(--parchment); --mist:var(--text-secondary); --ash:var(--text-muted); --oracle-b:var(--oracle-bright); --ox-b:#E0726B; --bull:var(--bull-bright); --input:var(--bg-input); --steel:#7C8492; }
   #sl-root .wrap{max-width:1120px;margin:0 auto;padding:54px 28px 90px;}
@@ -353,6 +432,47 @@
   #sl-root .watchhint .wfehlt{color:#E7A062;}
   #sl-root .watchhint .wgo{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;
     letter-spacing:.1em;text-transform:uppercase;color:var(--oracle,#D4A94E);white-space:nowrap;}
+  /* --- Closed-List --- */
+  #sl-root .answ{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;}
+  #sl-root .answ button{background:none;border:none;padding:7px 15px;cursor:pointer;color:var(--steel);
+    font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;}
+  #sl-root .answ button.on{background:rgba(212,169,78,.12);color:var(--oracle-b,#F2CE7A);}
+  #sl-root .clhead{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 6px;}
+  #sl-root .cltitle{font-family:var(--font-oracle);font-weight:400;font-size:26px;color:var(--parch);margin:0;}
+  #sl-root .clsub{font-family:var(--font-ui);font-size:13px;line-height:1.55;color:var(--ash);margin:0 0 18px;max-width:70ch;}
+  #sl-root .clbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0 14px;border-bottom:1px solid var(--line);}
+  #sl-root .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;
+    background:none;cursor:pointer;padding:6px 13px;color:var(--mist);font-family:var(--font-ui);font-size:12.5px;}
+  #sl-root .chip:hover{border-color:var(--steel);}
+  #sl-root .chip.on{border-color:var(--oracle,#D4A94E);background:rgba(212,169,78,.10);color:var(--parch);}
+  #sl-root .chip .cz{font-family:var(--font-mono);font-size:10.5px;color:var(--steel);}
+  #sl-root .chip.on .cz{color:var(--oracle-b,#F2CE7A);}
+  #sl-root .chip.ohne{border-style:dashed;}
+  #sl-root .clzeit{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  #sl-root .clzeit select{background:var(--input);border:1px solid var(--line);border-radius:7px;color:var(--parch);
+    font-family:var(--font-ui);font-size:12.5px;padding:6px 10px;}
+  #sl-root .clzeit label{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--steel);}
+  #sl-root .kltab-fehlt{font-family:var(--font-ui);font-size:12.5px;line-height:1.55;color:#E7A062;
+    background:rgba(231,160,98,.06);border-left:2px solid #E7A062;border-radius:0 6px 6px 0;padding:9px 13px;margin:0;flex:1 1 320px;}
+  #sl-root .clrow{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:12px 2px;border-bottom:1px solid var(--line);}
+  #sl-root .clrow .cd{font-family:var(--font-mono);font-size:11.5px;color:var(--steel);flex:0 0 92px;}
+  #sl-root .clrow .cd.ohne{color:#E7A062;}
+  #sl-root .clrow .cn{font-family:var(--font-oracle);font-size:17px;color:var(--parch);flex:1 1 220px;min-width:0;}
+  #sl-root .clrow .ci{font-family:var(--font-mono);font-size:10.5px;color:var(--steel);}
+  #sl-root .clrow .cg{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;color:var(--mist);
+    border:1px solid var(--line);border-radius:999px;padding:3px 10px;white-space:nowrap;}
+  #sl-root .clrow .cg.roh{color:var(--steel);border-style:dashed;}
+  #sl-root .clrow .cs{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);}
+  #sl-root .clfuss{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:16px 2px 0;}
+  #sl-root .clfuss .cz{font-family:var(--font-mono);font-size:11px;color:var(--steel);}
+  #sl-root .clbl{display:flex;gap:8px;}
+  #sl-root .clbl button{background:none;border:1px solid var(--line);border-radius:7px;cursor:pointer;
+    color:var(--mist);font-family:var(--font-ui);font-size:12.5px;padding:6px 14px;}
+  #sl-root .clbl button:disabled{opacity:.35;cursor:default;}
+  @media(max-width:560px){
+    #sl-root .clrow .cd{flex:0 0 100%;}
+    #sl-root .clzeit{margin-left:0;width:100%;}
+  }
   #sl-root .archsec{margin-top:36px;border-top:1px solid var(--line);padding-top:20px;}
   #sl-root .archhead{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--steel);user-select:none;}
   #sl-root .archhead:hover{color:var(--parch);}
@@ -540,6 +660,13 @@
     const [showArchive, setShowArchive] = useState(false);
     const [showWatch, setShowWatch] = useState(false);
     const [simple, setSimple] = useState(true);
+    // Closed-List: welche Ansicht, welche Klassen gewaehlt, welcher
+    // Zeitraum, welche Seite. Standard laut Daniel-Entscheid 29.09.:
+    // 90 Tage, sortiert nach Abschlussdatum.
+    const [ansicht, setAnsicht] = useState("aktiv"); // aktiv | abgeschlossen
+    const [klassenWahl, setKlassenWahl] = useState([]);
+    const [zeitraum, setZeitraum] = useState(90); // Tage, 0 = alle
+    const [seite, setSeite] = useState(0);
     const [ladderOpen, setLadderOpen] = useState(null);
     const sfx = (n) => { if (typeof window.PYsfx === "function") window.PYsfx(n); };
     const [chartBusy, setChartBusy] = useState(null);
@@ -811,6 +938,18 @@
     const visible = trades.filter((t) => { const s = String(t.state || "").toLowerCase(); return s !== "watchlist" && s !== "pending" && s.indexOf("closed") === -1 && s !== "broken" && s !== "archived" && s !== "deleted"; });
     const watch = trades.filter(aufWatchlist);
     const archived = trades.filter((t) => String(t.state || "").toLowerCase() === "archived");
+    // Die abgeschlossenen sind das KOMPLEMENT: alles, was weder in der
+    // aktiven Liste noch auf der Watchlist steht. Kein Namensmuster, keine
+    // Aufzaehlung von Zustaenden — und damit selbstvervollstaendigend: ein
+    // neuer Zustandsname taucht hier automatisch auf, statt still zu
+    // verschwinden. Genau das war der Fehler, gegen den diese Liste
+    // gebaut wird.
+    //
+    // Enthaelt damit ausdruecklich auch archived (Daniel-Entscheid 29.09.:
+    // archived ist der ENDzustand, closed_* nur der Uebergang dorthin —
+    // eine Liste nur aus dem Uebergang zeigt zwei Eintraege statt 140).
+    const imAktiven = new Set(visible.concat(watch));
+    const abgeschlossen = trades.filter((t) => !imAktiven.has(t));
     // Vorfall 07.09.: fuenf Positionen wanderten auf die Watchlist, die
     // Hauptliste schrumpfte von 8 auf 3 — und nichts auf der Seite sagte,
     // wohin die fuenf gegangen waren. Ein Umzug darf nie wie ein Verlust
@@ -872,8 +1011,155 @@
         h("span", { className: "an" }, t.asset),
         h("span", { className: "am" }, (t.archived_at ? deShort(t.archived_at) : "") + (t.archive_reason ? " · " + archReason(t.archive_reason) : ""))))) : null) : null;
 
+    // ============================================================
+    // Closed-List
+    // ============================================================
+    const JE_SEITE = 25;
+    const TAG = 86400000;
+
+    const umschalter = h("div", { className: "answ" },
+      h("button", { className: ansicht === "aktiv" ? "on" : "",
+        onClick: () => { sfx("button-004-toggle"); setAnsicht("aktiv"); } },
+        T("Shortlist", "Shortlist") + " (" + visible.length + ")"),
+      h("button", { className: ansicht === "abgeschlossen" ? "on" : "",
+        onClick: () => { sfx("button-004-toggle"); setAnsicht("abgeschlossen"); setSeite(0); } },
+        T("Abgeschlossen", "Closed") + " (" + abgeschlossen.length + ")"));
+
+    const abschlussAnsicht = (function () {
+      // Zaehler je Klasse — immer ueber die GANZE Menge, nicht ueber die
+      // gefilterte. Ein Zaehler, der sich mit der Auswahl aendert, sagt
+      // einem nicht mehr, was es zu waehlen gibt.
+      const zaehler = {};
+      let ohneKlasse = 0;
+      abgeschlossen.forEach((t) => {
+        const k = klasseVon(t);
+        if (!k) { ohneKlasse++; return; }
+        zaehler[k.id] = (zaehler[k.id] || 0) + 1;
+      });
+
+      const gewaehlt = new Set(klassenWahl);
+      const toggle = (id) => {
+        sfx("button-004-toggle");
+        setKlassenWahl(gewaehlt.has(id) ? klassenWahl.filter((x) => x !== id) : klassenWahl.concat([id]));
+        setSeite(0);
+      };
+
+      const jetzt = Date.now();
+      const imZeitraum = (t) => {
+        if (!zeitraum) return true;
+        const z = abschlussZeitVon(t);
+        // Ohne Datum wird NICHT weggefiltert. Eine Zeile verschwinden zu
+        // lassen, weil ihr ein Feld fehlt, ist genau der stille Ausfall,
+        // den diese Liste sichtbar machen soll.
+        if (z == null) return true;
+        return (jetzt - z) <= zeitraum * TAG;
+      };
+      const inWahl = (t) => {
+        if (!gewaehlt.size) return true;
+        const k = klasseVon(t);
+        return k ? gewaehlt.has(k.id) : gewaehlt.has("__ohne");
+      };
+
+      const gefiltert = abgeschlossen.filter((t) => imZeitraum(t) && inWahl(t));
+      const ausserhalb = abgeschlossen.length - abgeschlossen.filter(imZeitraum).length;
+      const ohneDatum = gefiltert.filter((t) => abschlussZeitVon(t) == null).length;
+
+      // Sortierung: juengster Abschluss zuerst. Zeilen ohne Datum ans Ende,
+      // dort alphabetisch — sie sind kein Rauschen, sie sind ein Befund.
+      const sortiert = gefiltert.slice().sort((a, b) => {
+        const za = abschlussZeitVon(a), zb = abschlussZeitVon(b);
+        if (za == null && zb == null) return String(a.asset || "").localeCompare(String(b.asset || ""));
+        if (za == null) return 1;
+        if (zb == null) return -1;
+        return zb - za;
+      });
+
+      const seiten = Math.max(1, Math.ceil(sortiert.length / JE_SEITE));
+      const s = Math.min(seite, seiten - 1);
+      const fenster = sortiert.slice(s * JE_SEITE, s * JE_SEITE + JE_SEITE);
+
+      const chips = ABGANG_KLASSEN.length
+        ? ABGANG_KLASSEN.map((k) => h("button", { key: k.id,
+            className: "chip" + (gewaehlt.has(k.id) ? " on" : ""), onClick: () => toggle(k.id) },
+            h("span", null, T(k.label.de, k.label.en)),
+            h("span", { className: "cz" }, String(zaehler[k.id] || 0))))
+          .concat(ohneKlasse ? [h("button", { key: "__ohne",
+            className: "chip ohne" + (gewaehlt.has("__ohne") ? " on" : ""), onClick: () => toggle("__ohne"),
+            title: T("Zeilen, deren Abgangs-Grund in keiner hinterlegten Klasse steht.",
+                     "Rows whose exit reason is in none of the stored classes.") },
+            h("span", null, T("ohne Klasse", "unclassified")),
+            h("span", { className: "cz" }, String(ohneKlasse)))] : [])
+        : [h("p", { key: "fehlt", className: "kltab-fehlt" },
+            T("Klassen noch nicht hinterlegt — die Liste zeigt alle " + abgeschlossen.length
+              + " Einträge ungefiltert. Die Zuordnung Zustand und Grund zur Filter-Klasse kommt vom Backend; bis dahin wird hier nichts geraten.",
+              "Classes not stored yet — the list shows all " + abgeschlossen.length
+              + " items unfiltered. The mapping from state and reason to filter class comes from the backend; nothing is guessed here until then."))];
+
+      const zeile = (t) => {
+        const z = abschlussZeitVon(t);
+        const k = klasseVon(t);
+        const grund = abgangsGrundVon(t);
+        return h("div", { key: (t.id || t.isin || t.asset), className: "clrow" },
+          h("span", { className: "cd" + (z == null ? " ohne" : ""),
+            title: z == null ? T("Für diese Zeile liefert die Antwort kein Abschluss-Datum.",
+                                 "The response carries no closing date for this row.") : undefined },
+            z == null ? T("ohne Datum", "no date") : deShort(new Date(z).toISOString())),
+          h("div", { className: "cn" }, t.asset || T("ohne Namen", "unnamed"),
+            t.isin ? h("span", { className: "ci" }, "  " + t.isin) : null),
+          // Klartext nur, wenn eine Klasse hinterlegt ist. Sonst steht der
+          // Grund WOERTLICH da — unschoen, aber wahr. Ein huebsches Label
+          // aus einem Teilwort zu raten waere genau der Fehler aus P32.
+          grund
+            ? h("span", { className: "cg" + (k ? "" : " roh"),
+                title: k ? undefined : T("Roher Grund aus der Antwort — noch keiner Klasse zugeordnet.",
+                                         "Raw reason from the response — not mapped to a class yet.") },
+                k ? T(k.label.de, k.label.en) : grund)
+            : h("span", { className: "cg roh" }, T("ohne Grund", "no reason")),
+          h("span", { className: "cs" }, zustandVon(t) || "—"));
+      };
+
+      return h("div", null,
+        h("div", { className: "clhead" },
+          h("h2", { className: "cltitle" }, T("Abgeschlossen", "Closed")),
+          umschalter),
+        h("p", { className: "clsub" },
+          T("Jede These, die vom Zettel ist — mit dem Datum ihres Abschlusses und dem Grund, so wie er im Datensatz steht. Ein Abgang ist kein Ausschluss: das Papier bleibt für eine neue These frei.",
+            "Every thesis that has left the list — with its closing date and the reason as recorded. An exit is not a ban: the instrument stays free for a new thesis.")),
+        h("div", { className: "clbar" },
+          chips,
+          h("div", { className: "clzeit" },
+            h("label", { htmlFor: "cl-zeit" }, T("Zeitraum", "Range")),
+            h("select", { id: "cl-zeit", value: String(zeitraum),
+              onChange: (e) => { setZeitraum(parseInt(e.target.value, 10)); setSeite(0); } },
+              h("option", { value: "90" }, T("letzte 90 Tage", "last 90 days")),
+              h("option", { value: "180" }, T("letzte 180 Tage", "last 180 days")),
+              h("option", { value: "365" }, T("letztes Jahr", "last year")),
+              h("option", { value: "0" }, T("alle", "all"))))),
+        sortiert.length
+          ? h("div", null, fenster.map(zeile))
+          : h("div", { className: "empty", style: { paddingTop: 34 } },
+              h("div", { className: "empty-t" }, T("Nichts in diesem Ausschnitt.", "Nothing in this slice.")),
+              h("div", { className: "empty-s" },
+                abgeschlossen.length
+                  ? T("Insgesamt " + abgeschlossen.length + " abgeschlossene Einträge — keiner davon passt auf Zeitraum und Auswahl.",
+                      "There are " + abgeschlossen.length + " closed items in total — none matches the range and selection.")
+                  : T("Es ist noch nichts abgeschlossen.", "Nothing has been closed yet."))),
+        h("div", { className: "clfuss" },
+          h("span", { className: "cz" },
+            T(sortiert.length + " von " + abgeschlossen.length + " Einträgen", sortiert.length + " of " + abgeschlossen.length + " items")
+            + (ausserhalb ? T(" · " + ausserhalb + " außerhalb des Zeitraums", " · " + ausserhalb + " outside the range") : "")
+            + (ohneDatum ? T(" · " + ohneDatum + " ohne Abschluss-Datum", " · " + ohneDatum + " without a closing date") : "")
+            + (seiten > 1 ? T(" · Seite " + (s + 1) + " von " + seiten, " · page " + (s + 1) + " of " + seiten) : "")),
+          seiten > 1 ? h("div", { className: "clbl" },
+            h("button", { disabled: s <= 0, onClick: () => setSeite(s - 1) }, T("zurück", "back")),
+            h("button", { disabled: s >= seiten - 1, onClick: () => setSeite(s + 1) }, T("weiter", "next"))) : null));
+    })();
+
+    if (ansicht === "abgeschlossen") return page(h("div", null, Hero(null), abschlussAnsicht));
+
     if (!visible.length) return page(h("div", null,
       Hero(null),
+      h("div", { className: "clhead", style: { justifyContent: "flex-end" } }, umschalter),
       h("div", { className: "empty" },
         h("div", { className: "empty-t" }, T("Gerade ist es still.", "All quiet right now.")),
         h("div", { className: "empty-s" }, T("Aktuell steht keine Idee auf der Shortlist. Das Orakel meldet sich, sobald sich eine qualifiziert.", "No idea is on the shortlist right now. The oracle will surface one as soon as it qualifies."))),
@@ -965,6 +1251,7 @@
             "aria-label": T("Shortlist-Alerts", "Shortlist alerts"),
             onClick: () => onAlerts(!alertsAn) }, h("span", { className: "knob" })),
           h("span", null, T("Shortlist-Alerts", "Shortlist alerts"))),
+        umschalter,
         h("div", { className: "vtog" },
           h("button", { className: simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(true); } }, T("Einfach", "Simple")),
           h("button", { className: !simple ? "on" : "", "data-sfx": "", onClick: () => { sfx("button-004-toggle"); setSimple(false); } }, T("Detail", "Detail")))),
