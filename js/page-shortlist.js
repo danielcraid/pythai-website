@@ -266,6 +266,12 @@
   }
   // Lifecycle (VC 16.06.): held_by_me Pill, Lifetime-Klassen (kein Emoji), Archiv.
   const deShort = (iso) => { if (!iso) return ""; try { const d = new Date(iso); if (isNaN(d.getTime())) return ""; return ("0" + d.getDate()).slice(-2) + "." + ("0" + (d.getMonth() + 1)).slice(-2) + "." + d.getFullYear(); } catch (e) { return ""; } };
+  // SEIT v50 OHNE LESER. Die einzige Stelle, die archReason benutzte, war die
+  // Archiv-Sektion; sie ist am 29.09.2026 entfernt worden. Die Funktion bleibt
+  // stehen, weil ueberholtes markiert wird statt geloescht — aber sie ist
+  // KEINE Vorlage: sie raet den Klartext per Teilwort (indexOf("stop"),
+  // indexOf("kill"), indexOf("idle")). Genau diese Methode hat P32 und P38
+  // erzeugt. Wer in der Closed-List ein Label braucht, nimmt ABGANG_KLASSEN.
   const archReason = (r) => { const k = String(r || "").toLowerCase(); if (k.indexOf("stop") > -1 && (k.indexOf("thesis") > -1 || k.indexOf("kill") > -1)) return T("These gekillt / Stop erreicht", "Thesis killed / stop hit"); if (k.indexOf("stop") > -1) return T("Stop erreicht", "Stop hit"); if (k.indexOf("kill") > -1 || k.indexOf("thesis") > -1) return T("These gekillt", "Thesis killed"); if (k.indexOf("event") > -1 || k.indexOf("passed") > -1) return T("Event vorbei", "Event passed"); if (k.indexOf("idle") > -1) return T("inaktiv archiviert", "archived idle"); return r || T("archiviert", "archived"); };
   const ltMeta = (c) => ({
     long_hold: { l: T("Struktur", "Structural"), t: T("Long-Hold — Struktur-These ohne Catalyst-Datum, bleibt unbegrenzt im Pool.", "Long hold — structural thesis with no catalyst date, stays in the pool indefinitely.") },
@@ -291,12 +297,14 @@
      indexOf("closed") im Frontend erzeugt dieselbe Krankheit, nur an
      einer Stelle, an der sie niemand sucht.
 
-     WARNUNG fuer den naechsten Leser: archReason() weiter oben (Z269) IST
-     bereits eine solche Musterpruefung — indexOf("stop"), indexOf("kill"),
-     indexOf("idle"). Sie bleibt stehen, weil die Archiv-Sektion sie nutzt
-     und nichts stillschweigend geloescht wird. Aber die Closed-List
-     benutzt sie NICHT. Wer sie hier einbaut, weil es schnell geht,
-     baut den Fehler ein, gegen den diese Liste geschrieben wurde.
+     WARNUNG fuer den naechsten Leser: archReason() weiter oben IST bereits
+     eine solche Musterpruefung — indexOf("stop"), indexOf("kill"),
+     indexOf("idle"). Sie steht seit v50 ohne Leser da und bleibt nur
+     stehen, weil ueberholtes markiert statt geloescht wird. Die
+     Closed-List benutzt sie NICHT. Wer sie hier einbaut, weil es schnell
+     geht, baut den Fehler ein, gegen den diese Liste geschrieben wurde.
+     (Keine Zeilennummer hier: sie rutscht bei der naechsten Aenderung
+     und wird dann zum falschen Beleg.)
 
      Form, sobald LC liefert:
        { id: "ziel", label: { de: "Ziel erreicht", en: "Target hit" },
@@ -482,10 +490,9 @@
   #sl-root .archsec{margin-top:36px;border-top:1px solid var(--line);padding-top:20px;}
   #sl-root .archhead{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--steel);user-select:none;}
   #sl-root .archhead:hover{color:var(--parch);}
-  #sl-root .archlist{margin-top:14px;display:flex;flex-direction:column;gap:8px;}
-  #sl-root .archrow{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:11px 15px;background:rgba(255,255,255,0.012);}
-  #sl-root .archrow .an{font-family:var(--font-oracle);font-size:16px;color:var(--mist);}
-  #sl-root .archrow .am{font-family:var(--font-mono);font-size:10px;color:var(--steel);letter-spacing:.04em;}
+  /* .archlist/.archrow trugen die Archiv-Sektion, die am 29.09.2026
+     entfernt wurde (siehe Kommentar an der Render-Stelle). .archsec und
+     .archhead bleiben — die Beobachtungs-Sektion benutzt sie weiter. */
   #sl-root .cstat{display:flex;justify-content:center;}
   #sl-root .cpill{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:6px 14px;white-space:nowrap;cursor:help;}
   #sl-root .cpill.st-red{color:#F0A39C;border:1px solid rgba(224,114,107,.55);background:rgba(224,114,107,.14);}
@@ -663,6 +670,9 @@
     const [addedIds, setAddedIds] = useState([]);
     const [confirmAdd, setConfirmAdd] = useState(null);
     const [chartConfirm, setChartConfirm] = useState(null);
+    // showArchive: ohne Leser seit v50 (Archiv-Sektion entfernt). Bleibt
+    // markiert stehen; ein Zustand ohne Anzeige kostet nichts und ein
+    // stilles Entfernen wuerde die Spur verwischen.
     const [showArchive, setShowArchive] = useState(false);
     const [showWatch, setShowWatch] = useState(false);
     const [simple, setSimple] = useState(true);
@@ -1009,13 +1019,34 @@
         h("span", null, (showWatch ? "▾ " : "▸ ") + T("Beobachtung", "Watchlist") + " (" + watch.length + " " + T(watch.length === 1 ? "Eintrag" : "Einträge", watch.length === 1 ? "item" : "items") + ")"),
         h("span", null, showWatch ? T("Ausblenden", "Hide") : T("Anzeigen", "Show"))),
       showWatch ? h("div", { className: "list", style: { marginTop: 14 } }, watch.map(Card)) : null) : null;
-    const archiveEl = archived.length ? h("div", { className: "archsec" },
-      h("div", { className: "archhead", onClick: () => setShowArchive(!showArchive) },
-        h("span", null, (showArchive ? "▾ " : "▸ ") + T("Archiv", "Archive") + " (" + archived.length + " " + T(archived.length === 1 ? "Eintrag" : "Einträge", archived.length === 1 ? "item" : "items") + T(", letzte 30 Tage)", ", last 30 days)")),
-        h("span", null, showArchive ? T("Ausblenden", "Hide") : T("Anzeigen", "Show"))),
-      showArchive ? h("div", { className: "archlist" }, archived.map((t) => h("div", { key: (t.id || t.isin || t.asset), className: "archrow" },
-        h("span", { className: "an" }, t.asset),
-        h("span", { className: "am" }, (t.archived_at ? deShort(t.archived_at) : "") + (t.archive_reason ? " · " + archReason(t.archive_reason) : ""))))) : null) : null;
+    // HIER STAND BIS v49 DIE ARCHIV-SEKTION. Entfernt am 29.09.2026 auf
+    // Daniel-Entscheid.
+    //
+    // WOHIN: die Eintraege sind nicht weg, sie stehen in der Closed-List
+    // oben unter "Abgeschlossen". Die zeigt dieselben Zeilen und mehr —
+    // ISIN und Zustand kamen hier nie vor. Die Sektion zeigte sie ein
+    // zweites Mal, und zwei Listen derselben Sache laufen irgendwann
+    // auseinander.
+    //
+    // WAS DABEI VERLOREN GING, ausdruecklich benannt: das huebsche Label
+    // aus archReason ("These gekillt / Stop erreicht"). Das ist kein
+    // Informationsverlust, sondern der Verlust einer VERMUTUNG — archReason
+    // raet es per Teilwort (indexOf("stop"), indexOf("kill")), und genau
+    // diese Methode ist der Grund, warum P32 und P38 passiert sind. Die
+    // Closed-List zeigt bis auf Weiteres den ROHEN Grund; der Klartext
+    // kommt mit der kanonischen Tabelle in ABGANG_KLASSEN zurueck, dann als
+    // hinterlegte Zuordnung statt als Rateschluss.
+    //
+    // UND EINE UNBELEGTE BEHAUPTUNG IST MITGEGANGEN: die Ueberschrift sagte
+    // "letzte 30 Tage". Dieses Fenster hat das Frontend NIE angewandt — es
+    // filterte nur auf state === "archived", ohne jedes Datum. Ob die API
+    // von sich aus deckelt, ist UNGEMESSEN und haengt an VC-B505-M. Bis das
+    // beantwortet ist, gilt: die Closed-List zeigt, was ankommt, und ihre
+    // Fusszeile meldet es, wenn counts.total mehr nennt als angekommen ist.
+    //
+    // Wer sie zurueckbauen will, braucht erst eine Antwort auf die Frage,
+    // die sie nie beantwortet hat: WELCHE 30 Tage?
+    const archiveEl = null;
 
     // ============================================================
     // Closed-List
